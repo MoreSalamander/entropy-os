@@ -761,7 +761,7 @@ function lessonPageHtml(t) {
   const reference = (t.reference || []).length
     ? `<h2>Reference notes</h2><ul>${t.reference.map(r => `<li>${escapeHtml(typeof r === 'string' ? r : JSON.stringify(r))}</li>`).join('')}</ul>` : '';
   const body = `<h1>${escapeHtml(t.title)}</h1>
-    <p class="meta">gate-cleared lesson · dispensed from its own Docker image${t.source_url ? ` · <a href="${escapeHtml(t.source_url)}">original source</a>` : ''}</p>
+    <p class="meta">gate-cleared lesson · dispensed from its own Docker image${t.source_url ? ` · <a href="${escapeHtml(t.source_url)}" target="_blank" rel="noopener">original source ↗</a>` : ''}</p>
     ${t.overview ? `<p>${escapeHtml(t.overview)}</p>` : ''}${materials}${secs}${reference}`;
   return pageShellHtml(t.title, 'gate-cleared premade stock', body);
 }
@@ -775,7 +775,7 @@ function coursePageHtml(a) {
     <p class="meta">${escapeHtml(a.tier || '')} · ${escapeHtml(a.language || '')} · ${(a.chapters || []).length} chapters · human-authored, code-verified</p>
     ${a.pitch ? `<p>${escapeHtml(a.pitch)}</p>` : ''}
     <h2>Chapters</h2><ol>${chapters}</ol>
-    <p><a href="https://moresalamander.github.io/taichi-academy/reader/">Read the full course in the Academy reader →</a></p>
+    <p><a href="https://moresalamander.github.io/taichi-academy/reader/" target="_blank" rel="noopener">Read the full course in the Academy reader →</a></p>
     ${prov ? `<p class="meta">${escapeHtml(prov)}</p>` : ''}`;
   return pageShellHtml(name, 'Taichi Academy · human curated', body);
 }
@@ -786,7 +786,7 @@ function wireDispense(linkSel, boxId, doc) {
     ev.preventDefault();
     const box = document.getElementById(boxId);
     if (box.classList.contains("hidden")) {
-      box.innerHTML = `<iframe sandbox srcdoc="${doc.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}" style="width:100%;height:340px;border:1px solid var(--line);border-radius:10px;background:#fff;margin-top:8px"></iframe>`;
+      box.innerHTML = `<iframe sandbox="allow-popups allow-popups-to-escape-sandbox" srcdoc="${doc.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}" style="width:100%;height:340px;border:1px solid var(--line);border-radius:10px;background:#fff;margin-top:8px"></iframe>`;
       box.classList.remove("hidden"); link.textContent = "Close ▴";
     } else { box.classList.add("hidden"); link.textContent = "Dispense — view here ▾"; }
   };
