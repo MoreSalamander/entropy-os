@@ -17,6 +17,13 @@ dependencies = [
     # had with its undeclared engine dep); local development overrides this with
     # `pip install -e ../veritas` via ./dev.sh.
     "veritas @ git+https://github.com/MoreSalamander/veritas",
+    # Runtime capabilities of veritas code paths the front door actually invokes:
+    # the web studio renders in a real browser; the default Knowledge Graph
+    # fetcher shells to yt-dlp with trafilatura for article text. These become
+    # veritas extras once its pyproject narrows in the final split increment.
+    "playwright>=1.40",
+    "yt-dlp>=2024.1.0",
+    "trafilatura>=1.8",
 ]
 
 [project.optional-dependencies]

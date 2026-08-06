@@ -18,4 +18,7 @@ if [ -d ../veritas ]; then
   echo "veritas: editable from ../veritas"
 fi
 pip -q install -e ".[dev]"
-echo "entropy-os: ready — run with  .venv/bin/uvicorn entropy_os.app:create_app --factory --port 8100"
+# The web studio's render gate drives a real browser; each playwright version
+# wants its own build.
+playwright install chromium
+echo "entropy-os: ready — run with  .venv/bin/uvicorn entropy_os.app:app --port 8100"
