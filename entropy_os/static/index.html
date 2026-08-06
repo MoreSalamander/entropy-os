@@ -38,7 +38,11 @@
     --bg: var(--void); --panel: #10140f;
     --ink: var(--bone); --green: var(--safe); --red: var(--threat);
   }
-  body { display: flex; min-height: 100vh; }
+  body { display: flex; min-height: 100vh; padding-top: 34px; }
+  .masthead { position: fixed; top: 0; left: 0; right: 0; z-index: 60; text-align: center;
+              font-size: 11.5px; letter-spacing: .03em; padding: 8px 16px; color: var(--dim);
+              background: rgba(10,11,14,.94); border-bottom: 1px solid var(--line); }
+  .masthead b { color: var(--gold); font-weight: 600; }
   aside { width: 210px; border-right: 1px solid var(--line); padding: 22px 14px; flex-shrink: 0; }
   .entropy-kicker { font-family: var(--disp); font-weight: 700; font-size: 10px; letter-spacing: .32em;
                      color: var(--gold); margin: 0 8px 4px; }
@@ -371,6 +375,7 @@
 </style>
 </head>
 <body>
+<div class="masthead">This is what agentic AI looks like when it grows up and gets a job — accountable to <b>earn trust</b>, auditable to <b>prove it</b>, willing to say no to <b>keep it</b>.</div>
 <aside>
   <div class="entropy-kicker">MORESALAMANDER STUDIOLABS</div>
   <div class="logo">ENTROPY <b>OS</b></div>

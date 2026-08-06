@@ -17,7 +17,11 @@
     --ink: var(--bone); --green: var(--safe); --red: var(--threat);
   }
   body { line-height: 1.5;
-         display: flex; flex-direction: column; align-items: center; padding: 0 18px 80px; }
+         display: flex; flex-direction: column; align-items: center; padding: 34px 18px 80px; }
+  .masthead { position: fixed; top: 0; left: 0; right: 0; z-index: 60; text-align: center;
+              font-size: 11.5px; letter-spacing: .03em; padding: 8px 16px; color: var(--dim);
+              background: rgba(10,11,14,.94); border-bottom: 1px solid var(--line); }
+  .masthead b { color: var(--gold); font-weight: 600; }
   .wrap { width: 100%; max-width: 680px; }
   header { padding: 40px 0 8px; }
   .entropy-kicker { font-family: var(--disp); font-weight: 700; font-size: 10px; letter-spacing: .32em;
@@ -169,6 +173,7 @@
 </style>
 </head>
 <body>
+<div class="masthead">This is what agentic AI looks like when it grows up and gets a job — accountable to <b>earn trust</b>, auditable to <b>prove it</b>, willing to say no to <b>keep it</b>.</div>
 <div class="ambient" aria-hidden="true"><div class="glow"></div><div class="scan"></div></div>
 <div class="wrap">
   <header>
