@@ -351,6 +351,23 @@
   .vm-receipt h3 { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--dim); margin: 14px 0 6px; }
   .vm-receipt ul { margin: 0; padding-left: 18px; font-size: 12.5px; }
   .vm-panel-note { flex: 1; min-width: 260px; }
+/* The machine's marquee nav entry — the one link a visitor should not miss. */
+.nav-demo {
+  color: var(--gold) !important;
+  border: 1px solid rgba(232,196,104,.45);
+  border-radius: 9px;
+  background: rgba(232,196,104,.07);
+  animation: demopulse 2.6s ease-in-out infinite;
+}
+.nav-demo .demostar {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .08em;
+  color: var(--gold); opacity: .9; margin-left: 4px;
+}
+@keyframes demopulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(232,196,104,0); }
+  50% { box-shadow: 0 0 14px rgba(232,196,104,.28); }
+}
+@media (prefers-reduced-motion: reduce) { .nav-demo { animation: none; } }
 </style>
 </head>
 <body>
@@ -370,7 +387,7 @@
     <a data-view="studio" data-org="free_money_hunter">Free Money Hunter</a>
     <a data-view="studio" data-org="hackathon_hunter">Hackathon Hunter</a>
     <a data-view="commons">Knowledge Graph</a>
-    <a data-view="vending">Vending Machine</a>
+    <a data-view="vending" id="navVending" class="nav-demo">Vending Machine <span class="demostar">✳ demo</span></a>
     <div class="navlabel">In-house era</div>
     <a data-view="studio" data-org="software">Software</a>
     <a data-view="studio" data-org="web">Web</a>
@@ -767,6 +784,12 @@ function highlightCodeIn(el) {
 }
 
 document.querySelectorAll('nav a[data-view]').forEach(a => a.onclick = () => {
+  // Hosted: the Vending Machine nav IS the demo door — take them to the
+  // machine that vends for THEM (/try), not the local-only racks.
+  if (a.id === 'navVending' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+    location.href = '/try?slot=web';
+    return;
+  }
   document.querySelectorAll('nav a').forEach(x => x.classList.remove('active'));
   a.classList.add('active');
   const view = a.dataset.view;
