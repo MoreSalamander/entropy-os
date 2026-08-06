@@ -68,7 +68,10 @@ from orgs.production_studio.taste import (
     build_create_production,
 )
 from orgs.planning import StepResult, execute_plan, gate_plan, propose_plan
-from orgs.registry import GROUPS, REGISTRY, OrgRun, get_org, production_generator
+from orgs.registry import REGISTRY, OrgRun, get_org, production_generator
+
+from entropy_os.groups import GROUPS, validate_groups
+from entropy_os.org_presentation import presentation_for
 from orgs.research_studio.knowledge import Brief, build_brief
 from orgs.research_studio.report import ReportParseError, parse_report
 from orgs.software_studio import agents as software_agents
@@ -1006,6 +1009,7 @@ def create_app(
     def production_profile_store() -> ProductionProfileStore:
         return ProductionProfileStore(base / "profiles" / "production.json")
 
+    validate_groups(REGISTRY)
     app = FastAPI(title="Entropy OS")
     # The state the routers will consume once the monolith decomposes
     # (post-hackathon); today it also anchors the smoke tests.
@@ -1040,10 +1044,9 @@ def create_app(
                 "verified_by": org.verified_by,
                 "goal_hint": org.goal_hint,
                 "needs_sources": org.needs_sources,
-                "color": org.color,
-                "external_url": org.external_url,
-                "launchpad_name": org.launchpad_name,
-                "repo_url": org.repo_url,
+                # Presentation facts merged from the front door's own overlay —
+                # the registry stopped carrying UI fields when the repos split.
+                **presentation_for(org.name),
             }
             for org in REGISTRY.values()
         ]
@@ -1052,7 +1055,7 @@ def create_app(
     def list_org_groups() -> dict[str, Any]:
         """The group layers between Entropy OS and the engines — e.g.
         Opportunity [Agency AI] wrapping the three Hunter engines. Groups are
-        data (see orgs.registry.GROUPS): the frontend nests member org cards
+        data (see entropy_os.groups.GROUPS): the frontend nests member org cards
         inside a group panel whose header opens the group's own live app."""
         return GROUPS
 

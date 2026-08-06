@@ -13,12 +13,20 @@ the agent engines.**
 
 ## Status
 
-Increment 1 of the split from veritas: this repo serves the UI; API routes
-are porting over group by group while veritas's hub dual-runs. The migration
-plan lives with the maintainers; the judge-facing DataHub hackathon demo is
-frozen separately at
+**The split is complete.** The full front-door surface — Mission Control,
+the "what do you want to build" router, runs/memory/collector views, the
+Knowledge Graph, the five interactive sessions, the wedge storefront
+(`ENTROPY_PUBLIC=1` for hosted mode), the Vending Machine — serves from this
+repo at exact route parity with the old in-veritas hub (75 = 75, verified),
+against the same data root. Veritas has no web surface anymore.
+
+The judge-facing DataHub hackathon demo is frozen separately at
 [entropy-datahub-demo](https://github.com/MoreSalamander/entropy-datahub-demo)
 (tag `hackathon-2026`) and does not depend on this repo.
+
+Post-hackathon queue: decompose the monolithic `create_app` into routers +
+an AppState, the EngineShape registry for the interview flows, and the
+four-layer descent nav.
 
 ## Develop
 
