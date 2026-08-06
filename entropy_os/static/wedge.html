@@ -753,14 +753,16 @@ function lessonPageHtml(t) {
     <h2>${escapeHtml(sec.title || '')}</h2>
     ${sec.intro ? `<p>${escapeHtml(sec.intro)}</p>` : ''}
     ${(sec.steps || []).map(st => {
-      const txt = typeof st === 'string' ? st : (st.text || st.title || '');
+      const txt = typeof st === 'string' ? st : (st.instruction || st.text || st.title || '');
       const code = st && st.code ? `<pre>${escapeHtml(st.code)}</pre>` : '';
       return `<div class="step">${escapeHtml(txt)}${code}</div>`;
     }).join('')}
     ${sec.tip ? `<div class="tip"><b>Tip:</b> ${escapeHtml(sec.tip)}</div>` : ''}`).join('');
+  const reference = (t.reference || []).length
+    ? `<h2>Reference notes</h2><ul>${t.reference.map(r => `<li>${escapeHtml(typeof r === 'string' ? r : JSON.stringify(r))}</li>`).join('')}</ul>` : '';
   const body = `<h1>${escapeHtml(t.title)}</h1>
     <p class="meta">gate-cleared lesson · dispensed from its own Docker image${t.source_url ? ` · <a href="${escapeHtml(t.source_url)}">original source</a>` : ''}</p>
-    ${t.overview ? `<p>${escapeHtml(t.overview)}</p>` : ''}${materials}${secs}`;
+    ${t.overview ? `<p>${escapeHtml(t.overview)}</p>` : ''}${materials}${secs}${reference}`;
   return pageShellHtml(t.title, 'gate-cleared premade stock', body);
 }
 
