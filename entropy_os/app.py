@@ -2010,7 +2010,12 @@ def create_app(
     @app.get("/about")
     def about() -> FileResponse:
         # The standalone explainer (docs/about.html) served in-hub too — one file, two homes.
-        return FileResponse(_ROOT / "docs" / "about.html", headers={"Cache-Control": "no-store"})
+        about = _ROOT / "docs" / "about.html"
+        if not about.exists():
+            # The engine's docs live in its source checkout, not the installed
+            # package — on a hosted box this page honestly doesn't exist.
+            return JSONResponse({"detail": "not found"}, status_code=404)
+        return FileResponse(about, headers={"Cache-Control": "no-store"})
 
     @app.get("/report/{run_id}")
     def report_document(run_id: str) -> HTMLResponse:
