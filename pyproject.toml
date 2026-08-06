@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "entropy-os"
+version = "0.1.0"
+description = "Entropy OS — the front door. Every dashboard and interview lives here; the engines live in Veritas, imported as a library."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Apache-2.0" }
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "httpx>=0.27",
+    # The engine room. Declared so a clean clone resolves (the flaw my-AI-script
+    # had with its undeclared engine dep); local development overrides this with
+    # `pip install -e ../veritas` via ./dev.sh.
+    "veritas @ git+https://github.com/MoreSalamander/veritas",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.setuptools.packages.find]
+include = ["entropy_os*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

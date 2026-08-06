@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entropy OS — the front door</title>
+<meta name="description" content="Entropy OS: the presentation layer of the platform. The engines live in Veritas; the front door lives here.">
+<style>
+  :root { --void:#0a0e0c; --bone:#e9edf3; --dim:#8b97a8; --gold:#e8c468; --line:#212733;
+          --mono:ui-monospace,SFMono-Regular,Menlo,monospace; }
+  body { margin:0; background:var(--void); color:var(--bone);
+         font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; line-height:1.65; }
+  .wrap { max-width:720px; margin:0 auto; padding:96px 22px 120px; text-align:center; }
+  .kicker { font-family:var(--mono); font-size:12px; letter-spacing:3px; text-transform:uppercase; color:var(--gold); }
+  h1 { font-size:52px; margin:14px 0 10px; letter-spacing:-1px; } h1 b { color:var(--gold); }
+  p  { color:var(--dim); font-size:16.5px; }
+  .layers { font-family:var(--mono); font-size:13px; color:var(--bone); margin:26px 0;
+            padding:16px; border:1px solid var(--line); border-radius:12px; }
+  a { color:var(--gold); text-decoration:none; } a:hover { text-decoration:underline; }
+  .links { margin-top:28px; display:flex; gap:18px; justify-content:center; flex-wrap:wrap; font-size:14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">MoreSalamander · StudioLabs</div>
+  <h1>Entropy <b>OS</b></h1>
+  <p>The front door of the platform: every dashboard and interview lives here,
+  while the engines live in Veritas — imported as a library, never re-implemented.</p>
+  <div class="layers">Entropy OS &nbsp;→&nbsp; Opportunity [Agency AI] &nbsp;→&nbsp; Veritas Dynamics &nbsp;→&nbsp; agent engines</div>
+  <p>The split from the Veritas repo is in progress. The DataHub hackathon demo
+  is frozen separately and unaffected.</p>
+  <div class="links">
+    <a href="https://github.com/MoreSalamander/entropy-os">source</a>
+    <a href="https://moresalamander.github.io/entropy-datahub-demo/">the DataHub demo</a>
+    <a href="https://github.com/MoreSalamander/veritas">Veritas — the engine room</a>
+    <a href="https://moresalamander.github.io">the studio</a>
+  </div>
+</div>
+</body>
+</html>
