@@ -659,7 +659,7 @@
         <div class="vm-chute"></div>
         <div class="vm-tray">
           <div class="vm-tray-label">tray</div>
-          <div id="vmTrayContent" class="muted" style="font-size:12.5px">press a button to dispense.</div>
+          <div id="vmTrayContent" class="muted" style="font-size:12.5px">press a button to dispense.<span id="vmTrayHostedNote"></span></div>
         </div>
       </div>
       <div class="vm-panel-note panel">
@@ -1059,6 +1059,7 @@ function renderRack(el, items, htmlOf, wireOf, emptyMsg, picks, titleOf) {
 }
 
 async function loadVending() {
+  if (!VM_LOCAL) { const n = document.getElementById('vmTrayHostedNote'); if (n) n.textContent = ' (premade dispensing runs on the operator\'s machine — made-to-order slots above work right here.)'; }
   const products = await api('/api/tutorial/products');
   renderRack($('#vmGlass'), products,
     (p, i) => vmSlotHtml(p, VM_CODES[i] || String(i + 1)),
@@ -1075,6 +1076,14 @@ async function loadVending() {
   $('#vmRestockGo').onclick = restockVendingMachine;
 }
 
+const VM_LOCAL = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+
+function vmDispenseButton(p, inStock) {
+  if (!inStock) return `<button class="vm-select" id="vmbtn-${p.id}" disabled>Out of stock</button>`;
+  if (!VM_LOCAL) return `<button class="vm-select" id="vmbtn-${p.id}" disabled title="The lesson images live in the operator's local Docker — dispensing happens on the operator's machine (you'll see it in the demo video).">Dispense · local-only</button>`;
+  return `<button class="vm-select" id="vmbtn-${p.id}">Dispense</button>`;
+}
+
 function vmAcademySlotHtml(p, rung) {
   const inStock = !!p.container_image;
   return `<div class="vm-slot ${inStock ? '' : 'vm-oos'}">
@@ -1082,7 +1091,7 @@ function vmAcademySlotHtml(p, rung) {
     <div class="vm-coil"></div>
     <div class="vm-label">${esc(p.title.replace(/^Academy: /, ''))}</div>
     <div class="vm-sub"><span class="vm-tier">${esc(p.tier)}</span> · ${p.chapters.length} chapter${p.chapters.length === 1 ? '' : 's'}</div>
-    <button class="vm-select" id="vmbtn-${p.id}" ${inStock ? '' : 'disabled'}>${inStock ? 'Dispense' : 'Out of stock'}</button>
+    ${vmDispenseButton(p, inStock)}
   </div>`;
 }
 
@@ -1142,7 +1151,7 @@ function vmSlotHtml(p, code) {
     <div class="vm-coil"></div>
     <div class="vm-label">${esc(p.title)}</div>
     <div class="vm-sub">${esc(p.source_channel || '')}</div>
-    <button class="vm-select" id="vmbtn-${p.id}" ${inStock ? '' : 'disabled'}>${inStock ? 'Dispense' : 'Out of stock'}</button>
+    ${vmDispenseButton(p, inStock)}
   </div>`;
 }
 
