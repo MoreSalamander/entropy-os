@@ -28,5 +28,11 @@ fi
 # Pre-pull the sandbox image (cached on the Volume after the first boot, so this is a no-op later).
 docker image inspect python:3.12-slim >/dev/null 2>&1 || docker pull python:3.12-slim
 
+# Stock the Vending Machine's premade shelf (idempotent, seed-if-missing by
+# record id — a live box's accumulated memory is never overwritten). An empty
+# shelf is a display problem, not a safety problem, so a seeding failure warns
+# and lets the front door open anyway.
+python /opt/entropy-os/scripts/seed_shelf.py || echo "WARN: shelf seeding failed; the premade shelf may be empty" >&2
+
 # Hand off to the app. Bind to all interfaces inside the microVM; Fly's proxy terminates TLS in front.
 exec uvicorn entropy_os.app:app --host 0.0.0.0 --port 8101
