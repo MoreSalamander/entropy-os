@@ -82,6 +82,7 @@
   button { background: var(--gold); color: #1c1606; border: 0; padding: 11px 18px; border-radius: 9px;
            font-weight: 700; cursor: pointer; font-size: 14px; }
   button.ghost { background: transparent; color: var(--gold); border: 1px solid var(--line); }
+  a.ghost { color: var(--gold); }  /* download links share the ghost-button look; never default blue */
   button:disabled { opacity: .5; cursor: wait; }
   .who { font-size: 12.5px; color: var(--dim); margin-left: auto; }
   .who b { color: var(--ink); }
@@ -205,6 +206,34 @@
 
   <div class="banner" id="banner"></div>
 
+  <!-- THE REAL THING: the eldest hunter engine, mirrored live. Proof the
+       machine that fills this vending machine actually exists and runs. -->
+  <section class="panel" id="realThing">
+    <h2>The engine behind the glass <span style="text-transform:none;letter-spacing:0;color:var(--dim)">· live, read-only</span></h2>
+    <a href="https://crypto-hunter-live.fly.dev" target="_blank" rel="noopener"
+       style="display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:12px;padding:14px 16px;text-decoration:none;color:var(--fg);margin-top:8px">
+      <span style="width:10px;height:10px;border-radius:50%;background:#f0a52c;box-shadow:0 0 12px #f0a52c;flex:none"></span>
+      <span style="flex:1;min-width:0">
+        <b>Crypto Hunter AI</b> — the eldest hunter, running on its own box.
+        <span class="muted" style="display:block;font-size:12px;margin-top:2px">Real verified hunts, real gate verdicts, updating as it works. Read-only mirror — you can watch, nothing you press can move money. First load may take a few seconds while its box wakes.</span>
+      </span>
+      <span style="color:var(--gold);flex:none">watch it operate ↗</span>
+    </a>
+  </section>
+
+  <!-- PREMADE: the human-curated shelf, readable right here; dispensing
+       (fresh disposable containers) happens on the operator's machine. -->
+  <section class="panel" id="premadePanel">
+    <h2>Premade — off the shelf <span style="text-transform:none;letter-spacing:0;color:var(--dim)">· human curated</span></h2>
+    <div id="premadeTutorials" class="muted" style="font-size:12.5px">loading the shelf…</div>
+    <div style="margin-top:14px">
+      <label style="margin-bottom:6px">Taichi Academy — five of thirty <a href="https://moresalamander.github.io/taichi-academy/reader/" target="_blank" rel="noopener" style="color:var(--gold)">(read all the lessons ↗)</a></label>
+      <div id="premadeAcademy" class="muted" style="font-size:12.5px">loading…</div>
+    </div>
+    <div class="hint" style="margin-top:10px">Every item here cleared its gate before it was stocked. Dispensing a fresh disposable container happens on the operator's machine — reading is for everyone.</div>
+  </section>
+
+
   <!-- AUTH -->
   <section class="panel" id="authPanel">
     <h2 id="authTitle">Sign in</h2>
@@ -262,33 +291,6 @@
     <div class="tracehead"><span class="livedot"></span><h2 style="margin:0">Live — watch it work</h2></div>
     <p class="holdhint"><b>press &amp; hold</b> the trace to slow time · release to resume</p>
     <div class="trace" id="trace"></div>
-  </section>
-
-  <!-- PREMADE: the human-curated shelf, readable right here; dispensing
-       (fresh disposable containers) happens on the operator's machine. -->
-  <section class="panel" id="premadePanel">
-    <h2>Premade — off the shelf <span style="text-transform:none;letter-spacing:0;color:var(--dim)">· human curated</span></h2>
-    <div id="premadeTutorials" class="muted" style="font-size:12.5px">loading the shelf…</div>
-    <div style="margin-top:14px">
-      <label style="margin-bottom:6px">Taichi Academy — five of thirty <a href="https://moresalamander.github.io/taichi-academy/reader/" target="_blank" rel="noopener" style="color:var(--gold)">(read all the lessons ↗)</a></label>
-      <div id="premadeAcademy" class="muted" style="font-size:12.5px">loading…</div>
-    </div>
-    <div class="hint" style="margin-top:10px">Every item here cleared its gate before it was stocked. Dispensing a fresh disposable container happens on the operator's machine — reading is for everyone.</div>
-  </section>
-
-  <!-- THE REAL THING: the eldest hunter engine, mirrored live. Proof the
-       machine that fills this vending machine actually exists and runs. -->
-  <section class="panel" id="realThing">
-    <h2>The engine behind the glass <span style="text-transform:none;letter-spacing:0;color:var(--dim)">· live, read-only</span></h2>
-    <a href="https://crypto-hunter-live.fly.dev" target="_blank" rel="noopener"
-       style="display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:12px;padding:14px 16px;text-decoration:none;color:var(--fg);margin-top:8px">
-      <span style="width:10px;height:10px;border-radius:50%;background:#f0a52c;box-shadow:0 0 12px #f0a52c;flex:none"></span>
-      <span style="flex:1;min-width:0">
-        <b>Crypto Hunter AI</b> — the eldest hunter, running on its own box.
-        <span class="muted" style="display:block;font-size:12px;margin-top:2px">Real verified hunts, real gate verdicts, updating as it works. Read-only mirror — you can watch, nothing you press can move money. First load may take a few seconds while its box wakes.</span>
-      </span>
-      <span style="color:var(--gold);flex:none">watch it operate ↗</span>
-    </a>
   </section>
 
   <!-- RESULT -->
@@ -717,15 +719,68 @@ async function pollInterview() {
 const SHELF_TUTORIALS = ["DataHub 201", "Hyper Realistic Water", "Build an AI Agent"];
 const SHELF_ACADEMY = ["Galaxy Creator", "Fluid Simulator", "Volumetric Clouds", "Mandelbulb Explorer", "Universe Sandbox"];
 
-function lessonHtml(prod) {
-  const secs = (prod.sections || []).map(sec => `
-    <div style="margin:10px 0">
-      <div style="font-weight:600;font-size:13px;color:var(--ink)">${escapeHtml(sec.title || '')}</div>
-      ${sec.intro ? `<div style="font-size:12.5px;margin-top:3px">${escapeHtml(sec.intro)}</div>` : ''}
-      ${sec.tip ? `<div style="font-size:12px;color:var(--gold);margin-top:3px">tip: ${escapeHtml(sec.tip)}</div>` : ''}
-      ${(sec.steps || []).map(st => `<div style="font-size:12.5px;margin-top:6px;padding-left:10px;border-left:2px solid var(--line)">${escapeHtml(typeof st === 'string' ? st : (st.text || st.title || ''))}${st && st.code ? `<pre style="white-space:pre-wrap;font-size:11.5px;margin-top:4px;color:var(--ink)">${escapeHtml(st.code)}</pre>` : ''}</div>`).join('')}
-    </div>`).join("");
-  return `<div style="max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:9px;padding:10px;margin-top:8px">${prod.overview ? `<div style="font-size:12.5px">${escapeHtml(prod.overview)}</div>` : ''}${secs}</div>`;
+// The premade shelf dispenses like every other slot: a standalone viewable
+// HTML document in an in-place viewer, plus "take it with you" — never an
+// inert list of names.
+const dlBtn = (name, text, label) =>
+  `<a class="ghost" style="text-decoration:none;padding:6px 12px;border:1px solid var(--line);border-radius:8px;font-size:12.5px" download="${name}" href="data:text/html;charset=utf-8,${encodeURIComponent(text)}">${label}</a>`;
+
+function pageShellHtml(title, kickerNote, bodyHtml) {
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
+<style>
+  body{font-family:Georgia,serif;max-width:720px;margin:48px auto;padding:0 22px;line-height:1.65;color:#1c1c1c}
+  h1{font-size:26px;line-height:1.25} h2{font-size:18px;margin-top:30px}
+  a{color:#8a6d1a} .tip{border-left:3px solid #d9a441;padding:6px 12px;background:#faf6ec;font-size:14px;margin:10px 0}
+  .step{margin:12px 0;padding-left:14px;border-left:2px solid #e3ddcf}
+  pre{background:#f4f2ec;border:1px solid #e3ddcf;border-radius:6px;padding:12px;font-size:12.5px;overflow-x:auto;white-space:pre-wrap}
+  .meta{color:#777;font-size:13px} ol li{margin:6px 0}
+  .kicker{font-family:monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#999}
+</style></head>
+<body><div class="kicker">Entropy OS · Vending Machine · ${escapeHtml(kickerNote)}</div>${bodyHtml}</body></html>`;
+}
+
+function lessonPageHtml(t) {
+  const materials = (t.materials || []).length
+    ? `<h2>Materials</h2><ul>${t.materials.map(m => `<li>${escapeHtml(typeof m === 'string' ? m : (m.name || JSON.stringify(m)))}</li>`).join('')}</ul>` : '';
+  const secs = (t.sections || []).map(sec => `
+    <h2>${escapeHtml(sec.title || '')}</h2>
+    ${sec.intro ? `<p>${escapeHtml(sec.intro)}</p>` : ''}
+    ${(sec.steps || []).map(st => {
+      const txt = typeof st === 'string' ? st : (st.text || st.title || '');
+      const code = st && st.code ? `<pre>${escapeHtml(st.code)}</pre>` : '';
+      return `<div class="step">${escapeHtml(txt)}${code}</div>`;
+    }).join('')}
+    ${sec.tip ? `<div class="tip"><b>Tip:</b> ${escapeHtml(sec.tip)}</div>` : ''}`).join('');
+  const body = `<h1>${escapeHtml(t.title)}</h1>
+    <p class="meta">gate-cleared lesson · dispensed from its own Docker image${t.source_url ? ` · <a href="${escapeHtml(t.source_url)}">original source</a>` : ''}</p>
+    ${t.overview ? `<p>${escapeHtml(t.overview)}</p>` : ''}${materials}${secs}`;
+  return pageShellHtml(t.title, 'gate-cleared premade stock', body);
+}
+
+function coursePageHtml(a) {
+  const name = (a.title || '').replace(/^Academy: /, '');
+  const chapters = (a.chapters || []).map(c => `<li>${escapeHtml(c)}</li>`).join('');
+  const prov = [a.verified_by ? `verified by ${a.verified_by}` : '', a.trust || '', a.container_image ? `image ${a.container_image}` : '']
+    .filter(Boolean).join(' · ');
+  const body = `<h1>${escapeHtml(name)}</h1>
+    <p class="meta">${escapeHtml(a.tier || '')} · ${escapeHtml(a.language || '')} · ${(a.chapters || []).length} chapters · human-authored, code-verified</p>
+    ${a.pitch ? `<p>${escapeHtml(a.pitch)}</p>` : ''}
+    <h2>Chapters</h2><ol>${chapters}</ol>
+    <p><a href="https://moresalamander.github.io/taichi-academy/reader/">Read the full course in the Academy reader →</a></p>
+    ${prov ? `<p class="meta">${escapeHtml(prov)}</p>` : ''}`;
+  return pageShellHtml(name, 'Taichi Academy · human curated', body);
+}
+
+function wireDispense(linkSel, boxId, doc) {
+  const link = document.querySelector(linkSel);
+  link.onclick = (ev) => {
+    ev.preventDefault();
+    const box = document.getElementById(boxId);
+    if (box.classList.contains("hidden")) {
+      box.innerHTML = `<iframe sandbox srcdoc="${doc.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}" style="width:100%;height:340px;border:1px solid var(--line);border-radius:10px;background:#fff;margin-top:8px"></iframe>`;
+      box.classList.remove("hidden"); link.textContent = "Close ▴";
+    } else { box.classList.add("hidden"); link.textContent = "Dispense — view here ▾"; }
+  };
 }
 
 async function loadPremade() {
@@ -737,22 +792,30 @@ async function loadPremade() {
         <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">
           <b style="color:var(--ink);font-size:13px">${escapeHtml(t.title)}</b>
           <span style="font-size:11px">gate-verified lesson · its own Docker image</span>
-          <a href="#" data-read="${i}" style="color:var(--gold);font-size:12px;margin-left:auto">Read the lesson ▾</a>
+        </div>
+        <div class="btns" style="margin-top:8px">
+          <a href="#" data-read="${i}" style="color:var(--gold);font-size:12.5px">Dispense — view here ▾</a>
+          ${dlBtn(`lesson-${(t.title || 'lesson').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40)}.html`, lessonPageHtml(t), "⬇ Take the lesson")}
         </div>
         <div id="lesson-${i}" class="hidden"></div>
       </div>`).join("") : "shelf is empty here.";
-    picks.forEach((t, i) => {
-      document.querySelector(`[data-read="${i}"]`).onclick = (ev) => {
-        ev.preventDefault();
-        const box = document.getElementById(`lesson-${i}`);
-        if (box.classList.contains("hidden")) { box.innerHTML = lessonHtml(t); box.classList.remove("hidden"); ev.target.textContent = "Close ▴"; }
-        else { box.classList.add("hidden"); ev.target.textContent = "Read the lesson ▾"; }
-      };
-    });
+    picks.forEach((t, i) => wireDispense(`[data-read="${i}"]`, `lesson-${i}`, lessonPageHtml(t)));
+
     const acad = await (await fetch("/api/academy/products")).json();
     const apicks = acad.filter(a => SHELF_ACADEMY.some(n => (a.title || '').includes(n)));
-    document.getElementById("premadeAcademy").innerHTML = apicks.map(a =>
-      `<span style="display:inline-block;border:1px solid var(--line);border-radius:8px;padding:5px 10px;margin:0 6px 6px 0;font-size:12px;color:var(--ink)">${escapeHtml(a.title.replace(/^Academy: /, ''))} <span style="color:var(--dim)">· ${escapeHtml(a.tier)} · ${a.chapters.length} ch.</span></span>`).join("");
+    document.getElementById("premadeAcademy").innerHTML = apicks.map((a, i) => `
+      <div style="border:1px solid var(--line);border-radius:9px;padding:10px;margin-bottom:8px">
+        <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">
+          <b style="color:var(--ink);font-size:13px">${escapeHtml(a.title.replace(/^Academy: /, ''))}</b>
+          <span style="font-size:11px;color:var(--dim)">${escapeHtml(a.tier)} · ${a.chapters.length} chapters · human-authored, code-verified</span>
+        </div>
+        <div class="btns" style="margin-top:8px">
+          <a href="#" data-acad="${i}" style="color:var(--gold);font-size:12.5px">Dispense — view here ▾</a>
+          ${dlBtn(`course-${(a.title || 'course').replace(/^Academy: /, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40)}.html`, coursePageHtml(a), "⬇ Take the syllabus")}
+        </div>
+        <div id="acad-${i}" class="hidden"></div>
+      </div>`).join("");
+    apicks.forEach((a, i) => wireDispense(`[data-acad="${i}"]`, `acad-${i}`, coursePageHtml(a)));
   } catch (e) {
     document.getElementById("premadeTutorials").textContent = "couldn't reach the shelf just now.";
   }
