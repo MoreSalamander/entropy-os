@@ -545,6 +545,29 @@ function setHold(v) {
   $("tracePanel").classList.toggle("slowmo", v);
 }
 
+function mdLite(md) {
+  const lines = escapeHtml(md).split('\n').map(l => {
+    if (l.startsWith('### ')) return `<div style="font-weight:650;margin-top:12px;font-size:14px">${l.slice(4)}</div>`;
+    if (l.startsWith('## ')) return `<div style="font-weight:700;margin-top:14px;font-size:15px">${l.slice(3)}</div>`;
+    if (l.startsWith('# ')) return `<div style="font-weight:700;font-size:17px">${l.slice(2)}</div>`;
+    if (/^\s*[-*] /.test(l)) return `<div style="padding-left:14px">• ${l.replace(/^\s*[-*] /, '')}</div>`;
+    if (/^---+$/.test(l.trim())) return '<hr style="border:0;border-top:1px dashed var(--line)">';
+    return l ? `<div>${l}</div>` : '<div style="height:7px"></div>';
+  }).join('');
+  return lines
+    .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+    .replace(/\[(src\d+)\]/g, '<span style="color:var(--gold);font-family:var(--mono);font-size:11px">[$1]</span>')
+    .replace(/https?:\/\/[^\s<]+/g, u => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--gold)">${u}</a>`);
+}
+
+function reportDocumentHtml(md, sourcesText) {
+  // A standalone, styled document — what "take the report" hands you.
+  const body = mdLite(md) + (sourcesText ? `<hr style="border:0;border-top:1px solid #ddd;margin:22px 0"><div style="font-size:12px;color:#666"><b>Machine-fetched sources</b><br>${escapeHtml(sourcesText).replace(/\n/g, '<br>')}</div>` : '');
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Grounded report — Entropy OS</title>
+<style>body{font-family:Georgia,serif;max-width:720px;margin:48px auto;padding:0 22px;line-height:1.65;color:#1c1c1c}a{color:#8a6d1a}</style></head>
+<body><div style="font-family:monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#999">Entropy OS · grounded report · every claim cited, every quote verified verbatim</div>${body}</body></html>`;
+}
+
 function trayHtml(r) {
   const arts = r.artifacts || [];
   if (!arts.length) return "";
@@ -560,10 +583,16 @@ function trayHtml(r) {
   }
   if (r.org === "research") {
     const report = arts[arts.length - 1].payload;
+    const fetched = (arts.find(a => a.label === "machine-fetched sources") || {}).payload || "";
+    const doc = reportDocumentHtml(report, fetched);
     return `<div style="margin-top:14px">
       <div class="muted" style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px">the tray — your grounded report</div>
-      <pre style="white-space:pre-wrap;font-size:12.5px;line-height:1.6;max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:12px">${escapeHtml(report)}</pre>
-      <div class="btns" style="margin-top:8px">${dl("report.md", "text/markdown", report, "⬇ Take the report")}</div>
+      ${fetched ? `<div style="font-size:11.5px;color:var(--gold);margin-bottom:6px">sources the machine fetched itself: ${escapeHtml(fetched.trim().split('\n').length + '')} · machine-fetched tier</div>` : ''}
+      <div style="font-size:13px;line-height:1.65;max-height:360px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:14px">${mdLite(report)}</div>
+      <div class="btns" style="margin-top:8px">
+        ${dl("report.html", "text/html", doc, "⬇ Take the report (styled page)")}
+        ${dl("report.md", "text/markdown", report, "⬇ markdown")}
+      </div>
     </div>`;
   }
   const code = r.code || (arts[0] && arts[0].payload) || "";
