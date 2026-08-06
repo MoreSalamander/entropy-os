@@ -2082,7 +2082,15 @@ async function runStudio(org, roster) {
   try {
     start = await api('/api/runs/start', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({goal, org, model: $('#studiomodel').value, sources}) });
   } catch (e) { $('#studiotrace').innerHTML = `<div class="panel"><span class="fail">couldn't reach the hub</span></div>`; $('#studiorun').disabled = false; return; }
-  if (!start.token) { $('#studiotrace').innerHTML = `<div class="panel"><span class="fail">${esc(start.error || 'could not start')}</span></div>`; $('#studiorun').disabled = false; return; }
+  if (!start.token) {
+    // The hosted face seals direct runs (404 -> {detail}); locally a missing
+    // token carries the real error. Say which world you're in.
+    const msg = start.error || (start.detail
+      ? 'Direct runs are sealed on this hosted face — sign up at /try to run through the metered wedge.'
+      : 'could not start');
+    $('#studiotrace').innerHTML = `<div class="panel"><span class="fail">${esc(msg)}</span></div>`;
+    $('#studiorun').disabled = false; return;
+  }
   while (true) {
     let p;
     try { p = await api('/api/runs/progress/' + start.token); } catch (e) { await sleep(500); continue; }
