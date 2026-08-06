@@ -68,6 +68,7 @@ from orgs.production_studio.taste import (
     build_create_production,
 )
 from orgs.planning import StepResult, execute_plan, gate_plan, propose_plan
+from orgs.dispatch import WorkOrder, dispatch, propose_route
 from orgs.registry import REGISTRY, OrgRun, get_org, production_generator
 
 from entropy_os.groups import GROUPS, validate_groups
@@ -380,25 +381,6 @@ class ChatRequest(BaseModel):
 
 
 # Deterministic fallback if the model-routed pick fails: first keyword group that matches wins.
-_ROUTE_KEYWORDS: list[tuple[tuple[str, ...], str]] = [
-    (("video", "film", "animation", "movie", "trailer", "narrat", "explainer"), "production"),
-    (("lesson", "teach", "course", "curriculum", "学"), "education"),
-    (("article", "news", "newsroom", "story about"), "newsroom"),
-    (("report", "grounded", "cite", "sources", "summari"), "research"),
-    (("experiment", "hypothesis", "benchmark", "reproduc", "outperform", "whether", " beat "), "empirical"),
-    (("startup", "mvp", "business", "profitable"), "startup"),
-    (("roguelike", "game ", "rpg", "platformer"), "game"),
-    (("page", "website", "landing", "site", "html", "dashboard", "ui "), "web"),
-    (("function", "code", "module", "algorithm", "program", "script", "app "), "software"),
-]
-
-
-def _keyword_route(request: str) -> str:
-    r = f" {request.lower()} "
-    for kws, org in _ROUTE_KEYWORDS:
-        if any(k in r for k in kws):
-            return org
-    return "software"
 
 
 # --- Labs benchmark: measure which model clears which work (feeds the Models tab's notes) ---
@@ -1068,32 +1050,14 @@ def create_app(
 
     @app.post("/api/route")
     def route(req: RouteRequest) -> dict[str, Any]:
-        """The front door: a model proposes which studio a request belongs to (and a concise goal);
-        a deterministic keyword pass is the fallback. The UI shows the proposal for the human to
-        confirm before anything runs — routing is a proposal, the gates are still the authority."""
-        studios = "; ".join(f"{o.name} = {o.description}" for o in REGISTRY.values())
-        system = (
-            "You route a user's request to exactly one studio, and extract a concise goal for it. "
-            f"Studios: {studios}. Reply with ONLY JSON: "
-            "{\"org\": \"<studio name>\", \"goal\": \"<a concise goal/brief for that studio>\"}."
-        )
-        org: str | None = None
-        goal = req.request.strip()
-        try:
-            prov = injected_provider or provider_for(req.model)
-            raw = prov.propose(role="router", prompt=req.request, system=system)
-            start, end = raw.find("{"), raw.rfind("}")
-            obj = json.loads(raw[start:end + 1]) if 0 <= start < end else {}
-            cand = str(obj.get("org", "")).strip()
-            if cand in REGISTRY:
-                org = cand
-                goal = str(obj.get("goal") or req.request).strip()
-        except Exception:  # model down/parse fail -> deterministic fallback
-            org = None
-        if org is None:
-            org = _keyword_route(req.request)
-        o = REGISTRY[org]
-        return {"org": org, "title": o.title, "goal": goal,
+        """The front door hands the ask to the engine room's intake agent: a model
+        proposes which studio it belongs to (deterministic keyword fallback inside),
+        and the UI shows the proposal for the human to confirm before anything runs —
+        routing is a proposal, the gates are still the authority."""
+        prov = injected_provider or provider_for(req.model)
+        proposal = propose_route(req.request, prov)
+        o = REGISTRY[proposal.org]
+        return {"org": proposal.org, "title": o.title, "goal": proposal.goal,
                 "produces": o.produces, "needs_sources": o.needs_sources}
 
     @app.post("/api/chat")
@@ -1193,10 +1157,13 @@ def create_app(
         def worker() -> None:
             set_activity_listener(lambda e: progress[token]["events"].append(_event(e)))
             try:
-                org = get_org(req.org)
                 prov = injected_provider or provider_for(req.model)
-                result = org.build(req.goal, prov, org_memory(org.name), sources=req.sources)
-                summary = summarize(result, datetime.now(timezone.utc).isoformat(), model=req.model)
+                finished = dispatch(
+                    WorkOrder(request=req.goal, org=req.org, goal=req.goal,
+                              model=req.model, sources=req.sources),
+                    prov, org_memory(req.org),
+                )
+                summary = summarize(finished.run, datetime.now(timezone.utc).isoformat(), model=req.model)
                 runs.save(summary)
                 progress[token]["run"] = runs.get(summary.id)
             except Exception as exc:  # missing key, unknown model/org, model API error
@@ -1217,13 +1184,16 @@ def create_app(
 
     @app.post("/api/runs")
     def create_run(req: RunRequest) -> dict[str, Any]:
-        org = get_org(req.org)  # KeyError -> 500 is acceptable locally; UI only offers known orgs
         try:
             prov = injected_provider or provider_for(req.model)
-            result = org.build(req.goal, prov, org_memory(org.name), sources=req.sources)
-        except Exception as exc:  # missing API key, unknown model, model API error
+            finished = dispatch(
+                WorkOrder(request=req.goal, org=req.org, goal=req.goal,
+                          model=req.model, sources=req.sources),
+                prov, org_memory(req.org),
+            )
+        except Exception as exc:  # missing API key, DispatchError, model API error
             return {"error": f"{type(exc).__name__}: {exc}"}
-        summary = summarize(result, datetime.now(timezone.utc).isoformat(), model=req.model)
+        summary = summarize(finished.run, datetime.now(timezone.utc).isoformat(), model=req.model)
         runs.save(summary)
         return runs.get(summary.id) or {}
 
