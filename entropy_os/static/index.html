@@ -484,6 +484,7 @@
       verdict a governed dataset, every run lineage, the trust vocabulary a glossary. The window
       runs from Crypto Hunter's conversion to Entropy itself — and its newest engine,
       Hackathon Hunter, was born inside it.
+      <a href="https://moresalamander.github.io/entropy-datahub-demo/" target="_blank" rel="noopener">Walk the frozen metadata graph ↗</a>
     </div>
     <div id="enginedir" class="grid2"></div>
     <h2 id="wing-inhouse">The in-house era — the early engines</h2>
@@ -2029,6 +2030,7 @@ async function loadStudio(org) {
     <div id="studiorecall"></div>
     <div id="studiotrace" style="margin-top:8px">${roster ? '<div class="panel">' + renderRunTrace([], roster) + '</div>' : ''}</div>
     ${knowledgePanel}
+    ${meta.repo_url && meta.era === 'datahub' ? `<h2>Field reports <span class="muted" style="text-transform:none;letter-spacing:0">— the engine's own published digest &amp; mission</span></h2><div id="studioreports"><div class="muted">loading from the public repo…</div></div>` : ''}
     <h2>This studio's runs</h2><div id="studiorundetail"></div><div id="studioruns"></div>
     <h2>This studio's memory</h2><div id="studiomem" class="grid2"></div>`;
   applyDefaultModel();
@@ -2037,6 +2039,53 @@ async function loadStudio(org) {
   if ($('#briefgo')) { $('#briefgo').onclick = startBrief; $('#briefq').onkeydown = e => { if (e.key === 'Enter') startBrief(); }; }
   loadStudioRuns(org);
   loadStudioMem(org);
+  if (meta.repo_url && meta.era === 'datahub') loadFieldReports(meta.repo_url);
+}
+
+// --- Field reports: the engine's committed digest/mission, read straight from
+// its public GitHub repo. No backend state — works identically on the hosted
+// face and locally, and is exactly as current as the engine's last push.
+function mdLite(md) {
+  // Just enough markdown for digests/missions: headings, bold, lists, links.
+  const lines = esc(md).split('\n').map(l => {
+    if (l.startsWith('### ')) return `<div style="font-weight:650;margin-top:10px">${l.slice(4)}</div>`;
+    if (l.startsWith('## ')) return `<div style="font-weight:650;font-size:15px;margin-top:12px">${l.slice(3)}</div>`;
+    if (l.startsWith('# ')) return `<div style="font-weight:700;font-size:16px">${l.slice(2)}</div>`;
+    if (/^\s*[-*] /.test(l)) return `<div style="padding-left:14px">• ${l.replace(/^\s*[-*] /, '')}</div>`;
+    if (/^---+$/.test(l.trim())) return '<hr style="border:0;border-top:1px dashed var(--line)">';
+    return l ? `<div>${l}</div>` : '<div style="height:6px"></div>';
+  }).join('');
+  return lines
+    .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+    .replace(/_([^_]+)_/g, '<i>$1</i>')
+    .replace(/https?:\/\/[^\s<]+/g, u => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
+}
+
+async function loadFieldReports(repoUrl) {
+  const repo = repoUrl.split('/').slice(-2).join('/');
+  const box = $('#studioreports');
+  const latest = async (dir) => {
+    const r = await fetch(`https://api.github.com/repos/${repo}/contents/data/${dir}`);
+    if (!r.ok) return null;
+    const files = (await r.json()).filter(f => f.name.endsWith('.md')).sort((a, b) => b.name.localeCompare(a.name));
+    if (!files.length) return null;
+    const md = await (await fetch(files[0].download_url)).text();
+    return { name: files[0].name, md };
+  };
+  try {
+    const [digest, mission] = await Promise.all([latest('digests'), latest('missions')]);
+    if (!digest && !mission) {
+      box.innerHTML = `<div class="panel muted">No published field reports in the repo yet — this engine keeps its archive local.</div>`;
+      return;
+    }
+    box.innerHTML = [digest, mission].filter(Boolean).map(d => `
+      <div class="panel" style="margin-bottom:10px">
+        <div class="muted" style="font-family:var(--mono);font-size:11px;margin-bottom:8px">${esc(d.name)} · from the public repo</div>
+        <div style="font-size:13px;line-height:1.6">${mdLite(d.md)}</div>
+      </div>`).join('');
+  } catch (e) {
+    box.innerHTML = `<div class="panel muted">Couldn't reach the public repo just now (${esc(String(e).slice(0, 60))}).</div>`;
+  }
 }
 
 // --- Knowledge mode: ask without sources, see confidence honestly (soft, never verified) ---
