@@ -897,7 +897,7 @@ function renderResult(r) {
       ${shipped ? "SHIPPED" : "REJECTED"}
       <span class="sub">${shipped
         ? `verified — ${passed} gate${passed === 1 ? "" : "s"} held`
-        : "the gates refused it; nothing unverified ships"}</span>
+        : "not certified — anything shown below is for your inspection, not vouched for"}</span>
     </div>
     <div class="gates">${gates || `<div class="gate"><span class="gev">no gate trail returned</span></div>`}</div>
     ${r.code ? `<div class="codewrap" style="animation-delay:${(0.45 + (r.evidence || []).length * 0.14).toFixed(2)}s">
