@@ -592,12 +592,16 @@ function mdLite(md) {
     .replace(/https?:\/\/[^\s<]+/g, u => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--gold)">${u}</a>`);
 }
 
-function reportDocumentHtml(md, sourcesText) {
-  // A standalone, styled document — what "take the report" hands you.
+function reportDocumentHtml(md, sourcesText, refused) {
+  // A standalone, styled document — what "take the report" hands you. A
+  // refused draft says so in its own kicker; nothing travels mislabeled.
+  const kicker = refused
+    ? 'Entropy OS · REFUSED DRAFT — the gates would not certify this report; citations left intact for checking'
+    : 'Entropy OS · grounded report · every claim cited, every quote verified verbatim';
   const body = mdLite(md) + (sourcesText ? `<hr style="border:0;border-top:1px solid #ddd;margin:22px 0"><div style="font-size:12px;color:#666"><b>Machine-fetched sources</b><br>${escapeHtml(sourcesText).replace(/\n/g, '<br>')}</div>` : '');
-  return `<!doctype html><html><head><meta charset="utf-8"><title>Grounded report — Entropy OS</title>
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${refused ? 'Refused draft' : 'Grounded report'} — Entropy OS</title>
 <style>body{font-family:Georgia,serif;max-width:720px;margin:48px auto;padding:0 22px;line-height:1.65;color:#1c1c1c}a{color:#8a6d1a}</style></head>
-<body><div style="font-family:monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#999">Entropy OS · grounded report · every claim cited, every quote verified verbatim</div>${body}</body></html>`;
+<body><div style="font-family:monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:${refused ? '#b3541e' : '#999'}">${kicker}</div>${body}</body></html>`;
 }
 
 function trayHtml(r) {
@@ -617,14 +621,23 @@ function trayHtml(r) {
     const repArt = arts.find(a => a.label === "grounded report") || arts.find(a => a.label === "report") || arts[arts.length - 1];
     const report = repArt.payload;
     const fetched = (arts.find(a => a.label === "machine-fetched sources") || {}).payload || "";
-    const doc = reportDocumentHtml(report, fetched);
+    const doc = reportDocumentHtml(report, fetched, !r.accepted);
+    const refusedNote = r.accepted ? '' : `
+      <div style="border:1px solid rgba(244,63,94,.4);border-radius:10px;padding:11px 14px;font-size:12.5px;margin-bottom:8px;color:var(--ink)">
+        <b style="color:var(--red)">Refused — and still shown.</b> A hard gate could not prove this
+        report (see the ledger above — most often a quote that isn't character-for-character from its
+        source). Veritas won't certify it, and won't hide it either: below is the exact draft it
+        refused, citations intact, so you can check for yourself what the machine declined to vouch
+        for. An honest no is the product working.
+      </div>`;
     return `<div style="margin-top:14px">
-      <div class="muted" style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px">the tray — your grounded report</div>
+      <div class="muted" style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px">the tray — ${r.accepted ? 'your grounded report' : 'the refused draft'}</div>
+      ${refusedNote}
       ${fetched ? `<div style="font-size:11.5px;color:var(--gold);margin-bottom:6px">sources the machine fetched itself: ${escapeHtml(fetched.trim().split('\n').length + '')} · machine-fetched tier</div>` : ''}
       <div style="font-size:13px;line-height:1.65;max-height:360px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:14px">${mdLite(report)}</div>
       <div class="btns" style="margin-top:8px">
-        ${dl("report.html", "text/html", doc, "⬇ Take the report (styled page)")}
-        ${dl("report.md", "text/markdown", report, "⬇ markdown")}
+        ${dl(r.accepted ? "report.html" : "refused-draft.html", "text/html", doc, r.accepted ? "⬇ Take the report (styled page)" : "⬇ Take the refused draft (labeled as such)")}
+        ${dl(r.accepted ? "report.md" : "refused-draft.md", "text/markdown", report, "⬇ markdown")}
       </div>
     </div>`;
   }
