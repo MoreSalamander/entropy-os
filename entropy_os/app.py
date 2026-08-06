@@ -38,6 +38,7 @@ from entropy_os.accounts import AccountStore, BadCredentials, UsernameTaken, Wea
 from entropy_os.quota import QuotaStore
 from products.wedge import (
     OrgNotVendable,
+    SourcesUnavailable,
     Authenticator,
     QuotaExceeded,
     SandboxUnavailable,
@@ -783,6 +784,28 @@ class CreateSession(BackgroundSession):
             self._set(phase="done", error=f"{type(exc).__name__}: {exc}")
 
 
+class WedgeCreateSession(CreateSession):
+    """CreateSession through the machine's coin slot: same engine loop, but the
+    memory and taste profile are the TENANT's own, and the build lands on the
+    tenant's meter when it completes — approved or not, a run is a run."""
+
+    def __init__(self, token: str, goal: str, model: str, provider: ModelProvider,
+                 memory: MemoryStore, profile_store: ProfileStore,
+                 meter: Any | None, tenant: str, exempt: bool) -> None:
+        super().__init__(token, goal, model, provider, memory, profile_store)
+        self._meter = meter
+        self._tenant = tenant
+        self._exempt = exempt
+
+    def _run(self) -> None:
+        try:
+            super()._run()
+        finally:
+            if self._meter is not None and not self._exempt:
+                accepted = bool((self.state.get("result") or {}).get("accepted"))
+                self._meter.record(self._tenant, accepted, self.goal)
+
+
 class ProductionCreateSession(BackgroundSession):
     """Create mode for a production. Runs the whole chain (the machine floor); when it ships, a human
     judges the cut over HTTP (the review callback blocks on an Event). Approve → human-approved record
@@ -1404,13 +1427,16 @@ def create_app(
     ) -> dict[str, Any]:
         wedge = Wedge(base, lambda: injected_provider or provider_for(req.model),
                       wedge_auth, meter=quota,
-                      unlimited_check=accounts.is_unlimited if accounts is not None else None)
+                      unlimited_check=accounts.is_unlimited if accounts is not None else None,
+                      search_client=web_search)
         try:
             res = wedge.submit(authorization=authorization, goal=req.goal, org=req.org, sources=req.sources)
         except Unauthorized as exc:
             raise HTTPException(status_code=401, detail=str(exc))
         except OrgNotVendable as exc:
             raise HTTPException(status_code=422, detail=str(exc))  # not a slot on this machine
+        except SourcesUnavailable as exc:
+            raise HTTPException(status_code=422, detail=str(exc))  # research needs a corpus, honestly
         except SandboxUnavailable as exc:
             raise HTTPException(status_code=503, detail=str(exc))  # fail closed, surfaced honestly
         except QuotaExceeded as exc:
@@ -1449,7 +1475,8 @@ def create_app(
         }
         wedge = Wedge(base, lambda: injected_provider or provider_for(req.model),
                       wedge_auth, meter=quota,
-                      unlimited_check=accounts.is_unlimited if accounts is not None else None)
+                      unlimited_check=accounts.is_unlimited if accounts is not None else None,
+                      search_client=web_search)
 
         def worker() -> None:
             # The listener is a ContextVar, so this thread's events never bleed into another run's.
@@ -1461,7 +1488,7 @@ def create_app(
                     "run_id": res.run_id, "isolated": res.isolated, "code": res.code,
                     "spec": res.spec, "evidence": res.evidence, "remaining": res.remaining,
                     "org": res.org, "artifacts": res.artifacts}
-            except (SandboxUnavailable, QuotaExceeded, Unauthorized, OrgNotVendable) as exc:
+            except (SandboxUnavailable, QuotaExceeded, Unauthorized, OrgNotVendable, SourcesUnavailable) as exc:
                 wedge_progress[token]["error"] = str(exc)
             except Exception:
                 wedge_progress[token]["error"] = (
@@ -1473,6 +1500,61 @@ def create_app(
 
         threading.Thread(target=worker, daemon=True).start()
         return {"token": token}
+
+    wedge_create_sessions: dict[str, WedgeCreateSession] = {}
+
+    @app.post("/api/wedge/create/start")
+    def wedge_create_start(
+        req: WedgeRequest, authorization: str | None = Header(default=None)
+    ) -> dict[str, str]:
+        """The web slot done right: the engine interviews the visitor until the
+        spec can pass (deterministic completeness decides), builds, gates, and
+        the visitor's approval is the honest human tier. Quota is checked here
+        and recorded when the build completes."""
+        try:
+            tenant = wedge_auth.tenant_for(authorization)
+        except Unauthorized as exc:
+            raise HTTPException(status_code=401, detail=str(exc))
+        exempt = accounts is not None and accounts.is_unlimited(tenant)
+        if quota is not None and not exempt:
+            try:
+                quota.check(tenant)
+            except QuotaExceeded as exc:
+                raise HTTPException(status_code=429, detail=str(exc))
+        tenant_root = base / "tenants" / tenant
+        session = WedgeCreateSession(
+            uuid4().hex, req.goal, req.model,
+            injected_provider or provider_for(req.model),
+            default_memory_store(tenant_root / "web"),
+            ProfileStore(tenant_root / "profiles" / "web.json"),
+            quota, tenant, exempt,
+        )
+        wedge_create_sessions[session.token] = session
+        session.start()
+        return {"token": session.token}
+
+    @app.get("/api/wedge/create/{token}")
+    def wedge_create_state(token: str) -> dict[str, Any]:
+        session = wedge_create_sessions.get(token)
+        if session is None:
+            return {"error": "unknown session token"}
+        return session.snapshot()
+
+    @app.post("/api/wedge/create/{token}/answer")
+    def wedge_create_answer(token: str, req: AnswerBody) -> dict[str, str]:
+        session = wedge_create_sessions.get(token)
+        if session is None:
+            raise HTTPException(status_code=404, detail="unknown session token")
+        session.provide_answer(req.answer)
+        return {"ok": "answered"}
+
+    @app.post("/api/wedge/create/{token}/review")
+    def wedge_create_review(token: str, req: ReviewBody) -> dict[str, str]:
+        session = wedge_create_sessions.get(token)
+        if session is None:
+            raise HTTPException(status_code=404, detail="unknown session token")
+        session.provide_review(req.approved, req.feedback)
+        return {"ok": "reviewed"}
 
     @app.get("/api/wedge/submit/progress/{token}")
     def wedge_submit_progress(token: str) -> dict[str, Any]:

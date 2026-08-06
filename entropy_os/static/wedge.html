@@ -245,8 +245,8 @@
     <label id="goalLabel">Describe the page you want built and verified</label>
     <textarea id="goal" placeholder="e.g. a landing page for a sneaker resale side hustle"></textarea>
     <div id="sourcesWrap" class="hidden">
-      <label>Paste the sources the report may cite (separate with a line of just ---)</label>
-      <textarea id="sources" style="min-height:90px" placeholder="Paste article text, notes, docs — the report can ONLY cite these, and every quote is verified verbatim."></textarea>
+      <label>Sources — optional. Leave empty and the machine researches the live web itself (machine-fetched tier, URLs shown in the tray).</label>
+      <textarea id="sources" style="min-height:70px" placeholder="Optional: paste your own sources instead (separate with a line of just ---). Either way the report can only cite its corpus, and every quote is verified verbatim."></textarea>
     </div>
     <div class="muted" style="margin:2px 0 6px">Or click an example to build &amp; verify it (<span class="star" style="color:var(--gold)">✦</span> = watch the property gate prove it for <i>all</i> inputs):</div>
     <div class="suggests" id="suggests"></div>
@@ -337,9 +337,9 @@ const SUGGESTIONS_BY_SLOT = {
     { g: "a simple pricing page with three tiers for a tutoring service" },
   ],
   research: [
-    { g: "summarize what these sources say about spaced repetition", show: true },
-    { g: "what do these notes claim about the causes of the 2008 crisis?" },
-    { g: "write a grounded brief on the arguments in these two articles", show: true },
+    { g: "what is spaced repetition and does the evidence support it?", show: true },
+    { g: "what actually changed in the latest FAFSA rules?" },
+    { g: "what are the arguments for and against a four-day school week?", show: true },
   ],
   software: [
     { g: "reverse a string" },
@@ -481,7 +481,7 @@ const SLOTS = {
   web:      { heading: "Made to order — a web page", label: "Describe the page you want built and verified",
               ph: "e.g. a landing page for a sneaker resale side hustle", verb: "Rendering & gating…" },
   research: { heading: "Made to order — a grounded report", label: "Ask the question the report should answer",
-              ph: "e.g. what actually changed in the new FAFSA rules?", verb: "Grounding & gating…" },
+              ph: "e.g. what actually changed in the new FAFSA rules?", verb: "Researching & gating…" },
   software: { heading: "Made to order — code that runs", label: "Describe the function you want built and verified",
               ph: "e.g. reverse a string · check if a number is prime", verb: "Verifying…" },
 };
@@ -505,6 +505,7 @@ applySlot();
 async function submit() {
   const goal = $("goal").value.trim();
   if (!goal) return banner(SLOT === "research" ? "Ask a question first." : "Describe what you want first.", "err");
+  if (SLOT === "web") return startInterview(goal);
   $("submitBtn").disabled = true; $("submitBtn").textContent = SLOTS[SLOT].verb;
   $("resultPanel").classList.add("hidden");
   banner("");
@@ -555,6 +556,104 @@ function trayHtml(r) {
   }
   const code = r.code || (arts[0] && arts[0].payload) || "";
   return code ? `<div class="btns" style="margin-top:8px">${dl("verified.py", "text/x-python", code, "⬇ Take the code")}</div>` : "";
+}
+
+// ---- The interview vend: the engine asks until the spec is gateable ------
+let IV = null;
+
+async function startInterview(goal) {
+  $("submitBtn").disabled = true; $("submitBtn").textContent = "Starting…";
+  $("resultPanel").classList.add("hidden");
+  banner("");
+  const { ok, status, data } = await api("/api/wedge/create/start", { method: "POST", auth: true, body: { goal } });
+  if (!ok) {
+    finishSubmit();
+    if (status === 401) { setToken(""); showAuth(); return banner("Please sign in again.", "warn"); }
+    return banner(data.detail || "Couldn't start.", status === 429 ? "warn" : "err");
+  }
+  IV = { token: data.token };
+  $("submitBtn").textContent = "Interviewing…";
+  pollInterview();
+}
+
+function ivPanel() {
+  let el = document.getElementById("ivPanel");
+  if (!el) {
+    el = document.createElement("section");
+    el.className = "panel"; el.id = "ivPanel";
+    $("resultPanel").parentNode.insertBefore(el, $("resultPanel"));
+  }
+  return el;
+}
+
+async function pollInterview() {
+  if (!IV) return;
+  const { ok, data: st } = await api("/api/wedge/create/" + IV.token);
+  if (!ok || st.error && !st.phase) { finishSubmit(); return banner("Lost the session — try again.", "err"); }
+  const el = ivPanel();
+  const transcript = (st.transcript || []).map(qa =>
+    `<div style="margin:6px 0"><div style="color:var(--gold);font-size:12.5px">Q: ${escapeHtml(qa[0])}</div><div style="font-size:12.5px">A: ${escapeHtml(qa[1])}</div></div>`).join("");
+
+  if (st.phase === "interviewing" && st.question) {
+    el.innerHTML = `<h2>The machine has a question</h2>${transcript}
+      <div style="color:var(--gold);font-size:13.5px;margin:8px 0">${escapeHtml(st.question)}</div>
+      <input id="ivAnswer" placeholder="your answer…" />
+      <div class="btns"><button id="ivGo">Answer</button></div>
+      <div class="hint">It asks only until the spec can pass its own gates — a deterministic completeness check decides, not the model.</div>`;
+    el.classList.remove("hidden");
+    $("ivGo").onclick = async () => {
+      const a = $("ivAnswer").value.trim(); if (!a) return;
+      await api("/api/wedge/create/" + IV.token + "/answer", { method: "POST", body: { answer: a } });
+      el.innerHTML = `<h2>Interview</h2>${transcript}<div class="muted">thinking…</div>`;
+      setTimeout(pollInterview, 600);
+    };
+    $("ivAnswer").onkeydown = e => { if (e.key === "Enter") $("ivGo").onclick(); };
+    return;
+  }
+
+  if (st.phase === "reviewing" && st.page_html) {
+    const gates = ((st.trust || {}).machine || []).map(g =>
+      `<div class="gate hard"><div class="grow"><span>${escapeHtml(g.name)}<span class="tier">MACHINE</span></span><span class="gv ${g.passed ? 'pass' : 'fail'}">${g.passed ? 'PASS ✓' : 'FAIL ✗'}</span></div></div>`).join("")
+      + `<div class="gate soft"><div class="grow"><span>your approval<span class="tier">HUMAN</span></span><span class="gv">PENDING — that's you</span></div></div>`;
+    el.innerHTML = `<h2>Machine-verified — your call now</h2>${transcript}
+      <iframe sandbox srcdoc="${st.page_html.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}" style="width:100%;height:340px;border:1px solid var(--line);border-radius:10px;background:#fff"></iframe>
+      <div class="gates" style="margin-top:10px">${gates}</div>
+      <div class="btns" style="margin-top:10px">
+        <button id="ivTake">⬇ Take the page (approve)</button>
+        <button id="ivChanges" class="ghost">Request changes</button>
+      </div>
+      <div class="hint">Taking it records a human approval — the third trust tier. The machine never claims your taste.</div>`;
+    $("ivTake").onclick = async () => {
+      await api("/api/wedge/create/" + IV.token + "/review", { method: "POST", body: { approved: true, feedback: "" } });
+      el.innerHTML = `<h2>Dispensing…</h2>`;
+      setTimeout(pollInterview, 600);
+    };
+    $("ivChanges").onclick = async () => {
+      const fb = prompt("What should change?") || "";
+      if (!fb.trim()) return;
+      await api("/api/wedge/create/" + IV.token + "/review", { method: "POST", body: { approved: false, feedback: fb } });
+      el.innerHTML = `<h2>Rebuilding to your note…</h2>${transcript}`;
+      setTimeout(pollInterview, 800);
+    };
+    return;
+  }
+
+  if (st.phase === "done") {
+    finishSubmit();
+    if (st.error) { el.classList.add("hidden"); return banner(st.error, "err"); }
+    const page = st.page_html || "";
+    const accepted = !!(st.result && st.result.accepted);
+    el.innerHTML = `<h2>${accepted ? "SHIPPED — human approved" : "Machine-verified, not taken"}</h2>
+      <iframe sandbox srcdoc="${page.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}" style="width:100%;height:300px;border:1px solid var(--line);border-radius:10px;background:#fff"></iframe>
+      <div class="btns" style="margin-top:8px"><a class="ghost" style="text-decoration:none;padding:6px 12px;border:1px solid var(--line);border-radius:8px;font-size:12.5px" download="your-page.html" href="data:text/html;charset=utf-8,${encodeURIComponent(page)}">⬇ Take the page</a></div>`;
+    refreshUsage();
+    IV = null;
+    return;
+  }
+
+  el.innerHTML = `<h2>${st.phase === "building" ? "Building behind the glass…" : "Working…"}</h2>${transcript}<div class="muted">the cast proposes; the gates decide.</div>`;
+  el.classList.remove("hidden");
+  setTimeout(pollInterview, 700);
 }
 
 function renderResult(r) {
