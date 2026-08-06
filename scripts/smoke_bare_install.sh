@@ -58,6 +58,11 @@ PIP="$WORK/venv/bin/pip"
 PY="$WORK/venv/bin/python"
 
 echo "[smoke] building wheels"
+# setuptools reuses ./build/lib across in-tree builds, and files deleted from
+# the source quietly linger there and ship in the next wheel — the smoke would
+# then bless an install the next clean build can't reproduce. Build from a
+# clean slate every time (build/ is derived output in both repos).
+rm -rf "$ROOT/build" "$VERITAS_DIR/build"
 "$PIP" -q wheel --no-deps --wheel-dir "$WORK/wheels" "$VERITAS_DIR" "$ROOT"
 
 echo "[smoke] installing into a bare venv"
