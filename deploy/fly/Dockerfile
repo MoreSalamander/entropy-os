@@ -21,13 +21,15 @@ COPY . /opt/entropy-os
 
 # The front door + the engine room. VERITAS_REF pins the engine build (set it to the
 # hosted-* tag at ship); the claude extra brings the Anthropic SDK the hosted default
-# model needs. No playwright/browsers on the hosted MVP — the wedge is the only
-# stranger-operable build path and it doesn't render pages.
+# model needs. Chromium ships for the web slot: the machine renders a
+# stranger's page in a real browser so the render/structure/contrast gates
+# can rule on it — the vend isn't a vend without the page.
 ARG VERITAS_REF=main
 RUN pip install --no-cache-dir . \
  && pip install --no-cache-dir --force-reinstall --no-deps \
       "veritas[claude] @ git+https://github.com/MoreSalamander/veritas@${VERITAS_REF}" \
- && pip install --no-cache-dir anthropic
+ && pip install --no-cache-dir anthropic playwright \
+ && playwright install --with-deps chromium
 
 # The hosting posture baked in. Secrets (ANTHROPIC_API_KEY) come from `fly secrets`, not the image.
 # fly.toml [env] can override any of these; they are sane defaults so the image is safe by itself.

@@ -639,11 +639,18 @@
 
   <section id="vending" class="hidden">
     <h1>Vending Machine</h1>
-    <div class="muted" style="margin:-12px 0 16px;max-width:720px">Every tutorial that clears the gate becomes its own real Docker image — built once, at generation time. Pressing a button doesn't reuse anything: it runs a fresh, disposable <code>docker run</code> of that image and hands you the copy. Stock comes from the Knowledge Graph, dispensed via <a href="#" onclick="document.querySelector('nav a[data-view=commons]').click();return false">Knowledge Graph</a> sources today.</div>
+    <div class="muted" style="margin:-12px 0 8px;max-width:760px"><b style="color:var(--gold)">Proof of concept — the package manager of Entropy OS.</b> The machine stocks only gate-verified builds and dispenses two kinds of items: <b>premade</b> (packaged lessons and academy projects, each its own disposable Docker image, built once at verification time) and <b>made to order</b> (insert a goal; an engine builds it behind glass and the artifact drops into the tray).</div>
+    <div class="panel" style="margin:0 0 16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <span style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)">Made to order</span>
+      <a class="ghost" style="text-decoration:none;padding:8px 14px;border:1px solid var(--line);border-radius:10px;font-size:13px;color:var(--gold)" href="/try?slot=web" target="_blank" rel="noopener">🖼 A web page — looks right</a>
+      <a class="ghost" style="text-decoration:none;padding:8px 14px;border:1px solid var(--line);border-radius:10px;font-size:13px;color:var(--gold)" href="/try?slot=research" target="_blank" rel="noopener">📄 A grounded report — cited right</a>
+      <a class="ghost" style="text-decoration:none;padding:8px 14px;border:1px solid var(--line);border-radius:10px;font-size:13px;color:var(--gold)" href="/try?slot=software" target="_blank" rel="noopener">⚙️ Code — runs right</a>
+      <span class="muted" style="font-size:11.5px">metered · gated · the artifact is yours</span>
+    </div>
     <div class="vm-wrap">
       <div class="vm-machine">
         <div class="vm-header">
-          <div class="vm-brand">VERI<b>TAS</b> · VENDING</div>
+          <div class="vm-brand">ENTROPY <b>OS</b> · VENDING</div>
           <div class="vm-lights"><span class="vm-light"></span><span class="vm-light"></span><span class="vm-light"></span></div>
         </div>
         <div class="vm-glass" id="vmGlass"></div>
@@ -1021,29 +1028,49 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 // --- Vending Machine: dispense a real, disposable copy of a gated tutorial's own container ---
 const VM_CODES = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'D1', 'D2'];
 
+// The demo shelf is HUMAN CURATED — a person chose these; the rest of the
+// stock stays one click away. Curation is presentation: nothing is removed
+// from the machine's real archive.
+const CURATED_TUTORIALS = ["DataHub 201", "Hyper Realistic Water", "Build an AI Agent"];
+const CURATED_ACADEMY = ["Galaxy Creator", "Fluid Simulator", "Volumetric Clouds", "Mandelbulb Explorer", "Universe Sandbox"];
+
+function splitCurated(items, picks, titleOf) {
+  const featured = [], rest = [];
+  for (const it of items) (picks.some(t => (titleOf(it) || '').includes(t)) ? featured : rest).push(it);
+  featured.sort((a, b) => picks.findIndex(t => titleOf(a).includes(t)) - picks.findIndex(t => titleOf(b).includes(t)));
+  return { featured, rest };
+}
+
+function renderRack(el, items, htmlOf, wireOf, emptyMsg, picks, titleOf) {
+  if (!items.length) { el.innerHTML = `<div class="muted" style="grid-column:1/-1;padding:8px">${emptyMsg}</div>`; return; }
+  const { featured, rest } = splitCurated(items, picks, titleOf);
+  const shown = featured.length ? featured : items;
+  el.innerHTML = shown.map((p, i) => htmlOf(p, i)).join('')
+    + (featured.length && rest.length
+        ? `<div style="grid-column:1/-1;padding:6px 4px"><a href="#" id="expand-${el.id}" style="font-size:12px">Show full stock — ${rest.length} more in the machine</a> <span class="muted" style="font-size:11px">· shelf is human curated</span></div>`
+        : '');
+  shown.forEach((p, i) => wireOf(p, el.children[i]));
+  const ex = document.getElementById(`expand-${el.id}`);
+  if (ex) ex.onclick = (ev) => {
+    ev.preventDefault();
+    el.innerHTML = items.map((p, i) => htmlOf(p, i)).join('');
+    items.forEach((p, i) => wireOf(p, el.children[i]));
+  };
+}
+
 async function loadVending() {
   const products = await api('/api/tutorial/products');
-  const glass = $('#vmGlass');
-  if (!products.length) {
-    glass.innerHTML = '<div class="muted" style="grid-column:1/-1;padding:8px">Nothing stocked yet — restock from a Knowledge Graph source below.</div>';
-  } else {
-    glass.innerHTML = products.map((p, i) => vmSlotHtml(p, VM_CODES[i] || String(i + 1))).join('');
-    products.forEach((p, i) => {
-      const btn = document.getElementById(`vmbtn-${p.id}`);
-      if (btn && !btn.disabled) btn.onclick = () => dispenseProduct(p, glass.children[i]);
-    });
-  }
+  renderRack($('#vmGlass'), products,
+    (p, i) => vmSlotHtml(p, VM_CODES[i] || String(i + 1)),
+    (p, slotEl) => { const b = document.getElementById(`vmbtn-${p.id}`); if (b && !b.disabled) b.onclick = () => dispenseProduct(p, slotEl); },
+    'Nothing stocked yet — restock from a Knowledge Graph source below.',
+    CURATED_TUTORIALS, p => p.title || p.name || '');
   const academy = await api('/api/academy/products');
-  const shelf = $('#vmGlassAcademy');
-  if (!academy.length) {
-    shelf.innerHTML = '<div class="muted" style="grid-column:1/-1;padding:8px">Academy shelf is empty — run scripts/package_academy.py to stock the ladder.</div>';
-  } else {
-    shelf.innerHTML = academy.map((p, i) => vmAcademySlotHtml(p, i + 1)).join('');
-    academy.forEach((p, i) => {
-      const btn = document.getElementById(`vmbtn-${p.id}`);
-      if (btn && !btn.disabled) btn.onclick = () => dispenseProduct(p, shelf.children[i]);
-    });
-  }
+  renderRack($('#vmGlassAcademy'), academy,
+    (p, i) => vmAcademySlotHtml(p, i + 1),
+    (p, slotEl) => { const b = document.getElementById(`vmbtn-${p.id}`); if (b && !b.disabled) b.onclick = () => dispenseProduct(p, slotEl); },
+    'Academy shelf is empty — run scripts/package_academy.py to stock the ladder.',
+    CURATED_ACADEMY, p => p.title || '');
   await loadVmRestockSources();
   $('#vmRestockGo').onclick = restockVendingMachine;
 }

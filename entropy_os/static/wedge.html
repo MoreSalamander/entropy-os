@@ -232,11 +232,21 @@
   <!-- SUBMIT -->
   <section class="panel hidden" id="appPanel">
     <div class="grow" style="margin-bottom:14px">
-      <h2 style="margin:0">Build a function</h2>
+      <h2 style="margin:0" id="slotHeading">Made to order</h2>
       <span class="who" id="whoami"></span>
     </div>
-    <label>Describe the function you want Veritas to build and verify</label>
-    <textarea id="goal" placeholder="e.g. reverse a string &nbsp;·&nbsp; add two numbers &nbsp;·&nbsp; check if a number is prime"></textarea>
+    <!-- The three slots of the machine: looks right · cited right · runs right -->
+    <div class="btns" id="slotRow" style="margin-bottom:10px">
+      <button class="ghost slotbtn" data-slot="web">🖼 Web page</button>
+      <button class="ghost slotbtn" data-slot="research">📄 Research report</button>
+      <button class="ghost slotbtn" data-slot="software">⚙️ Code that runs</button>
+    </div>
+    <label id="goalLabel">Describe the page you want built and verified</label>
+    <textarea id="goal" placeholder="e.g. a landing page for a sneaker resale side hustle"></textarea>
+    <div id="sourcesWrap" class="hidden">
+      <label>Paste the sources the report may cite (separate with a line of just ---)</label>
+      <textarea id="sources" style="min-height:90px" placeholder="Paste article text, notes, docs — the report can ONLY cite these, and every quote is verified verbatim."></textarea>
+    </div>
     <div class="muted" style="margin:2px 0 6px">Or click an example to build &amp; verify it (<span class="star" style="color:var(--gold)">✦</span> = watch the property gate prove it for <i>all</i> inputs):</div>
     <div class="suggests" id="suggests"></div>
     <div class="btns">
@@ -457,14 +467,40 @@ async function pollProgress(token) {
   setTimeout(() => pollProgress(token), 450);
 }
 
+const SLOTS = {
+  web:      { heading: "Made to order — a web page", label: "Describe the page you want built and verified",
+              ph: "e.g. a landing page for a sneaker resale side hustle", verb: "Rendering & gating…" },
+  research: { heading: "Made to order — a grounded report", label: "Ask the question the report should answer",
+              ph: "e.g. what actually changed in the new FAFSA rules?", verb: "Grounding & gating…" },
+  software: { heading: "Made to order — code that runs", label: "Describe the function you want built and verified",
+              ph: "e.g. reverse a string · check if a number is prime", verb: "Verifying…" },
+};
+let SLOT = new URLSearchParams(location.search).get("slot") || "web";
+if (!SLOTS[SLOT]) SLOT = "web";
+
+function applySlot() {
+  const cfg = SLOTS[SLOT];
+  $("slotHeading").textContent = cfg.heading;
+  $("goalLabel").textContent = cfg.label;
+  $("goal").placeholder = cfg.ph;
+  $("sourcesWrap").classList.toggle("hidden", SLOT !== "research");
+  document.querySelectorAll(".slotbtn").forEach(b =>
+    b.style.borderColor = b.dataset.slot === SLOT ? "var(--gold)" : "");
+}
+document.querySelectorAll(".slotbtn").forEach(b => b.onclick = () => { SLOT = b.dataset.slot; applySlot(); });
+applySlot();
+
 async function submit() {
   const goal = $("goal").value.trim();
-  if (!goal) return banner("Describe a function first.", "err");
-  $("submitBtn").disabled = true; $("submitBtn").textContent = "Verifying…";
+  if (!goal) return banner(SLOT === "research" ? "Ask a question first." : "Describe what you want first.", "err");
+  $("submitBtn").disabled = true; $("submitBtn").textContent = SLOTS[SLOT].verb;
   $("resultPanel").classList.add("hidden");
   banner("");
 
-  const { ok, status, data } = await api("/api/wedge/submit/start", { method: "POST", auth: true, body: { goal } });
+    const sources = SLOT === "research"
+    ? $("sources").value.split(/^\s*---\s*$/m).map(x => x.trim()).filter(Boolean)
+    : null;
+  const { ok, status, data } = await api("/api/wedge/submit/start", { method: "POST", auth: true, body: { goal, org: SLOT, sources } });
   if (!ok) {
     finishSubmit();
     if (status === 401) { setToken(""); showAuth(); return banner("Please sign in again.", "warn"); }
@@ -482,6 +518,31 @@ function setHold(v) {
   if (!PB) return;
   PB.holding = v;
   $("tracePanel").classList.toggle("slowmo", v);
+}
+
+function trayHtml(r) {
+  const arts = r.artifacts || [];
+  if (!arts.length) return "";
+  const dl = (name, mime, text, label) =>
+    `<a class="ghost" style="text-decoration:none;padding:6px 12px;border:1px solid var(--line);border-radius:8px;font-size:12.5px" download="${name}" href="data:${mime};charset=utf-8,${encodeURIComponent(text)}">${label}</a>`;
+  if (r.org === "web") {
+    const page = arts[arts.length - 1].payload;  // the rendered page is the final artifact
+    return `<div style="margin-top:14px">
+      <div class="muted" style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px">the tray — your page</div>
+      <iframe sandbox srcdoc="${page.replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" style="width:100%;height:340px;border:1px solid var(--line);border-radius:10px;background:#fff"></iframe>
+      <div class="btns" style="margin-top:8px">${dl("your-page.html", "text/html", page, "⬇ Take the page")}</div>
+    </div>`;
+  }
+  if (r.org === "research") {
+    const report = arts[arts.length - 1].payload;
+    return `<div style="margin-top:14px">
+      <div class="muted" style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px">the tray — your grounded report</div>
+      <pre style="white-space:pre-wrap;font-size:12.5px;line-height:1.6;max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:12px">${escapeHtml(report)}</pre>
+      <div class="btns" style="margin-top:8px">${dl("report.md", "text/markdown", report, "⬇ Take the report")}</div>
+    </div>`;
+  }
+  const code = r.code || (arts[0] && arts[0].payload) || "";
+  return code ? `<div class="btns" style="margin-top:8px">${dl("verified.py", "text/x-python", code, "⬇ Take the code")}</div>` : "";
 }
 
 function renderResult(r) {
@@ -543,6 +604,7 @@ function renderResult(r) {
       ${r.remaining === -1 ? `<span>unlimited runs</span>` : (r.remaining != null && r.remaining >= 0 ? `<span>${r.remaining} runs left</span>` : "")}
       <span>run ${r.run_id || "—"}</span>
     </div>`;
+  $("resultPanel").insertAdjacentHTML("beforeend", trayHtml(r));
   $("resultPanel").classList.remove("hidden");
 }
 

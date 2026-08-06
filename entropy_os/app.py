@@ -37,6 +37,7 @@ from engine.memory_export import sync_vault, vault_status
 from entropy_os.accounts import AccountStore, BadCredentials, UsernameTaken, WeakCredentials
 from entropy_os.quota import QuotaStore
 from products.wedge import (
+    OrgNotVendable,
     Authenticator,
     QuotaExceeded,
     SandboxUnavailable,
@@ -125,6 +126,8 @@ class RunRequest(BaseModel):
 class WedgeRequest(BaseModel):
     goal: str
     model: str = DEFAULT_MODEL
+    org: str = "software"           # which slot: software | web | research (wedge allowlist decides)
+    sources: list[str] | None = None  # research's pasted corpus
 
 
 class AuthRequest(BaseModel):
@@ -1403,9 +1406,11 @@ def create_app(
                       wedge_auth, meter=quota,
                       unlimited_check=accounts.is_unlimited if accounts is not None else None)
         try:
-            res = wedge.submit(authorization=authorization, goal=req.goal)
+            res = wedge.submit(authorization=authorization, goal=req.goal, org=req.org, sources=req.sources)
         except Unauthorized as exc:
             raise HTTPException(status_code=401, detail=str(exc))
+        except OrgNotVendable as exc:
+            raise HTTPException(status_code=422, detail=str(exc))  # not a slot on this machine
         except SandboxUnavailable as exc:
             raise HTTPException(status_code=503, detail=str(exc))  # fail closed, surfaced honestly
         except QuotaExceeded as exc:
@@ -1422,7 +1427,8 @@ def create_app(
             )
         return {"tenant": res.tenant, "goal": res.goal, "accepted": res.accepted,
                 "run_id": res.run_id, "isolated": res.isolated, "code": res.code,
-                "spec": res.spec, "evidence": res.evidence, "remaining": res.remaining}
+                "spec": res.spec, "evidence": res.evidence, "remaining": res.remaining,
+                "org": res.org, "artifacts": res.artifacts}
 
     @app.post("/api/wedge/submit/start")
     def wedge_submit_start(
@@ -1449,12 +1455,13 @@ def create_app(
             # The listener is a ContextVar, so this thread's events never bleed into another run's.
             set_activity_listener(lambda e: wedge_progress[token]["events"].append(_event(e)))
             try:
-                res = wedge.submit(authorization=authorization, goal=req.goal)
+                res = wedge.submit(authorization=authorization, goal=req.goal, org=req.org, sources=req.sources)
                 wedge_progress[token]["result"] = {
                     "tenant": res.tenant, "goal": res.goal, "accepted": res.accepted,
                     "run_id": res.run_id, "isolated": res.isolated, "code": res.code,
-                    "spec": res.spec, "evidence": res.evidence, "remaining": res.remaining}
-            except (SandboxUnavailable, QuotaExceeded, Unauthorized) as exc:
+                    "spec": res.spec, "evidence": res.evidence, "remaining": res.remaining,
+                    "org": res.org, "artifacts": res.artifacts}
+            except (SandboxUnavailable, QuotaExceeded, Unauthorized, OrgNotVendable) as exc:
                 wedge_progress[token]["error"] = str(exc)
             except Exception:
                 wedge_progress[token]["error"] = (
