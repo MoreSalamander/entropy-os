@@ -34,6 +34,7 @@ PRESENTATION: dict[str, dict[str, Any]] = {
         "launchpad_name": "crypto-hunter",
         "repo_url": "https://github.com/MoreSalamander/crypto-hunter",
         "site_url": "https://moresalamander.github.io/crypto-hunter/",
+        "live_url": "https://crypto-hunter-live.fly.dev",
     },
     "collectible_hunter": {
         "era": "datahub",
@@ -77,6 +78,10 @@ def presentation_for(org_name: str) -> dict[str, Any]:
         # can't reach the live localhost app should land. The showcase, not
         # the source tree.
         "site_url": row.get("site_url"),
+        # A real hosted instance of the engine itself (read-only mirror on
+        # Fly). When present it outranks site_url for remote visitors: the
+        # actual running app beats a page about the app.
+        "live_url": row.get("live_url"),
         # Which data plane the engine's truth lives on — the visible wing
         # split on the face. New engines are DataHub-native by policy, but
         # an unlisted org defaults to the in-house wing until stated.

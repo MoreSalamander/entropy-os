@@ -1711,14 +1711,15 @@ let LAST_ROUTE = null;
 //                         Launchpad and localhost ports don't exist)
 // The `mode` in the return value is what liveDot() labels, so destination and
 // label come from the same decision and can never disagree.
-function liveTarget(launchpadName, externalUrl, repoUrl, siteUrl) {
+function liveTarget(launchpadName, externalUrl, repoUrl, siteUrl, liveUrl) {
   const live = launchpadName && LAUNCHPAD_STATUS ? LAUNCHPAD_STATUS[launchpadName] : null;
   const openUrl = (live && live.url) || externalUrl;
   const running = live ? live.listening : null;  // null = unknown (Launchpad unreachable)
   if (running === false) return { openUrl, running, target: LAUNCHPAD_ORIGIN, mode: 'start' };
-  // Unreachable-Launchpad land (the hosted face, any visitor's machine): the
-  // engine's styled public site is the destination — the showcase the engine
-  // worked for, not its source tree. The repo remains the last resort.
+  // Unreachable-Launchpad land (the hosted face, any visitor's machine).
+  // Best destination first: a real hosted instance of the engine (read-only
+  // mirror) beats the styled site, which beats the source tree.
+  if (running === null && liveUrl) return { openUrl: liveUrl, running, target: liveUrl, mode: 'mirror' };
   if (running === null && siteUrl) return { openUrl: siteUrl, running, target: siteUrl, mode: 'site' };
   if (running === null && repoUrl) return { openUrl: repoUrl, running, target: repoUrl, mode: 'repo' };
   return { openUrl, running, target: openUrl, mode: 'live' };
@@ -1727,6 +1728,8 @@ function liveTarget(launchpadName, externalUrl, repoUrl, siteUrl) {
 function liveDot(running, mode) {
   return mode === 'start'
     ? `<span class="pulse" style="background:var(--threat);animation:none"></span> not running — opens Launchpad's own start`
+    : mode === 'mirror'
+    ? `<span class="pulse"></span> live — the real app, read-only mirror ↗`
     : mode === 'site'
     ? `<span class="pulse"></span> visit the engine's site ↗`
     : mode === 'repo'
@@ -1740,7 +1743,7 @@ function orgCard(o) {
   // A real standalone app (currently the three Hunter engines) opens itself, in its own
   // tab — not Veritas's internal Studio trace view. Clicking "Crypto Hunter AI" should take
   // you to Crypto Hunter AI, the actual app, the same way Studio Launchpad would.
-  const { openUrl, running, target, mode } = liveTarget(o.launchpad_name, o.external_url, o.repo_url, o.site_url);
+  const { openUrl, running, target, mode } = liveTarget(o.launchpad_name, o.external_url, o.repo_url, o.site_url, o.live_url);
 
   let tagline;
   if (openUrl) {
@@ -1761,7 +1764,7 @@ function orgCard(o) {
 // wraps its member orgs' cards (Entropy OS -> Opportunity -> the engines),
 // and its header opens the group's own live app — the two-tier scanfield.
 function groupPanel(g, members) {
-  const { running, target, mode } = liveTarget(g.launchpad_name, g.external_url, g.repo_url, g.site_url);
+  const { running, target, mode } = liveTarget(g.launchpad_name, g.external_url, g.repo_url, g.site_url, g.live_url);
   return `
   <div class="panel" style="grid-column:1/-1;margin:0;border-color:rgba(232,196,104,.3)">
     <a href="${esc(target)}" target="_blank" rel="noopener" class="orgcard"
