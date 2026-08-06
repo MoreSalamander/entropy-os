@@ -359,19 +359,26 @@
   <div class="logo">ENTROPY <b>OS</b></div>
   <div class="tagline">The front door. Powered by Veritas Dynamics — the model proposes, the gates decide.</div>
   <nav>
+    <!-- The descent: Entropy OS operates; Opportunity arbitrates; the engines
+         run; Veritas Dynamics is the engine room underneath all of it. -->
     <a data-view="home" class="active">Home</a>
     <a data-view="plan">Plan</a>
-    <a data-view="prompts">Prompt Studio</a>
-    <div class="navlabel">Engines</div>
+    <div class="navlabel">DataHub era</div>
+    <a data-view="home" data-scroll="wing-datahub">Opportunity</a>
+    <a data-view="studio" data-org="crypto_hunter">Crypto Hunter</a>
+    <a data-view="studio" data-org="collectible_hunter">Collectible Hunter</a>
+    <a data-view="studio" data-org="free_money_hunter">Free Money Hunter</a>
+    <a data-view="studio" data-org="hackathon_hunter">Hackathon Hunter</a>
+    <div class="navlabel">In-house era</div>
     <a data-view="studio" data-org="software">Software</a>
     <a data-view="studio" data-org="web">Web</a>
     <a data-view="studio" data-org="research">Research</a>
     <a data-view="studio" data-org="production">Production</a>
     <a data-view="studio" data-org="empirical">Empirical</a>
-    <div class="navlabel">&nbsp;</div>
+    <div class="navlabel">Veritas Dynamics · engine room</div>
     <a data-view="labs">Labs</a>
     <a data-view="models">Models</a>
-    <div class="navlabel">Knowledge</div>
+    <a data-view="prompts">Prompt Studio</a>
     <a data-view="commons">Knowledge Graph</a>
     <a data-view="vending">Vending Machine</a>
     <div class="navlabel">Ungoverned</div>
@@ -420,7 +427,7 @@
       <canvas id="shellscene"></canvas>
       <div class="shell-vig"></div>
       <div class="shell-label eg-panel">
-        <div class="shell-title">ENTROPY OS <span style="color:var(--dim);font-weight:400">powered by Veritas Dynamics</span></div>
+        <div class="shell-title">VERITAS DYNAMICS <span style="color:var(--dim);font-weight:400">· the engine room</span></div>
         <div class="shell-sub" id="shellsub">every registered production, orbiting the gates that hold it accountable</div>
       </div>
     </div>
@@ -471,8 +478,20 @@
     </div>
     <div id="askresult"></div>
 
-    <h2>The engines — eight ways to know it's true</h2>
+    <h2 id="wing-datahub">The DataHub era — the judged window</h2>
+    <div class="muted" style="font-size:13px;margin:-6px 0 12px;line-height:1.6">
+      The Hunter engines operate through Entropy OS — everything runs on DataHub now: every gate
+      verdict a governed dataset, every run lineage, the trust vocabulary a glossary. The window
+      runs from Crypto Hunter's conversion to Entropy itself — and its newest engine,
+      Hackathon Hunter, was born inside it.
+    </div>
     <div id="enginedir" class="grid2"></div>
+    <h2 id="wing-inhouse">The in-house era — the early engines</h2>
+    <div class="muted" style="font-size:13px;margin:-6px 0 12px;line-height:1.6">
+      The five verification models Veritas grew up on, with their original in-house data stores —
+      fully operable from here, clearly earlier.
+    </div>
+    <div id="inhousedir" class="grid2"></div>
     <h2>Labs — products built on the engines</h2>
     <div id="labsdir" class="grid2"></div>
   </section>
@@ -744,7 +763,12 @@ document.querySelectorAll('nav a[data-view]').forEach(a => a.onclick = () => {
   a.classList.add('active');
   const view = a.dataset.view;
   ['home','plan','prompts','studio','labs','models','commons','vending','create','chat'].forEach(v => $('#'+v).classList.toggle('hidden', v !== view));
-  if (view === 'home') loadHome();
+  if (view === 'home') {
+    loadHome();
+    // Nav entries that point INTO home (e.g. Opportunity -> the DataHub wing)
+    // land on their section once the view has rendered.
+    if (a.dataset.scroll) setTimeout(() => document.getElementById(a.dataset.scroll)?.scrollIntoView({ behavior: 'smooth' }), 250);
+  }
   if (view === 'plan') loadPlan();
   if (view === 'prompts') loadPromptStudio();
   if (view === 'studio') loadStudio(a.dataset.org);
@@ -1694,10 +1718,27 @@ async function loadHome() {
   if (!ORG_GROUPS) ORG_GROUPS = await api('/api/org-groups').catch(() => ({}));
   await loadLaunchpadStatus();
   const grouped = new Set(Object.values(ORG_GROUPS).flatMap(g => g.members));
+
+  // The two wings — split by which data plane each engine's truth lives on
+  // (the `era` field the presentation overlay serves). The DataHub wing is
+  // the judged window: the Opportunity group panel wraps the four Hunter
+  // engines, flanked by the backbone organs that aren't orgs at all.
+  const organChip = (label, color, sub) => `
+    <div class="panel" style="margin:0;border-left:3px solid ${color}">
+      <div style="font-weight:600;font-size:14px;margin-bottom:3px">${label}</div>
+      <div class="muted" style="font-size:12px;line-height:1.5">${sub}</div>
+    </div>`;
   $('#enginedir').innerHTML =
-    HOME_ENGINES.filter(n => !grouped.has(n)).map(n => ORGS.find(o => o.name === n)).filter(Boolean).map(orgCard).join('')
-    + Object.values(ORG_GROUPS).map(g =>
-        groupPanel(g, g.members.map(n => ORGS.find(o => o.name === n)).filter(Boolean))).join('');
+    Object.values(ORG_GROUPS).map(g =>
+        groupPanel(g, g.members.map(n => ORGS.find(o => o.name === n)).filter(Boolean))).join('')
+    + ORGS.filter(o => o.era === 'datahub' && !grouped.has(o.name)).map(orgCard).join('')
+    + organChip('DataHub — the IPC', '#4a90d9',
+        'The metadata backbone between the layers: runs as datasets, verdicts as assertions, the trust vocabulary as a glossary.')
+    + organChip('my-AI-stro', '#b48ead',
+        'A second real system in the same graph — 860 school-lesson datasets published through the same backbone.');
+
+  $('#inhousedir').innerHTML =
+    ORGS.filter(o => o.era === 'inhouse' && HOME_ENGINES.includes(o.name) && !grouped.has(o.name)).map(orgCard).join('');
   $('#labsdir').innerHTML = ORGS.filter(o => !HOME_ENGINES.includes(o.name) && !grouped.has(o.name)).map(orgCard).join('');
   loadCollector();
   loadKeytracker();
@@ -2293,29 +2334,43 @@ loadHome();
 <script src="/static/shared/nerve-viz-data.js"></script>
 <script src="/static/shared/nerve-viz.js"></script>
 <script>
-// The shell, made visible: Veritas at the center, every registered production
-// orbiting it — the same center-and-orbit grammar Opportunity's own scanfield
-// and the Hunter engines' hero scenes already use, one layer further out.
+// Two scenes, two layers of the descent.
+//
+// The MEDALLION (inside the nervous-system ring) is Entropy OS itself: the
+// organism at the center with its organs orbiting — a CURATED set, not
+// /api/orgs-derived, because the organs include non-orgs (DataHub the IPC,
+// the Vending Machine, my-AI-stro) by design. The Veritas test-signal ring
+// surrounds all of it: the engine room wrapping the operating system.
+//
+// The ENGINE-ROOM scene lower on the page stays registry-driven: every
+// registered production orbiting the gates that hold them accountable.
 (async function loadShell() {
   try {
+    // The organs of Entropy OS — colors match each organ's own brand.
+    window.entropyMedallion = EntropyScene.init(document.getElementById('nerveEntropyCanvas'), {
+      center: { color: 0xe8c468, label: 'Entropy OS' },
+      nodes: [
+        { name: 'Veritas (kernel)',   color: 0xe8c468, pulse: true },
+        { name: 'DataHub (IPC)',      color: 0x4a90d9, pulse: true },
+        { name: 'Opportunity',        color: 0xe8c468 },
+        { name: 'Crypto Hunter',      color: 0xf0a52c },
+        { name: 'Collectible Hunter', color: 0xd4af37 },
+        { name: 'Free Money Hunter',  color: 0x4ade80 },
+        { name: 'Hackathon Hunter',   color: 0xe85c5c },
+        { name: 'Vending Machine',    color: 0x8b96ad },
+        { name: 'my-AI-stro',         color: 0xb48ead },
+      ],
+      cameraZ: 9.5,
+      onPing: 999999999, // effectively off — the nervous system drives this scene's pulse instead
+    });
+
     const orgs = await api('/api/orgs');
     EntropyScene.init(document.getElementById('shellscene'), {
       center: { color: 0xe8c468 },
       nodes: orgs.map(o => ({ name: o.title, color: parseInt(o.color.replace('#', ''), 16) })),
-      cameraY: -8, cameraZ: 15,  // default view from below the ring, looking up at the shell
+      cameraY: -8, cameraZ: 15,  // default view from below the ring, looking up at the engine room
     });
     $('#shellsub').textContent = `${orgs.length} registered productions, orbiting the gates that hold them accountable`;
-
-    // The same real scene, locked into the nervous-system diagram's own core
-    // circle instead of running full-size — exposed as window.entropyMedallion
-    // so nerve-viz.js's fan-out can ping() it the instant its own core beat
-    // fires, genuinely synced rather than just similarly timed.
-    window.entropyMedallion = EntropyScene.init(document.getElementById('nerveEntropyCanvas'), {
-      center: { color: 0xe8c468 },
-      nodes: orgs.map(o => ({ name: o.title, color: parseInt(o.color.replace('#', ''), 16), pulse: true })),
-      cameraZ: 9.5,
-      onPing: 999999999, // effectively off — see above, the nervous system drives this scene's pulse instead
-    });
   } catch (e) {
     // A WebGL failure or a slow /api/orgs must never block the rest of the dashboard.
     console.warn('shell hero failed to load', e);
