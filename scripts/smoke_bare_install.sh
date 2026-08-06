@@ -23,6 +23,9 @@
 #   - run: ./scripts/smoke_bare_install.sh
 set -euo pipefail
 
+# Upgrade nags are noise in CI logs; failures still print in full.
+export PIP_DISABLE_PIP_VERSION_CHECK=1
+
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/entropy-smoke.XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT
@@ -86,11 +89,13 @@ with zipfile.ZipFile(sys.argv[1]) as wheel:
         requirement = line.split(":", 1)[1].strip()
         if "extra ==" in requirement:  # dev extras never ship to the hosted box
             continue
-        name = re.split(r"[ <>=!~@\[;(]", requirement, 1)[0].strip().lower()
+        name = re.split(r"[ <>=!~@\[;(]", requirement, maxsplit=1)[0].strip().lower()
         if name.replace("_", "-") not in NOT_NEEDED_TO_BOOT:
             print(requirement)
 PYEOF
-"$PIP" -q install -r "$WORK/requirements.txt"
+# The withheld capability deps make the resolver honestly unhappy about the
+# installed entropy-os metadata; that gap is this smoke's design, not a bug.
+"$PIP" -q install --no-warn-conflicts -r "$WORK/requirements.txt"
 
 # --- the boot probe ----------------------------------------------------------
 # Run from the temp dir with -I (isolated: no cwd/PYTHONPATH on sys.path) so a
@@ -139,6 +144,11 @@ client = TestClient(hub.app)
 
 home = client.get("/")
 assert home.status_code == 200, f"/ -> {home.status_code}"
+
+# A nested static asset proves the wheel carried the UI tree recursively, not
+# just the two top-level pages (the exact miss that 500'd the first probe run).
+theme = client.get("/static/shared/entropy-theme.css")
+assert theme.status_code == 200, f"/static/shared/entropy-theme.css -> {theme.status_code}"
 
 orgs_response = client.get("/api/orgs")
 assert orgs_response.status_code == 200, f"/api/orgs -> {orgs_response.status_code}"

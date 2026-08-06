@@ -32,5 +32,14 @@ dev = ["pytest>=8"]
 [tool.setuptools.packages.find]
 include = ["entropy_os*"]
 
+# The front door's UI must ship in the wheel — a bare install answers 500 on /
+# without it. The Fly image only ever worked because uvicorn's default app-dir
+# put the COPY'd source tree on sys.path, shadowing site-packages; the same
+# lesson the engine learned with its vendored prism assets (an installed
+# package carries everything it serves). scripts/smoke_bare_install.sh guards
+# this.
+[tool.setuptools.package-data]
+"entropy_os" = ["static/**/*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

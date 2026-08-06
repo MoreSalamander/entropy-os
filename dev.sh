@@ -8,6 +8,13 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+# `./dev.sh smoke` — prove the app boots as an INSTALLED PACKAGE (wheels in a
+# throwaway venv, no checkout on sys.path): the hosted boot-loop class of
+# 2026-08-06. Run it before cutting a deploy; details in the script.
+if [ "${1:-}" = "smoke" ]; then
+  exec scripts/smoke_bare_install.sh
+fi
+
 PY="${PYTHON:-python3}"
 [ -d .venv ] || "$PY" -m venv .venv
 . .venv/bin/activate
@@ -22,3 +29,4 @@ pip -q install -e ".[dev]"
 # wants its own build.
 playwright install chromium
 echo "entropy-os: ready — run with  .venv/bin/uvicorn entropy_os.app:app --port 8100"
+echo "            pre-deploy check:  ./dev.sh smoke  (bare-install boot)"
