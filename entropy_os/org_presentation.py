@@ -33,6 +33,7 @@ PRESENTATION: dict[str, dict[str, Any]] = {
         "external_url": "http://localhost:8010",
         "launchpad_name": "crypto-hunter",
         "repo_url": "https://github.com/MoreSalamander/crypto-hunter",
+        "site_url": "https://moresalamander.github.io/crypto-hunter/",
     },
     "collectible_hunter": {
         "era": "datahub",
@@ -40,6 +41,7 @@ PRESENTATION: dict[str, dict[str, Any]] = {
         "external_url": "http://localhost:8013",
         "launchpad_name": "collectible-hunter",
         "repo_url": "https://github.com/MoreSalamander/collectible-hunter",
+        "site_url": "https://moresalamander.github.io/collectible-hunter/",
     },
     "free_money_hunter": {
         "era": "datahub",
@@ -47,6 +49,7 @@ PRESENTATION: dict[str, dict[str, Any]] = {
         "external_url": "http://localhost:8014",
         "launchpad_name": "free-money-hunter",
         "repo_url": "https://github.com/MoreSalamander/free-money-hunter",
+        "site_url": "https://moresalamander.github.io/free-money-hunter/",
     },
     "hackathon_hunter": {
         "era": "datahub",
@@ -54,6 +57,7 @@ PRESENTATION: dict[str, dict[str, Any]] = {
         "external_url": "http://localhost:8016",
         "launchpad_name": "hackathon-hunter",
         "repo_url": "https://github.com/MoreSalamander/hackathon-hunter",
+        "site_url": "https://moresalamander.github.io/hackathon-hunter/",
     },
 }
 
@@ -69,6 +73,10 @@ def presentation_for(org_name: str) -> dict[str, Any]:
         "external_url": row.get("external_url"),
         "launchpad_name": row.get("launchpad_name"),
         "repo_url": row.get("repo_url"),
+        # The engine's styled public site (GitHub Pages) — where a visitor who
+        # can't reach the live localhost app should land. The showcase, not
+        # the source tree.
+        "site_url": row.get("site_url"),
         # Which data plane the engine's truth lives on — the visible wing
         # split on the face. New engines are DataHub-native by policy, but
         # an unlisted org defaults to the in-house wing until stated.

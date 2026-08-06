@@ -22,6 +22,7 @@ GROUPS: dict[str, dict[str, Any]] = {
         "external_url": "http://localhost:8015",
         "launchpad_name": "opportunity-agency-ai",
         "repo_url": "https://github.com/MoreSalamander/opportunity-agency-ai",
+        "site_url": "https://moresalamander.github.io/opportunity-agency-ai/",
         "color": "#e8c468",
     },
 }
