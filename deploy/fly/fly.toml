@@ -3,7 +3,7 @@
 # unique to your Fly org. ANTHROPIC_API_KEY is NOT here — set it with `fly secrets set` (see README).
 
 app = "entropy-os-live"   # lowercase only; becomes <name>.fly.dev — rename at `fly apps create` if taken
-primary_region = "iad"           # <- pick a region near you (fly platform regions)
+primary_region = "dfw"           # matches the veritas_data volume (created closest to home)
 
 [build]
   dockerfile = "Dockerfile"   # resolved relative to THIS file's folder (deploy/fly/)
