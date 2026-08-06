@@ -172,10 +172,11 @@
 <div class="wrap">
   <header>
     <div class="entropy-kicker">MORESALAMANDER STUDIOLABS</div>
-    <div class="logo">ENTROPY <b>OS</b> <span style="color:var(--dim);font-weight:400">wedge</span></div>
-    <div class="tagline">Submit a goal. Watch it built, verified, and shipped — or honestly refused.</div>
-    <div class="thesis">This is one doorway into <b>Entropy OS</b> — powered by <b>Veritas Dynamics</b>,
-      a framework that builds software the way a careful engineer would: the model proposes,
+    <div class="logo">ENTROPY <b>OS</b> <span style="color:var(--gold);font-weight:400">· VENDING</span></div>
+    <div class="tagline">Made to order. Insert a goal — the machine builds it behind glass, the gates rule, and the artifact drops into the tray. Or it honestly refuses.</div>
+    <div class="thesis">This is the Vending Machine of <b>Entropy OS</b> — powered by <b>Veritas Dynamics</b>.
+      Three slots, three kinds of trust: a page that <b>looks right</b>, a report that\'s <b>cited right</b>,
+      code that <b>runs right</b>. The model proposes,
       deterministic gates decide, and nothing ships unproven. Here that means a single, verified
       function — the smallest place the idea shows itself whole.
       <b>Reliability is architecture, not a vibe.</b></div>
@@ -250,7 +251,7 @@
     <div class="muted" style="margin:2px 0 6px">Or click an example to build &amp; verify it (<span class="star" style="color:var(--gold)">✦</span> = watch the property gate prove it for <i>all</i> inputs):</div>
     <div class="suggests" id="suggests"></div>
     <div class="btns">
-      <button id="submitBtn">Submit &amp; verify</button>
+      <button id="submitBtn">Build &amp; dispense</button>
       <button id="logoutBtn" class="ghost">Log out</button>
       <span class="who" id="usage"></span>
     </div>
@@ -328,18 +329,27 @@ async function refreshStatus() {
 }
 
 // One-click examples. `show:true` marks the ones with an oracle-free PROPERTY the gate proves for all inputs.
-const SUGGESTIONS = [
-  { g: "reverse a string" },
-  { g: "check whether a number is prime" },
-  { g: "convert Celsius to Fahrenheit" },
-  { g: "count the words in a sentence" },
-  { g: "return the nth Fibonacci number" },
-  { g: "calculate monthly mortgage payment from principal, rate, and term" },
-  { g: "sort a list of numbers", show: true },
-  { g: "reverse a list", show: true },
-  { g: "normalize the whitespace in a string", show: true },
-  { g: "remove duplicates from a list", show: true },
-];
+const SUGGESTIONS_BY_SLOT = {
+  web: [
+    { g: "a dark landing page for a campus study group called Night Owls", show: true },
+    { g: "a one-page portfolio for a photographer named Sam Reyes" },
+    { g: "a coming-soon page for a coffee cart called Slow Pour", show: true },
+    { g: "a simple pricing page with three tiers for a tutoring service" },
+  ],
+  research: [
+    { g: "summarize what these sources say about spaced repetition", show: true },
+    { g: "what do these notes claim about the causes of the 2008 crisis?" },
+    { g: "write a grounded brief on the arguments in these two articles", show: true },
+  ],
+  software: [
+    { g: "reverse a string" },
+    { g: "check whether a number is prime", show: true },
+    { g: "calculate monthly mortgage payment from principal, rate, and term" },
+    { g: "sort a list of numbers", show: true },
+    { g: "count the words in a sentence" },
+  ],
+};
+let SUGGESTIONS = SUGGESTIONS_BY_SLOT.web;
 
 function renderSuggests() {
   $("suggests").innerHTML = SUGGESTIONS.map((s, i) =>
@@ -410,7 +420,7 @@ let PB = null;
 const FAST_MS = 110, SLOW_MS = 650;
 
 function finishSubmit() {
-  $("submitBtn").disabled = false; $("submitBtn").textContent = "Submit & verify";
+  $("submitBtn").disabled = false; $("submitBtn").textContent = "Build & dispense";
 }
 
 function roleClass(e) {
@@ -484,6 +494,8 @@ function applySlot() {
   $("goalLabel").textContent = cfg.label;
   $("goal").placeholder = cfg.ph;
   $("sourcesWrap").classList.toggle("hidden", SLOT !== "research");
+  SUGGESTIONS = SUGGESTIONS_BY_SLOT[SLOT] || SUGGESTIONS_BY_SLOT.web;
+  if (document.getElementById("suggests")) renderSuggests();
   document.querySelectorAll(".slotbtn").forEach(b =>
     b.style.borderColor = b.dataset.slot === SLOT ? "var(--gold)" : "");
 }
