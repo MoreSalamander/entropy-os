@@ -264,6 +264,18 @@
     <div class="trace" id="trace"></div>
   </section>
 
+  <!-- PREMADE: the human-curated shelf, readable right here; dispensing
+       (fresh disposable containers) happens on the operator's machine. -->
+  <section class="panel" id="premadePanel">
+    <h2>Premade — off the shelf <span style="text-transform:none;letter-spacing:0;color:var(--dim)">· human curated</span></h2>
+    <div id="premadeTutorials" class="muted" style="font-size:12.5px">loading the shelf…</div>
+    <div style="margin-top:14px">
+      <label style="margin-bottom:6px">Taichi Academy — five of thirty <a href="https://moresalamander.github.io/taichi-academy/reader/" target="_blank" rel="noopener" style="color:var(--gold)">(read all the lessons ↗)</a></label>
+      <div id="premadeAcademy" class="muted" style="font-size:12.5px">loading…</div>
+    </div>
+    <div class="hint" style="margin-top:10px">Every item here cleared its gate before it was stocked. Dispensing a fresh disposable container happens on the operator's machine — reading is for everyone.</div>
+  </section>
+
   <!-- RESULT -->
   <section class="panel hidden" id="resultPanel">
     <div id="result"></div>
@@ -655,6 +667,51 @@ async function pollInterview() {
   el.classList.remove("hidden");
   setTimeout(pollInterview, 700);
 }
+
+const SHELF_TUTORIALS = ["DataHub 201", "Hyper Realistic Water", "Build an AI Agent"];
+const SHELF_ACADEMY = ["Galaxy Creator", "Fluid Simulator", "Volumetric Clouds", "Mandelbulb Explorer", "Universe Sandbox"];
+
+function lessonHtml(prod) {
+  const secs = (prod.sections || []).map(sec => `
+    <div style="margin:10px 0">
+      <div style="font-weight:600;font-size:13px;color:var(--ink)">${escapeHtml(sec.title || '')}</div>
+      ${sec.intro ? `<div style="font-size:12.5px;margin-top:3px">${escapeHtml(sec.intro)}</div>` : ''}
+      ${sec.tip ? `<div style="font-size:12px;color:var(--gold);margin-top:3px">tip: ${escapeHtml(sec.tip)}</div>` : ''}
+      ${(sec.steps || []).map(st => `<div style="font-size:12.5px;margin-top:6px;padding-left:10px;border-left:2px solid var(--line)">${escapeHtml(typeof st === 'string' ? st : (st.text || st.title || ''))}${st && st.code ? `<pre style="white-space:pre-wrap;font-size:11.5px;margin-top:4px;color:var(--ink)">${escapeHtml(st.code)}</pre>` : ''}</div>`).join('')}
+    </div>`).join("");
+  return `<div style="max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:9px;padding:10px;margin-top:8px">${prod.overview ? `<div style="font-size:12.5px">${escapeHtml(prod.overview)}</div>` : ''}${secs}</div>`;
+}
+
+async function loadPremade() {
+  try {
+    const tuts = await (await fetch("/api/tutorial/products")).json();
+    const picks = tuts.filter(t => SHELF_TUTORIALS.some(n => (t.title || '').includes(n)));
+    document.getElementById("premadeTutorials").innerHTML = picks.length ? picks.map((t, i) => `
+      <div style="border:1px solid var(--line);border-radius:9px;padding:10px;margin-bottom:8px">
+        <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">
+          <b style="color:var(--ink);font-size:13px">${escapeHtml(t.title)}</b>
+          <span style="font-size:11px">gate-verified lesson · its own Docker image</span>
+          <a href="#" data-read="${i}" style="color:var(--gold);font-size:12px;margin-left:auto">Read the lesson ▾</a>
+        </div>
+        <div id="lesson-${i}" class="hidden"></div>
+      </div>`).join("") : "shelf is empty here.";
+    picks.forEach((t, i) => {
+      document.querySelector(`[data-read="${i}"]`).onclick = (ev) => {
+        ev.preventDefault();
+        const box = document.getElementById(`lesson-${i}`);
+        if (box.classList.contains("hidden")) { box.innerHTML = lessonHtml(t); box.classList.remove("hidden"); ev.target.textContent = "Close ▴"; }
+        else { box.classList.add("hidden"); ev.target.textContent = "Read the lesson ▾"; }
+      };
+    });
+    const acad = await (await fetch("/api/academy/products")).json();
+    const apicks = acad.filter(a => SHELF_ACADEMY.some(n => (a.title || '').includes(n)));
+    document.getElementById("premadeAcademy").innerHTML = apicks.map(a =>
+      `<span style="display:inline-block;border:1px solid var(--line);border-radius:8px;padding:5px 10px;margin:0 6px 6px 0;font-size:12px;color:var(--ink)">${escapeHtml(a.title.replace(/^Academy: /, ''))} <span style="color:var(--dim)">· ${escapeHtml(a.tier)} · ${a.chapters.length} ch.</span></span>`).join("");
+  } catch (e) {
+    document.getElementById("premadeTutorials").textContent = "couldn't reach the shelf just now.";
+  }
+}
+loadPremade();
 
 function renderResult(r) {
   const shipped = r.accepted;
