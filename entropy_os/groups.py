@@ -18,7 +18,7 @@ GROUPS: dict[str, dict[str, Any]] = {
         "gate-verified opportunities and allocates the day's mission across them "
         "within one shared time/budget profile. Arbitrates priority, not truth — "
         "every pick already passed its own engine's gate.",
-        "members": ["crypto_hunter", "collectible_hunter", "free_money_hunter"],
+        "members": ["crypto_hunter", "collectible_hunter", "free_money_hunter", "hackathon_hunter"],
         "external_url": "http://localhost:8015",
         "launchpad_name": "opportunity-agency-ai",
         "repo_url": "https://github.com/MoreSalamander/opportunity-agency-ai",

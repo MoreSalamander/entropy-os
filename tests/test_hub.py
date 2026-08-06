@@ -136,7 +136,8 @@ def test_orgs_endpoint_lists_registry(tmp_path):
     orgs = client.get("/api/orgs").json()
     assert {o["name"] for o in orgs} == {"software", "web", "research", "production", "empirical",
                                          "newsroom", "education", "startup", "game",
-                                         "crypto_hunter", "collectible_hunter", "free_money_hunter"}
+                                         "crypto_hunter", "collectible_hunter", "free_money_hunter",
+                                         "hackathon_hunter"}
     assert all(o["input_noun"] and o["produces"] and o["verified_by"] for o in orgs)
 
 
@@ -149,7 +150,7 @@ def test_org_groups_nest_only_registered_orgs(tmp_path):
     org_names = {o["name"] for o in client.get("/api/orgs").json()}
     assert "opportunity" in groups
     opp = groups["opportunity"]
-    assert set(opp["members"]) == {"crypto_hunter", "collectible_hunter", "free_money_hunter"}
+    assert set(opp["members"]) == {"crypto_hunter", "collectible_hunter", "free_money_hunter", "hackathon_hunter"}
     for g in groups.values():
         assert set(g["members"]) <= org_names
         assert g["title"] and g["external_url"] and g["launchpad_name"]
