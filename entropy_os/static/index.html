@@ -392,10 +392,10 @@
     <div class="nerve-viz" id="nerveViz">
       <div class="nerve-head">
         <div class="nerve-kicker">Entropy OS &middot; nervous system: Veritas Dynamics</div>
-        <h2 class="nerve-title">Every one of the 605 signals, not a summary of them</h2>
+        <h2 class="nerve-title">Every one of the 494 signals, not a summary of them</h2>
         <div class="nerve-sub">Entropy OS is the organism at the center. Veritas is the nervous system
           running through it &mdash; every thin terminal below is one real, individual test, not a
-          module average. All 605 ran and passed clean this session.</div>
+          module average. All 494 ran and passed clean this session.</div>
       </div>
       <div id="nerveStage">
         <canvas id="nerve"></canvas>
@@ -414,7 +414,7 @@
         </div>
       </div>
       <div class="nerve-legend" id="nerveLegend"></div>
-      <div class="nerve-foot" id="nerveFootnote">605 passed &middot; 5 skipped &middot; 0 failed &middot; 87 modules &middot; 605 individual tests, each its own terminal</div>
+      <div class="nerve-foot" id="nerveFootnote">494 passed &middot; 5 skipped &middot; 0 failed &middot; 70 modules &middot; 494 individual tests, each its own terminal</div>
       <div class="nerve-credit"><b>Entropy OS</b> &mdash; powered by Veritas Dynamics <span class="sep">&mdash;</span> both a MoreSalamander StudioLabs Production</div>
       <details class="nerve-table">
         <summary>&#9656; view every module as a table</summary>
@@ -433,7 +433,7 @@
     </div>
 
     <div class="panel" style="display:flex;gap:32px;flex-wrap:wrap;margin:14px 0 22px">
-      <div><div class="proofnum" style="font-size:30px">605</div><div class="proofcap">tests passed, 5 skipped — clean, 2026-08-02</div></div>
+      <div><div class="proofnum" style="font-size:30px">494</div><div class="proofcap">tests passed, 5 skipped — clean, 2026-08-06</div></div>
       <div><div class="proofnum" style="font-size:30px">0</div><div class="proofcap">mypy --strict errors</div></div>
       <div><div class="proofnum" style="font-size:30px">8</div><div class="proofcap">distinct verification models registered</div></div>
     </div>
@@ -1745,7 +1745,9 @@ async function loadHome() {
 }
 
 async function loadKeytracker() {
-  const keys = await api('/api/keytracker/keys');
+  let keys;
+  try { keys = await api('/api/keytracker/keys'); }
+  catch (e) { document.getElementById('keytrackerSec')?.classList.add('hidden'); return; }
   $('#keytrackerCnt').textContent = `${keys.length} tracked`;
   $('#keytrackerList').innerHTML = keys.length
     ? keys.map(k => `
@@ -1823,7 +1825,9 @@ function collectorToggle(id) {
 }
 
 async function loadCollector() {
-  const [pending, explanations] = await Promise.all([api('/api/collector/pending'), collectorExplanations()]);
+  let pending, explanations;
+  try { [pending, explanations] = await Promise.all([api('/api/collector/pending'), collectorExplanations()]); }
+  catch (e) { document.getElementById('collectorSec')?.classList.add('hidden'); return; }
   COLLECTOR_RECORDS = pending;
   $('#collectorCnt').textContent = `${pending.length} pending`;
   document.getElementById('collectorSec').classList.toggle('open', pending.length > 0);

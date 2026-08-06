@@ -2,7 +2,7 @@
 # Copy this to the repo root (or run `fly deploy -c deploy/fly/fly.toml`). Rename `app` to something
 # unique to your Fly org. ANTHROPIC_API_KEY is NOT here — set it with `fly secrets set` (see README).
 
-app = "veritas-dynamics-software"   # lowercase only; becomes <name>.fly.dev
+app = "entropy-os-live"   # lowercase only; becomes <name>.fly.dev — rename at `fly apps create` if taken
 primary_region = "iad"           # <- pick a region near you (fly platform regions)
 
 [build]
@@ -12,7 +12,8 @@ primary_region = "iad"           # <- pick a region near you (fly platform regio
   VERITAS_SANDBOX = "container"   # untrusted code runs in throwaway containers; the wedge fails closed
   VERITAS_MEMORY = "sqlite"       # per-tenant DB-backed memory
   VERITAS_ACCOUNTS = "1"          # real signup/login (not static tokens)
-  VERITAS_PUBLIC = "1"            # serve ONLY the wedge; admin surface is sealed off
+  ENTROPY_PUBLIC = "os"           # the hosted face: open reads, metered wedge, closed writes
+  ENTROPY_DATA = "/data"
   VERITAS_MODEL = "sonnet"        # hosted default model: haiku | sonnet | opus
   VERITAS_WEDGE_QUOTA = "20"      # runs per tenant per window (rate limit + billing ledger)
   VERITAS_WEDGE_QUOTA_WINDOW = "86400"
@@ -20,7 +21,7 @@ primary_region = "iad"           # <- pick a region near you (fly platform regio
   VERITAS_DATA = "/data"          # all state lives on the Volume below
 
 [http_service]
-  internal_port = 8099
+  internal_port = 8101
   force_https = true
   auto_stop_machines = false      # keep dockerd + the warm image resident (avoid cold re-pull)
   auto_start_machines = true

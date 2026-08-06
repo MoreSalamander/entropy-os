@@ -997,11 +997,51 @@ def create_app(
     # (post-hackathon); today it also anchors the smoke tests.
     app.state.data_dir = base
 
-    # Public exposure (P31c hosting): when ENTROPY_PUBLIC is set, the hub serves ONLY the wedge — its
-    # storefront + the auth/wedge APIs. Every other route (the admin dashboard, /api/runs, the commons,
-    # etc.) is unauthenticated and must never face the internet, so it 404s. This is the host-agnostic
-    # control (a VM could also gate it at the reverse proxy; on Fly there is no proxy, so we do it here).
-    if os.environ.get("ENTROPY_PUBLIC", "").lower() in ("1", "true", "yes", "on"):
+    # Public exposure, two postures:
+    #
+    #   ENTROPY_PUBLIC=1 (legacy)  — serve ONLY the wedge: storefront + auth/wedge
+    #       APIs; everything else 404s. The original hosted posture.
+    #
+    #   ENTROPY_PUBLIC=os          — the hosted FACE. Three tiers:
+    #       OPEN READ (GET/HEAD only): the home descent, orgs/groups/dashboard/
+    #           models, run history viewing, memory/commons reading, product
+    #           listings, the server-rendered report/commons pages, static.
+    #       METERED (any method): auth + wedge — the one stranger-operable run
+    #           path, quota-gated per tenant.
+    #       CLOSED (404): every session flow, collector/keytracker/vault writes,
+    #           tutorial container ops, POST runs, /api/route, /api/chat —
+    #           anything that spends tokens, runs code outside the wedge's
+    #           isolation, or mutates admin state.
+    #
+    # Host-agnostic control (a VM could also gate at a reverse proxy; on Fly
+    # there is no proxy, so we do it here).
+    _public_mode = os.environ.get("ENTROPY_PUBLIC", "").lower()
+    if _public_mode == "os":
+        _METERED_PREFIXES = ("/api/wedge/", "/api/auth/")
+        _READ_EXACT = {
+            "/", "/about", "/wedge", "/try",
+            "/api/orgs", "/api/org-groups", "/api/dashboard", "/api/models",
+            "/api/runs", "/api/memory", "/api/memory/recall", "/api/commons",
+            "/api/tutorial/products", "/api/academy/products",
+        }
+        _READ_PREFIXES = (
+            "/static/", "/shared/", "/productions/", "/report/", "/commons/",
+            "/api/orgs/",   # per-org roster
+            "/api/runs/",   # run detail (POST /api/runs itself is blocked by the GET-only rule)
+        )
+
+        @app.middleware("http")
+        async def _os_face(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+            path = request.url.path
+            if path.startswith(_METERED_PREFIXES):
+                return await call_next(request)
+            if request.method in ("GET", "HEAD") and (
+                path in _READ_EXACT or path.startswith(_READ_PREFIXES)
+            ):
+                return await call_next(request)
+            return JSONResponse({"detail": "not found"}, status_code=404)
+
+    elif _public_mode in ("1", "true", "yes", "on"):
         _PUBLIC_PREFIXES = ("/api/wedge/", "/api/auth/")
         _PUBLIC_EXACT = {"/wedge", "/try"}
 
@@ -1092,7 +1132,10 @@ def create_app(
         rate = (accepted / len(all_runs) * 100.0) if all_runs else 0.0
         # Same lazy, idempotent refresh as login — cheap, never raises, keeps the
         # always-open local dashboard's pending count fresh without a scheduler.
-        run_collection(collector_sources, collector_store)
+        # Skipped on the hosted face: an anonymous GET must never trigger
+        # outbound fetches against the collector's sources.
+        if os.environ.get("ENTROPY_PUBLIC", "").lower() != "os":
+            run_collection(collector_sources, collector_store)
         return {
             "total_runs": len(all_runs),
             "accepted_runs": accepted,

@@ -1,35 +1,43 @@
-# Veritas Dynamics — the hosted wedge, for Fly.io.
+# Entropy OS — the hosted face, for Fly.io.
 #
 # A Fly Machine is a Firecracker microVM with its own kernel, so we can run the Docker daemon INSIDE
 # it (Docker-in-Docker). The microVM is the hard isolation boundary around the whole tenant-facing app;
-# the per-run container the sandbox spawns is defense-in-depth on top. ContainerExecutor is reused
-# unchanged — it just talks to the local daemon that start.sh brings up.
+# the per-run container the wedge's sandbox spawns is defense-in-depth on top. ContainerExecutor is
+# reused unchanged — it just talks to the local daemon that start.sh brings up.
 #
-# Build context is the repo root: from there, `fly deploy` (fly.toml points dockerfile here).
+# Build context is the entropy-os repo root: from there, `fly deploy -c deploy/fly/fly.toml`.
 
 FROM python:3.12-slim
 
 # docker.io = the daemon (dockerd); docker-cli = the client (/usr/bin/docker) the start script drives —
 # it is NOT pulled in under --no-install-recommends, so name it explicitly. fuse-overlayfs gives dockerd
-# a working storage driver in nested environments where overlay2 can't mount.
+# a working storage driver in nested environments where overlay2 can't mount. git fetches the engine.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends docker.io docker-cli fuse-overlayfs ca-certificates \
+ && apt-get install -y --no-install-recommends docker.io docker-cli fuse-overlayfs ca-certificates git \
  && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /opt/veritas
-COPY . /opt/veritas
+WORKDIR /opt/entropy-os
+COPY . /opt/entropy-os
 
-# Only the hub extra (fastapi/uvicorn/anthropic) — no torch/ML; the wedge never needs it.
-RUN pip install --no-cache-dir ".[hub]"
+# The front door + the engine room. VERITAS_REF pins the engine build (set it to the
+# hosted-* tag at ship); the claude extra brings the Anthropic SDK the hosted default
+# model needs. No playwright/browsers on the hosted MVP — the wedge is the only
+# stranger-operable build path and it doesn't render pages.
+ARG VERITAS_REF=main
+RUN pip install --no-cache-dir . \
+ && pip install --no-cache-dir --force-reinstall --no-deps \
+      "veritas[claude] @ git+https://github.com/MoreSalamander/veritas@${VERITAS_REF}" \
+ && pip install --no-cache-dir anthropic
 
 # The hosting posture baked in. Secrets (ANTHROPIC_API_KEY) come from `fly secrets`, not the image.
 # fly.toml [env] can override any of these; they are sane defaults so the image is safe by itself.
-ENV VERITAS_SANDBOX=container \
+ENV ENTROPY_PUBLIC=os \
+    ENTROPY_DATA=/data \
+    VERITAS_SANDBOX=container \
     VERITAS_MEMORY=sqlite \
     VERITAS_ACCOUNTS=1 \
-    VERITAS_PUBLIC=1 \
     VERITAS_MODEL=sonnet \
     VERITAS_DATA=/data
 
-EXPOSE 8099
-CMD ["bash", "/opt/veritas/deploy/fly/start.sh"]
+EXPOSE 8101
+CMD ["bash", "/opt/entropy-os/deploy/fly/start.sh"]

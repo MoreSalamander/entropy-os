@@ -29,4 +29,4 @@ fi
 docker image inspect python:3.12-slim >/dev/null 2>&1 || docker pull python:3.12-slim
 
 # Hand off to the app. Bind to all interfaces inside the microVM; Fly's proxy terminates TLS in front.
-exec uvicorn hub.app:app --host 0.0.0.0 --port 8099
+exec uvicorn entropy_os.app:app --host 0.0.0.0 --port 8101
