@@ -40,10 +40,16 @@ def _cg_with_evidence(plan) -> ContextGraph:
     code_ev.category = SourceCategory.CODE
     code_claim = make_claim("qiskit implements error correction codes",
                             [repo.id, ecc.id], [code_ev])
+    # bridges qc↔ecc so a real entity-mediated path exists (qc—bridge—ecc—code_claim—repo);
+    # paths through the topic hub are excluded by design
+    bridge = make_claim("Error correction is central to quantum computing",
+                        [qc.id, ecc.id], [make_evidence(source="openalex",
+                                                        reliability=0.75,
+                                                        url="https://openalex/b")])
 
     cg.add_extraction("Academic Research Agent",
                       ExtractionResult(doc_url="https://a", entities=[qc, ecc],
-                                       claims=[strong, weak, corroborated, dispute]))
+                                       claims=[strong, weak, corroborated, dispute, bridge]))
     cg.add_extraction("Open Source Agent",
                       ExtractionResult(doc_url="https://g", entities=[repo, ecc],
                                        claims=[code_claim]))
@@ -105,9 +111,15 @@ class TestAgents:
 
     async def test_question_agent_flags_uncovered_questions(self, plan):
         cg = _cg_with_evidence(plan)
+        cg.open_questions.append(
+            "What are the cooling requirements for photonic interconnects?")
         await VerificationAgent(FakeLLM()).analyze(cg)
         findings = await QuestionAgent(FakeLLM()).analyze(cg)
-        assert any(f.text.startswith("Unresolved:") for f in findings)
+        unresolved = [f.text for f in findings if f.text.startswith("Unresolved:")]
+        assert any("photonic" in t for t in unresolved)   # uncovered → flagged
+        # the fixture's original question IS covered by verified claims
+        # (quantum/error/correction all appear) and must NOT be flagged
+        assert not any("state of quantum" in t for t in unresolved)
 
 
 SPEC_SECTIONS = [

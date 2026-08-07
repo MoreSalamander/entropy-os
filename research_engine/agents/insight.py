@@ -84,7 +84,9 @@ class DiscoveryAgent(GraphAgent):
         top = [e.id for e, _conf, _n in cg.top_entities(12)]
         seen_pairs: set[tuple[str, str]] = set()
         import networkx as nx
-        ug = cg.g.to_undirected(as_view=True)
+        # the topic hub links to every entity, so any path through it is
+        # trivial — discoveries must route through entities and claims only
+        ug = nx.subgraph_view(cg.g, filter_node=lambda n: n != "topic").to_undirected(as_view=True)
         for i, a in enumerate(top):
             for b in top[i + 1:]:
                 if len(findings) >= self.MAX_FINDINGS:
