@@ -1563,10 +1563,14 @@ def create_app(
                     "org": res.org, "artifacts": res.artifacts}
             except (SandboxUnavailable, QuotaExceeded, Unauthorized, OrgNotVendable, SourcesUnavailable) as exc:
                 wedge_progress[token]["error"] = str(exc)
-            except Exception:
+            except Exception as exc:  # noqa: BLE001 — surfaced honestly, never rewritten
+                import traceback
+                traceback.print_exc()
                 wedge_progress[token]["error"] = (
-                    "Couldn't complete that build. Veritas here builds single, testable functions "
-                    "— try 'reverse a string'. GUI or interactive apps aren't supported on this endpoint.")
+                    f"The build failed: {type(exc).__name__}: {exc}"
+                    + (" — this slot builds single, testable functions; try 'reverse a string'."
+                       if req.org == "software" else "")
+                )
             finally:
                 wedge_progress[token]["done"] = True
                 set_activity_listener(None)
