@@ -8,7 +8,7 @@ primary_region = "dfw"           # matches the veritas_data volume (created clos
 [build]
   dockerfile = "Dockerfile"   # resolved relative to THIS file's folder (deploy/fly/)
   [build.args]
-    VERITAS_REF = "hosted-2026-08-08.8"   # the engine build the face ships with; retag + bump to ship newer
+    VERITAS_REF = "hosted-2026-08-08.9"   # the engine build the face ships with; retag + bump to ship newer
 
 [env]
   VERITAS_SANDBOX = "container"   # untrusted code runs in throwaway containers; the wedge fails closed
