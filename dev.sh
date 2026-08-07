@@ -28,5 +28,5 @@ pip -q install -e ".[dev]"
 # The web studio's render gate drives a real browser; each playwright version
 # wants its own build.
 playwright install chromium
-echo "entropy-os: ready — run with  .venv/bin/uvicorn entropy_os.app:app --port 8100"
+echo "entropy-os: ready — run with  .venv/bin/uvicorn entropy_os.app:app --port 8101"
 echo "            pre-deploy check:  ./dev.sh smoke  (bare-install boot)"

@@ -25,19 +25,63 @@ The judge-facing DataHub hackathon demo is frozen separately at
 (tag `hackathon-2026`) and does not depend on this repo.
 
 Post-hackathon queue: decompose the monolithic `create_app` into routers +
-an AppState, the EngineShape registry for the interview flows, and the
-four-layer descent nav.
+an AppState and the EngineShape registry for the interview flows.
 
-## Develop
+## Run it on your Mac
+
+Zero-install path: the hosted face at
+**[entropy-os-live.fly.dev](https://entropy-os-live.fly.dev)** — nothing to
+set up, the Vending Machine demo included.
+
+To run your own:
+
+**Prerequisites**
+
+- macOS with **Python 3.11+** (3.12 recommended) and git.
+- A model brain, one of:
+  - **Claude API** (simplest): an Anthropic API key.
+  - **Local** (free, heavier): [Ollama](https://ollama.com) with the default
+    model pulled — `ollama pull gemma4:12b`.
+- Optional: **Docker Desktop** — the Vending Machine's code slot runs
+  untrusted code only inside throwaway containers; without Docker running it
+  refuses honestly instead of running unisolated.
+
+**Setup**
 
 ```bash
+git clone https://github.com/MoreSalamander/entropy-os
+cd entropy-os
 ./dev.sh
-.venv/bin/uvicorn entropy_os.app:create_app --factory --port 8100
-.venv/bin/pytest -q
 ```
 
-Data root: `ENTROPY_DATA` env, defaulting to the sibling veritas checkout's
-`hub_data/` — the split moves no data files.
+`dev.sh` creates `.venv`, installs the veritas engine (editable from a
+sibling `../veritas` checkout when present, else the declared git dependency),
+this app with dev extras, and the Chromium build the web slot's render gate
+drives.
+
+**Pick the brain**
+
+```bash
+# Claude API:
+export ANTHROPIC_API_KEY=sk-ant-...   # your key
+export VERITAS_MODEL=sonnet
+# — or local: have Ollama running with gemma4:12b pulled (the default,
+#   no env vars needed).
+```
+
+**Run**
+
+```bash
+.venv/bin/uvicorn entropy_os.app:app --port 8101
+```
+
+Open **http://localhost:8101** — the face; the Vending Machine is at
+`/try`. Tests: `.venv/bin/pytest -q` (158). Pre-deploy boot check:
+`./dev.sh smoke`.
+
+Data root: `ENTROPY_DATA` env; the default is the sibling veritas checkout's
+`hub_data/` (the split moved no data files) — with no sibling checkout, set
+`ENTROPY_DATA` to any directory you like and it starts empty.
 
 ---
 
