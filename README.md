@@ -15,10 +15,11 @@ the agent engines.**
 
 **The split is complete.** The full front-door surface — Mission Control,
 the "what do you want to build" router, runs/memory/collector views, the
-Knowledge Graph, the five interactive sessions, the wedge storefront
-(`ENTROPY_PUBLIC=1` for hosted mode), the Vending Machine — serves from this
-repo at exact route parity with the old in-veritas hub (75 = 75, verified),
-against the same data root. Veritas has no web surface anymore.
+Knowledge Graph, the five interactive sessions, the Vending Machine
+(`ENTROPY_PUBLIC=os` is the hosted posture: open reads, metered vending,
+closed writes) — serves from this repo at exact route parity with the old
+in-veritas hub (75 = 75, verified), against the same data root. Veritas has
+no web surface anymore.
 
 The judge-facing DataHub hackathon demo is frozen separately at
 [entropy-datahub-demo](https://github.com/MoreSalamander/entropy-datahub-demo)
