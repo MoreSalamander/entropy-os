@@ -66,3 +66,16 @@ def test_legacy_mode_still_wedge_only(tmp_path: Path, monkeypatch: pytest.Monkey
     assert client.get("/api/orgs").status_code == 404
     r = client.get("/", follow_redirects=False)
     assert r.status_code == 307 and r.headers["location"] == "/wedge"
+
+
+def test_visit_counter_is_open_on_the_hosted_face(os_client: TestClient) -> None:
+    """The tally must work for anonymous strangers: POST records a load
+    (deduped by browser id), GET reads totals — the one open write."""
+    client = os_client
+    a = client.post("/api/visits", json={"vid": "browser-1", "page": "/"})
+    assert a.status_code == 200 and a.json() == {"total": 1, "unique": 1}
+    b = client.post("/api/visits", json={"vid": "browser-1", "page": "/try"})
+    assert b.json() == {"total": 2, "unique": 1}, "same browser twice = one visitor"
+    c = client.post("/api/visits", json={"vid": None})
+    assert c.json() == {"total": 3, "unique": 1}, "probe without id never inflates uniques"
+    assert client.get("/api/visits").json() == {"total": 3, "unique": 1}

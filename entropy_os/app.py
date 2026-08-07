@@ -36,6 +36,7 @@ from engine.memory import MemoryRecord, MemoryStore, default_memory_store, forma
 from engine.memory_export import sync_vault, vault_status
 from entropy_os.accounts import AccountStore, BadCredentials, UsernameTaken, WeakCredentials
 from entropy_os.quota import QuotaStore
+from entropy_os.visits import VisitLog
 from products.wedge import (
     OrgNotVendable,
     SourcesUnavailable,
@@ -115,6 +116,13 @@ _ROOT = repo_root()
 load_dotenv()
 _DATA = default_data_dir()
 _STATIC = Path(__file__).parent / "static"
+
+
+class VisitBody(BaseModel):
+    """One page load: a browser-local UUID (never an account, never an IP)
+    plus which page. Both optional — a bare probe still counts as a load."""
+    vid: str | None = None
+    page: str | None = None
 
 
 class RunRequest(BaseModel):
@@ -959,6 +967,7 @@ def create_app(
     search_client: SearchClient | None = None,
 ) -> FastAPI:
     base = Path(data_dir) if data_dir else _DATA
+    visit_log = VisitLog(base / "visits.json")
     runs = RunStore(base / "runs")
     injected_provider = provider  # set in tests; when None, pick per-request by model
     # Transcript fetcher for the Knowledge Graph (P28b); ScriptedFetcher in tests so they stay offline.
@@ -1061,6 +1070,8 @@ def create_app(
             path = request.url.path
             if path.startswith(_METERED_PREFIXES):
                 return await call_next(request)
+            if path == "/api/visits" and request.method in ("GET", "POST"):
+                return await call_next(request)
             if request.method in ("GET", "HEAD") and (
                 path in _READ_EXACT or path.startswith(_READ_PREFIXES)
             ):
@@ -1079,6 +1090,16 @@ def create_app(
             if path in _PUBLIC_EXACT or path.startswith(_PUBLIC_PREFIXES):
                 return await call_next(request)
             return JSONResponse({"detail": "not found"}, status_code=404)
+
+    @app.post("/api/visits")
+    def record_visit(body: VisitBody) -> dict[str, int]:
+        """One page load. The vid is a browser-local UUID — never an account,
+        never an IP; a probe without one counts as a load, not a visitor."""
+        return visit_log.record(body.vid, body.page)
+
+    @app.get("/api/visits")
+    def visit_stats() -> dict[str, int]:
+        return visit_log.stats()
 
     @app.get("/api/orgs")
     def list_orgs() -> list[dict[str, Any]]:

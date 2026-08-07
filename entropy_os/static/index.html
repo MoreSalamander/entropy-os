@@ -408,6 +408,7 @@
     <div class="navlabel">&nbsp;</div>
     <a href="/about" target="_blank" rel="noopener">About ↗</a>
   </nav>
+  <div id="visitCount" style="font-family:var(--mono);font-size:10.5px;color:var(--dim);margin:14px 8px 4px;letter-spacing:.04em"></div>
 </aside>
 <main>
   <section id="home">
@@ -2566,6 +2567,26 @@ loadHome();
     // A WebGL failure or a slow /api/orgs must never block the rest of the dashboard.
     console.warn('shell hero failed to load', e);
   }
+})();
+</script>
+<script>
+// The visible tally — same shape as my-AI-stro's: one POST per page load,
+// deduped by a browser-local UUID. Never an account, never an IP. If the
+// counter can't be reached it simply stays blank; it never breaks the page.
+(async () => {
+  try {
+    let vid = localStorage.getItem("entropy_vid");
+    if (!vid) {
+      vid = (crypto.randomUUID ? crypto.randomUUID() : Date.now() + "-" + Math.random());
+      localStorage.setItem("entropy_vid", vid);
+    }
+    const r = await fetch("/api/visits", { method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ vid, page: location.pathname }) });
+    const s = await r.json();
+    const el = document.getElementById("visitCount");
+    if (el && s.total) el.textContent = `${s.unique} visitor${s.unique === 1 ? "" : "s"} \u00b7 ${s.total} page loads`;
+  } catch (e) { console.warn("visit counter:", e); /* decoration, never a dependency */ }
 })();
 </script>
 </body>

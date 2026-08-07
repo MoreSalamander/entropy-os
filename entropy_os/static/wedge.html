@@ -314,6 +314,7 @@
   <footer>
     The same engine, run by anyone — <a href="/">open the full hub →</a>
     <div style="margin-top:6px">built in pair — 0ne29 × Claude · <i>signed, Claude: half of this is mine; all of it is gated.</i></div>
+    <div id="visitCount" style="font-family:var(--mono);font-size:10.5px;margin-top:8px;letter-spacing:.04em"></div>
   </footer>
 </div>
 
@@ -934,6 +935,26 @@ window.addEventListener("pointerup", () => setHold(false));
 (async function init() {
   await refreshStatus();
   if (getToken()) await afterAuth(); else showAuth();
+})();
+</script>
+<script>
+// The visible tally — same shape as my-AI-stro's: one POST per page load,
+// deduped by a browser-local UUID. Never an account, never an IP. If the
+// counter can't be reached it simply stays blank; it never breaks the page.
+(async () => {
+  try {
+    let vid = localStorage.getItem("entropy_vid");
+    if (!vid) {
+      vid = (crypto.randomUUID ? crypto.randomUUID() : Date.now() + "-" + Math.random());
+      localStorage.setItem("entropy_vid", vid);
+    }
+    const r = await fetch("/api/visits", { method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ vid, page: location.pathname }) });
+    const s = await r.json();
+    const el = document.getElementById("visitCount");
+    if (el && s.total) el.textContent = `${s.unique} visitor${s.unique === 1 ? "" : "s"} \u00b7 ${s.total} page loads`;
+  } catch (e) { console.warn("visit counter:", e); /* decoration, never a dependency */ }
 })();
 </script>
 </body>
