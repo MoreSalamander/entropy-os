@@ -102,10 +102,12 @@ class DesignEngine:
         hrefs = [_PAGE_HREFS[p.kind] for p in ds.pages]
         writer_copy: dict[str, dict] = {}
         copywriter = Copywriter(self.llm)
-        page_results = await asyncio.gather(
-            *(copywriter.write_page(intent, ds, plan, hrefs) for plan in ds.pages))
-        for plan, copy in zip(ds.pages, page_results):
-            writer_copy[plan.kind.value] = copy
+        # sequential on purpose: a local single-GPU Ollama serializes requests
+        # anyway, and firing pages concurrently just stacks queue wait into
+        # each request's timeout (observed: later pages degrade to house copy)
+        for plan in ds.pages:
+            writer_copy[plan.kind.value] = await copywriter.write_page(
+                intent, ds, plan, hrefs)
         site = ProjectWriter(out).write(intent, ds, writer_copy)
         site.project_id = project_id
         log(f"[codegen] {site.files_written} files → {out}"
