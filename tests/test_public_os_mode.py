@@ -79,3 +79,10 @@ def test_visit_counter_is_open_on_the_hosted_face(os_client: TestClient) -> None
     c = client.post("/api/visits", json={"vid": None})
     assert c.json() == {"total": 3, "unique": 1}, "probe without id never inflates uniques"
     assert client.get("/api/visits").json() == {"total": 3, "unique": 1}
+
+
+def test_dev_cloud_toggle_is_sealed_on_the_hosted_face(os_client: TestClient) -> None:
+    """A stranger must never move the operator's model default (that's the
+    operator's API key being spent). Both verbs sealed in os mode."""
+    assert os_client.get("/api/models/dev-toggle").status_code == 404
+    assert os_client.post("/api/models/dev-toggle", json={"cloud": "opus"}).status_code == 404

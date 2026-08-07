@@ -625,6 +625,14 @@
   <section id="models" class="hidden">
     <h1>Models</h1>
     <div class="muted" style="margin:-12px 0 16px;max-width:700px">Which model proposes. Reliability comes from the gates regardless — so this is only about which model reliably <em>clears</em> which work. Notes are from the project's own benchmarks.</div>
+    <div class="panel" style="margin:0 0 14px">
+      <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+        <span><strong>Developer cloud switch</strong>
+          <span class="muted" style="display:block;font-size:12px;margin-top:2px">Moves the default for everything that doesn't explicitly choose a model. OFF rides the local default. Explicit picks always win. Operator-only — sealed on the hosted face.</span>
+        </span>
+        <span id="devToggle" class="row" style="gap:6px"></span>
+      </div>
+    </div>
     <div id="modellist" style="display:grid;gap:10px"></div>
   </section>
 
@@ -930,7 +938,25 @@ function setDefaultModel(name) {
   loadModelsView();
 }
 
+async function renderDevToggle() {
+  let state = { cloud: 'off' };
+  try { state = await api('/api/models/dev-toggle'); } catch (e) { /* hosted face: sealed */ }
+  const host = $('#devToggle');
+  if (!host) return;
+  const opts = ['off', 'haiku', 'sonnet', 'opus'];
+  host.innerHTML = opts.map(o =>
+    `<button data-cloud="${o}" class="pill" style="cursor:pointer;border-color:${state.cloud === o ? 'var(--gold)' : 'var(--line)'};color:${state.cloud === o ? 'var(--gold)' : 'var(--dim)'};background:transparent">${o.toUpperCase()}</button>`
+  ).join('');
+  host.querySelectorAll('[data-cloud]').forEach(btn => btn.onclick = async () => {
+    try {
+      await api('/api/models/dev-toggle', { method: 'POST', body: JSON.stringify({ cloud: btn.dataset.cloud }) });
+      renderDevToggle();
+    } catch (e) { /* sealed or invalid — leave the state as the server says */ }
+  });
+}
+
 async function loadModelsView() {
+  renderDevToggle();
   const models = await api('/api/models');
   const mine = localStorage.getItem('veritas_model') || (models.find(m => m.recommended) || {}).name;
   $('#modellist').innerHTML = models.map(m => {

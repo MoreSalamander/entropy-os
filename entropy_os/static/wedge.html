@@ -281,6 +281,7 @@
     <!-- The three slots of the machine: looks right · cited right · runs right -->
     <div class="btns" id="slotRow" style="margin-bottom:10px">
       <button class="ghost slotbtn" data-slot="web">🖼 Web page</button>
+      <button class="ghost slotbtn" data-slot="site">🌐 Whole site</button>
       <button class="ghost slotbtn" data-slot="research">📄 Research report</button>
       <button class="ghost slotbtn" data-slot="software">⚙️ Code that runs</button>
     </div>
@@ -374,6 +375,11 @@ async function refreshStatus() {
 
 // One-click examples. `show:true` marks the ones with an oracle-free PROPERTY the gate proves for all inputs.
 const SUGGESTIONS_BY_SLOT = {
+  site: [
+    { g: "a site for an AI healthcare startup — doctors and investors, credibility first", show: true },
+    { g: "a three-page site for a climbing gym: landing, pricing, contact", show: true },
+    { g: "a site for an indie game studio with a playful, dark look" },
+  ],
   web: [
     { g: "a dark landing page for a campus study group called Night Owls", show: true },
     { g: "a one-page portfolio for a photographer named Sam Reyes" },
@@ -524,6 +530,8 @@ async function pollProgress(token) {
 const SLOTS = {
   web:      { heading: "Made to order — a web page", label: "Describe the page you want built and verified",
               ph: "e.g. a landing page for a sneaker resale side hustle", verb: "Rendering & gating…" },
+  site:     { heading: "Made to order — a whole site", label: "Describe the site: who it's for and what it must achieve",
+              ph: "e.g. a site for an AI healthcare startup — doctors and investors, credibility first", verb: "Briefing, researching design, building pages, gating the site…" },
   research: { heading: "Made to order — a grounded report", label: "Ask the question the report should answer",
               ph: "e.g. what actually changed in the new FAFSA rules?", verb: "Researching & gating…" },
   software: { heading: "Made to order — code that runs", label: "Describe the function you want built and verified",
@@ -616,6 +624,24 @@ function trayHtml(r) {
       <div class="muted" style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px">the tray — your page</div>
       <iframe sandbox srcdoc="${page.replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" style="width:100%;height:340px;border:1px solid var(--line);border-radius:10px;background:#fff"></iframe>
       <div class="btns" style="margin-top:8px">${dl("your-page.html", "text/html", page, "⬇ Take the page")}</div>
+    </div>`;
+  }
+  if (r.org === "site") {
+    const pages = arts.filter(a => a.label.endsWith(".html"));
+    const brief = arts.find(a => a.label === "design brief");
+    const system = arts.find(a => a.label === "design system");
+    const graph = arts.find(a => a.label === "context graph");
+    const landing = pages.find(p => p.label === "landing.html") || pages[0];
+    if (!landing) return "";
+    return `<div style="margin-top:14px">
+      <div class="muted" style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px">the tray — your site (${pages.length} page${pages.length === 1 ? "" : "s"})</div>
+      ${system ? `<div style="font-size:12px;color:var(--dim);white-space:pre-wrap;border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px">${escapeHtml(system.payload)}</div>` : ""}
+      <iframe sandbox srcdoc="${landing.payload.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}" style="width:100%;height:340px;border:1px solid var(--line);border-radius:10px;background:#fff"></iframe>
+      <div class="btns" style="margin-top:8px">
+        ${pages.map(p => dl(p.label, "text/html", p.payload, `⬇ ${p.label}`)).join("")}
+        ${brief ? dl("design-brief.txt", "text/plain", brief.payload, "⬇ brief") : ""}
+        ${graph ? dl("context-graph.json", "application/json", graph.payload, "⬇ graph") : ""}
+      </div>
     </div>`;
   }
   if (r.org === "research") {

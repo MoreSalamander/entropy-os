@@ -104,7 +104,10 @@ from products.tutorial.generate import (
 from products.tutorial.publish import publish_tutorial
 from products.tutorial.spec import TutorialSpec
 
-from engine.catalog import DEFAULT_MODEL, MODEL_NOTES, MODELS, provider_for, tutorial_provider_for
+from engine.catalog import (
+    DEFAULT_MODEL, MODEL_NOTES, MODELS, get_default_override, provider_for,
+    set_default_override, tutorial_provider_for,
+)
 from orgs.paths import repo_root
 
 from entropy_os.config import default_data_dir, load_dotenv
@@ -116,6 +119,13 @@ _ROOT = repo_root()
 load_dotenv()
 _DATA = default_data_dir()
 _STATIC = Path(__file__).parent / "static"
+
+
+class CloudToggleBody(BaseModel):
+    """The developer cloud switch: off | haiku | sonnet | opus. Module level
+    — a function-local pydantic model under deferred annotations binds as a
+    QUERY param and 422s every request (third time this class of bug bit)."""
+    cloud: str
 
 
 class VisitBody(BaseModel):
@@ -968,6 +978,25 @@ def create_app(
 ) -> FastAPI:
     base = Path(data_dir) if data_dir else _DATA
     visit_log = VisitLog(base / "visits.json")
+    settings_path = base / "settings.json"
+
+    def _load_settings() -> dict[str, Any]:
+        try:
+            return json.loads(settings_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError, ValueError):
+            return {}
+
+    def _save_settings(values: dict[str, Any]) -> None:
+        settings_path.parent.mkdir(parents=True, exist_ok=True)
+        settings_path.write_text(json.dumps(values, indent=2), encoding="utf-8")
+
+    # The developer cloud toggle survives restarts. An invalid persisted
+    # value is dropped rather than crashing the boot.
+    _persisted = _load_settings().get("cloud_override")
+    try:
+        set_default_override(_persisted if _persisted else None)
+    except ValueError:
+        set_default_override(None)
     runs = RunStore(base / "runs")
     injected_provider = provider  # set in tests; when None, pick per-request by model
     # Transcript fetcher for the Knowledge Graph (P28b); ScriptedFetcher in tests so they stay offline.
@@ -1205,6 +1234,29 @@ def create_app(
     def get_run(run_id: str) -> dict[str, Any]:
         found = runs.get(run_id)
         return found or {"error": "not found"}
+
+    @app.get("/api/models/dev-toggle")
+    def get_dev_toggle() -> dict[str, Any]:
+        return {"cloud": get_default_override() or "off", "default": DEFAULT_MODEL}
+
+    @app.post("/api/models/dev-toggle")
+    def set_dev_toggle(body: CloudToggleBody) -> dict[str, Any]:
+        """The operator's cloud switch: off rides the local/env default;
+        haiku/sonnet/opus move the default for everything that didn't
+        explicitly choose. Persisted; closed on the hosted face (not on the
+        open-read allowlist), so a stranger can never spend the operator's
+        key by flipping it."""
+        choice = body.cloud.strip().lower()
+        if choice == "off":
+            set_default_override(None)
+        elif choice in ("haiku", "sonnet", "opus"):
+            set_default_override(choice)
+        else:
+            raise HTTPException(status_code=422, detail="cloud must be one of: off, haiku, sonnet, opus")
+        values = _load_settings()
+        values["cloud_override"] = None if choice == "off" else choice
+        _save_settings(values)
+        return {"cloud": get_default_override() or "off", "default": DEFAULT_MODEL}
 
     @app.get("/api/models")
     def list_models() -> list[dict[str, Any]]:
