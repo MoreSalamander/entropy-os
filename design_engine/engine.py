@@ -41,7 +41,10 @@ class DesignEngine:
                  storage_dir: Path | None = None,
                  brave_key: str = "", serper_key: str = "",
                  datahub_gms: str = "http://localhost:8080"):
-        self.llm = llm or OllamaClient(LLMConfig())
+        # 300s: heavy local models (qwen3.5-64k) can need a cold model swap
+        # plus a long structured generation for a full page of copy — the
+        # 120s default was observed timing pages out into house-copy fallback
+        self.llm = llm or OllamaClient(LLMConfig(timeout_s=300))
         storage = storage_dir or STORAGE
         storage.mkdir(parents=True, exist_ok=True)
         vectors = VectorIndex(self.llm, path=storage / "qdrant")
