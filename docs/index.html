@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>code-engine — AI-native Software Intelligence &amp; Generation</title>
+<style>
+  :root { --bg:#0d1210; --panel:#131b17; --ink:#e4ede8; --dim:#8fa79a;
+          --acc:#4ade80; --line:#1e2b24; }
+  * { box-sizing:border-box; margin:0; }
+  body { background:var(--bg); color:var(--ink);
+         font:16px/1.65 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+         padding:3rem 1.2rem 5rem; }
+  main { max-width:860px; margin:0 auto; }
+  h1 { font-size:2rem; letter-spacing:-.02em; }
+  h1 span { color:var(--acc); }
+  .sub { color:var(--dim); margin:.4rem 0 2.2rem; }
+  h2 { font-size:1.15rem; margin:2.4rem 0 .8rem; color:var(--acc); }
+  p { margin:.7rem 0; }
+  .panel { background:var(--panel); border:1px solid var(--line);
+           border-radius:10px; padding:1.1rem 1.3rem; margin:1rem 0; }
+  pre { background:#0f1613; border:1px solid var(--line); border-radius:8px;
+        padding:1rem; overflow-x:auto; font-size:.85rem; color:#b7f7cf; }
+  code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+  table { border-collapse:collapse; width:100%; font-size:.9rem; margin:.8rem 0; }
+  th,td { text-align:left; padding:.45rem .6rem; border-bottom:1px solid var(--line); }
+  th { color:var(--dim); font-weight:600; }
+  .law { border-left:3px solid var(--acc); padding-left:1rem; color:var(--dim);
+         font-style:italic; margin:1.4rem 0; }
+  a { color:var(--acc); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  .foot { margin-top:3.5rem; color:var(--dim); font-size:.85rem;
+          border-top:1px solid var(--line); padding-top:1.2rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>code-<span>engine</span></h1>
+  <div class="sub">AI-native Software Intelligence and Generation Platform — an AI
+  software engineering organization that researches, designs, generates, verifies,
+  and continues to understand the software it builds. Third engine on the
+  research-engine substrate. A MoreSalamander StudioLabs production.</div>
+
+  <div class="panel">
+  <pre>User Idea → Product Intelligence → Parallel Software Research
+→ Software Context Graph → Software Knowledge Graph
+→ Architecture Intelligence → AI Engineering Team
+→ Generated Software → Continuous Verification
+→ Impact Analysis → Evolution → Reusable Knowledge</pre>
+  </div>
+
+  <div class="law">The generated repository carries its own self-model:
+  <code>.code_engine/graph.json</code> maps every file to the component, feature,
+  and requirement it exists for — written during generation, not inferred after.
+  Impact analysis and evolution checks read the sidecar, so the software stays
+  understood long after it is generated.</div>
+
+  <h2>Verification is execution</h2>
+  <p>Every build runs <code>ruff</code> and the generated project's own
+  <code>pytest</code> suite as real subprocesses, plus three deterministic lint
+  agents (Security, Performance, Code Review). Failures map through the graph —
+  file → component → feature → requirement — and land as problem nodes. The
+  repair loop is bounded and gated: patches must parse, stay inside the project,
+  and never touch tests. A red suite is reported red.</p>
+
+  <h2>Semantic change intelligence</h2>
+  <table>
+    <tr><th><code>impact</code></th><td>before touching a component: transitive
+    dependents, affected APIs, tests to re-run, requirements at risk, suspect
+    docs, infrastructure touchpoints — pure graph traversal</td></tr>
+    <tr><th><code>evolve</code></th><td>reality vs model: ast-observed imports vs
+    declared dependencies (drift), OSV.dev advisories (live), PyPI staleness
+    (live), documentation drift — findings persist into the sidecar</td></tr>
+    <tr><th><code>patterns</code></th><td>cross-project memory: engineering
+    patterns ranked by observed verification success and repair cost</td></tr>
+  </table>
+
+  <h2>Honest scope</h2>
+  <p>One stack, deep and real: FastAPI + SQLAlchemy/SQLite + pytest + static JS —
+  generated projects run, and their tests execute in the loop. Custom endpoints
+  beyond CRUD are visible <code>implemented: false</code> stubs recorded as known
+  problems. Semantic modeling covers generated projects by construction plus
+  Python-ast drift analysis; arbitrary polyglot repos are out. Parallel.ai ships
+  as a keyed adapter, fail-closed without a key. Learning uses our own
+  verification outcomes — no invented telemetry.</p>
+
+  <h2>Run it</h2>
+  <pre>.venv/bin/python -m code_engine build "Build an AI research platform"
+.venv/bin/python -m code_engine impact &lt;project_dir&gt; &lt;component&gt;
+.venv/bin/python -m code_engine evolve &lt;project_dir&gt;</pre>
+
+  <div class="foot">
+    <a href="https://github.com/MoreSalamander/code-engine">github.com/MoreSalamander/code-engine</a>
+    · 25 offline tests (incl. executing a generated project's own suite)
+    · substrate: <a href="https://moresalamander.github.io/research-engine/">research-engine</a>
+    · part of <a href="https://moresalamander.github.io">MoreSalamander</a>
+  </div>
+</main>
+</body>
+</html>
