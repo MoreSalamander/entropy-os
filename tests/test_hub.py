@@ -188,7 +188,7 @@ WEB_SPEC = json.dumps(
     {"title": "Landing", "description": "a landing page", "required_elements": ["nav", "h1", "button"]}
 )
 WEB_PAGE = (
-    "<!doctype html><html><head><title>Landing</title></head><body>"
+    "<!doctype html><html lang='en'><head><title>Landing</title></head><body>"
     "<nav><a href='#'>Home</a></nav><h1>Welcome</h1><button>Go</button></body></html>"
 )
 

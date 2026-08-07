@@ -121,6 +121,12 @@ _DATA = default_data_dir()
 _STATIC = Path(__file__).parent / "static"
 
 
+class GradeBody(BaseModel):
+    """The assessment door: which vended lesson, which answers."""
+    run_id: str
+    answers: list[int]
+
+
 class CloudToggleBody(BaseModel):
     """The developer cloud switch: off | haiku | sonnet | opus. Module level
     — a function-local pydantic model under deferred annotations binds as a
@@ -1528,6 +1534,23 @@ def create_app(
                 "run_id": res.run_id, "isolated": res.isolated, "code": res.code,
                 "spec": res.spec, "evidence": res.evidence, "remaining": res.remaining,
                 "org": res.org, "artifacts": res.artifacts}
+
+    @app.post("/api/wedge/learn/grade")
+    def wedge_learn_grade(
+        body: GradeBody, authorization: str | None = Header(default=None)
+    ) -> dict[str, Any]:
+        """Deterministic quiz grading against the tenant's vended lesson;
+        moves the learner model. Unmetered — assessment is part of the vend."""
+        wedge = Wedge(base, lambda: injected_provider or provider_for(DEFAULT_MODEL),
+                      wedge_auth, meter=quota,
+                      unlimited_check=accounts.is_unlimited if accounts is not None else None,
+                      search_client=web_search)
+        try:
+            return wedge.grade_learn(authorization, body.run_id, body.answers)
+        except Unauthorized as exc:
+            raise HTTPException(status_code=401, detail=str(exc))
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail=str(exc))
 
     @app.post("/api/wedge/submit/start")
     def wedge_submit_start(

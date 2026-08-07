@@ -282,6 +282,7 @@
     <div class="btns" id="slotRow" style="margin-bottom:10px">
       <button class="ghost slotbtn" data-slot="web">🖼 Web page</button>
       <button class="ghost slotbtn" data-slot="site">🌐 Whole site</button>
+      <button class="ghost slotbtn" data-slot="learn">🎓 Learn</button>
       <button class="ghost slotbtn" data-slot="research">📄 Research report</button>
       <button class="ghost slotbtn" data-slot="software">⚙️ Code that runs</button>
     </div>
@@ -375,6 +376,11 @@ async function refreshStatus() {
 
 // One-click examples. `show:true` marks the ones with an oracle-free PROPERTY the gate proves for all inputs.
 const SUGGESTIONS_BY_SLOT = {
+  learn: [
+    { g: "teach me machine learning", show: true },
+    { g: "teach me how a computer actually executes code", show: true },
+    { g: "teach me statistics for reading medical studies" },
+  ],
   site: [
     { g: "a site for an AI healthcare startup — doctors and investors, credibility first", show: true },
     { g: "a three-page site for a climbing gym: landing, pricing, contact", show: true },
@@ -532,6 +538,8 @@ const SLOTS = {
               ph: "e.g. a landing page for a sneaker resale side hustle", verb: "Rendering & gating…" },
   site:     { heading: "Made to order — a whole site", label: "Describe the site: who it's for and what it must achieve",
               ph: "e.g. a site for an AI healthcare startup — doctors and investors, credibility first", verb: "Briefing, researching design, building pages, gating the site…" },
+  learn:    { heading: "Made to order — the university", label: "What do you want to learn?",
+              ph: "e.g. teach me machine learning", verb: "Planning the roadmap, researching, teaching, gating the lesson…" },
   research: { heading: "Made to order — a grounded report", label: "Ask the question the report should answer",
               ph: "e.g. what actually changed in the new FAFSA rules?", verb: "Researching & gating…" },
   software: { heading: "Made to order — code that runs", label: "Describe the function you want built and verified",
@@ -624,6 +632,55 @@ function trayHtml(r) {
       <div class="muted" style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px">the tray — your page</div>
       <iframe sandbox srcdoc="${page.replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" style="width:100%;height:340px;border:1px solid var(--line);border-radius:10px;background:#fff"></iframe>
       <div class="btns" style="margin-top:8px">${dl("your-page.html", "text/html", page, "⬇ Take the page")}</div>
+    </div>`;
+  }
+  if (r.org === "learn") {
+    const roadmap = arts.find(a => a.label === "learning roadmap");
+    const lessonArt = arts.find(a => a.label === "lesson");
+    const quizArt = arts.find(a => a.label === "quiz");
+    const graph = arts.find(a => a.label === "context graph");
+    let quizHtml = "";
+    if (quizArt) {
+      const quiz = JSON.parse(quizArt.payload);
+      quizHtml = `<div style="border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:10px" id="quizBox" data-run="${escapeHtml(quiz.run_id)}" data-n="${quiz.items.length}">
+        <div class="muted" style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:8px">the assessment — graded deterministically, mastery moves only here</div>
+        ${quiz.items.map((it, qi) => `
+          <div style="margin-bottom:10px"><div style="font-size:13px;margin-bottom:5px">${qi + 1}. ${escapeHtml(it.question)}</div>
+          ${it.options.map((op, oi) => `<label style="display:block;font-size:12.5px;padding:3px 0;cursor:pointer"><input type="radio" name="q${qi}" value="${oi}" style="width:auto;margin-right:7px">${escapeHtml(op)}</label>`).join("")}</div>`).join("")}
+        <div class="btns"><button id="gradeBtn">Grade me</button><span id="gradeOut" class="hint"></span></div>
+      </div>`;
+    }
+    setTimeout(() => {
+      const btn = document.getElementById("gradeBtn");
+      if (!btn) return;
+      btn.onclick = async () => {
+        const box = document.getElementById("quizBox");
+        const n = parseInt(box.dataset.n, 10);
+        const answers = [];
+        for (let qi = 0; qi < n; qi++) {
+          const sel = box.querySelector(`input[name=q${qi}]:checked`);
+          answers.push(sel ? parseInt(sel.value, 10) : -1);
+        }
+        btn.disabled = true;
+        const { ok, data } = await api("/api/wedge/learn/grade",
+          { method: "POST", auth: true, body: { run_id: box.dataset.run, answers } });
+        btn.disabled = false;
+        const out = document.getElementById("gradeOut");
+        if (!ok) { out.textContent = "grading failed — sign in again?"; return; }
+        out.innerHTML = data.mastered
+          ? `<b style="color:var(--green)">${data.correct}/${data.total} — MASTERED.</b> The university remembers: vend the same goal again and it moves to the next concept.`
+          : `<b style="color:var(--red)">${data.correct}/${data.total}</b> — below the ${Math.round(data.mastery_threshold * 100)}% mastery bar. Marked as a weak area; the next lesson knows.`;
+      };
+    }, 50);
+    return `<div style="margin-top:14px">
+      <div class="muted" style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px">the tray — one session of the university</div>
+      ${roadmap ? `<pre style="white-space:pre-wrap;font-size:11.5px;border:1px solid var(--line);border-radius:10px;padding:10px;color:var(--dim)">${escapeHtml(roadmap.payload)}</pre>` : ""}
+      ${lessonArt ? `<div style="font-size:13px;line-height:1.65;max-height:380px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:14px">${mdLite(lessonArt.payload)}</div>` : ""}
+      ${quizHtml}
+      <div class="btns" style="margin-top:8px">
+        ${lessonArt ? dl("lesson.md", "text/markdown", lessonArt.payload, "⬇ Take the lesson") : ""}
+        ${graph ? dl("learning-graph.json", "application/json", graph.payload, "⬇ graph") : ""}
+      </div>
     </div>`;
   }
   if (r.org === "site") {
