@@ -223,9 +223,13 @@ class DesignSynthesizer:
                 sections.append(SectionKind.FOOTER)
             if kind == PageKind.LANDING and SectionKind.HERO not in sections:
                 sections.insert(1, SectionKind.HERO)
-            pages.append(PagePlan(kind=kind,
-                                  title=str(raw.get("title") or kind.value.title()),
-                                  sections=sections))
+            # titles are navigation-grade labels, not meta descriptions: clamp
+            # verbose/templated LLM titles ("[Product Name]: Revolutionizing…")
+            # back to the canonical page name
+            title = str(raw.get("title") or "").strip()
+            if not (2 <= len(title) <= 24) or "[" in title or ":" in title:
+                title = kind.value.title()
+            pages.append(PagePlan(kind=kind, title=title, sections=sections))
 
         ds = DesignSystem(
             project_intent_id=cg.intent.id,

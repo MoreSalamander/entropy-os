@@ -61,10 +61,15 @@ class ProjectWriter:
               page_copy: dict[str, dict]) -> GeneratedSite:
         """page_copy: page kind value -> copywriter dict."""
         if self.out.exists():
-            shutil.rmtree(self.out)
-        (self.out / "app").mkdir(parents=True)
-        (self.out / "lib").mkdir()
-        (self.out / "public").mkdir()
+            # regeneration keeps node_modules/.next so the build gate and dev
+            # loops don't pay a full npm install every iteration
+            for child in self.out.iterdir():
+                if child.name in ("node_modules",):
+                    continue
+                shutil.rmtree(child) if child.is_dir() else child.unlink()
+        (self.out / "app").mkdir(parents=True, exist_ok=True)
+        (self.out / "lib").mkdir(exist_ok=True)
+        (self.out / "public").mkdir(exist_ok=True)
 
         files = 0
         files += self._copy_components(ds)
@@ -269,7 +274,12 @@ export default function RootLayout({{
     def _write_content(self, intent: ProjectIntent, ds: DesignSystem,
                        page_copy: dict[str, dict]) -> int:
         hrefs = [_PAGE_HREFS[p.kind] for p in ds.pages]
-        nav_links = [{"label": p.title, "href": _PAGE_HREFS[p.kind]}
+        # navigation labels are always the canonical short names — page titles
+        # may carry flavor, but chrome must stay scannable
+        short = {PageKind.LANDING: "Home", PageKind.PRODUCT: "Product",
+                 PageKind.ABOUT: "About", PageKind.PRICING: "Pricing",
+                 PageKind.CONTACT: "Contact", PageKind.DOCS: "Docs"}
+        nav_links = [{"label": short[p.kind], "href": _PAGE_HREFS[p.kind]}
                      for p in ds.pages
                      if p.kind not in (PageKind.LANDING, PageKind.CONTACT)]
         contact_href = "/contact" if "/contact" in hrefs else hrefs[0]
@@ -392,7 +402,7 @@ export default function RootLayout({{
                 "tagline": landing.get("meta_description", ""),
                 "columns": [
                     {"heading": "Product",
-                     "links": [{"label": p.title, "href": _PAGE_HREFS[p.kind]}
+                     "links": [{"label": short[p.kind], "href": _PAGE_HREFS[p.kind]}
                                for p in ds.pages if p.kind != PageKind.LANDING][:4]},
                     {"heading": "Company",
                      "links": ([{"label": "About", "href": "/about"}]
