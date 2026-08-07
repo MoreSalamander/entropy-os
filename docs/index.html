@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>learn-engine — AI-native Education Intelligence</title>
+<style>
+  :root { --bg:#120f14; --panel:#1a1520; --ink:#ece6f2; --dim:#a294b3;
+          --acc:#f0a35e; --line:#2a2233; }
+  * { box-sizing:border-box; margin:0; }
+  body { background:var(--bg); color:var(--ink);
+         font:16px/1.65 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+         padding:3rem 1.2rem 5rem; }
+  main { max-width:860px; margin:0 auto; }
+  h1 { font-size:2rem; letter-spacing:-.02em; }
+  h1 span { color:var(--acc); }
+  .sub { color:var(--dim); margin:.4rem 0 2.2rem; }
+  h2 { font-size:1.15rem; margin:2.4rem 0 .8rem; color:var(--acc); }
+  p { margin:.7rem 0; }
+  .panel { background:var(--panel); border:1px solid var(--line);
+           border-radius:10px; padding:1.1rem 1.3rem; margin:1rem 0; }
+  pre { background:#161019; border:1px solid var(--line); border-radius:8px;
+        padding:1rem; overflow-x:auto; font-size:.85rem; color:#ffd9ae; }
+  code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+  table { border-collapse:collapse; width:100%; font-size:.9rem; margin:.8rem 0; }
+  th,td { text-align:left; padding:.45rem .6rem; border-bottom:1px solid var(--line); }
+  th { color:var(--dim); font-weight:600; }
+  .law { border-left:3px solid var(--acc); padding-left:1rem; color:var(--dim);
+         font-style:italic; margin:1.4rem 0; }
+  a { color:var(--acc); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  .foot { margin-top:3.5rem; color:var(--dim); font-size:.85rem;
+          border-top:1px solid var(--line); padding-top:1.2rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>learn-<span>engine</span></h1>
+  <div class="sub">AI-native Education Intelligence Platform — a personal
+  university of research agents, teaching agents, and knowledge graphs, run
+  against an evidence-based learner model. Fourth engine on the research-engine
+  substrate. A MoreSalamander StudioLabs production.</div>
+
+  <div class="panel">
+  <pre>Student Goal → Roadmap DAG → Parallel Educational Research
+→ Student Context Graph → Education Knowledge Graph
+→ Teaching Agents → Adaptive Learning Engine
+→ Practice + Assessment → Mastery → Shared Teaching Memory</pre>
+  </div>
+
+  <div class="law">Mastery is computed, never asserted: lesson → introduced;
+  first correct → practicing; mastered needs a three-streak spanning two item
+  kinds; two misses demote. LLM-judged answers carry half weight. Review timing
+  is a fixed spaced-repetition schedule. And generated code exercises pass the
+  code-executes gate — the reference solution runs in a sandbox and must
+  reproduce its answer, or the exercise never reaches the learner. When the
+  model's claim disagrees with execution, execution wins.</div>
+
+  <h2>The adaptive policy states its reasons</h2>
+  <p>Every activity carries WHY it was chosen: <em>overdue review</em> (spaced
+  repetition outranks everything) → <em>misconception repair</em> (Socratic
+  re-teach of the exact confusion) → <em>continue practicing</em> →
+  <em>next concept in prerequisite order</em> → done. Mastered concepts are
+  never re-taught; cross-disciplinary bridges from what the learner already
+  knows decorate new-concept activities.</p>
+
+  <h2>What the graphs remember</h2>
+  <table>
+    <tr><th>Student Context Graph</th><td>per session: current activity + reason,
+    confusion points, interactions, mastery snapshot</td></tr>
+    <tr><th>Education Knowledge Graph</th><td>persistent: concept relations
+    across subjects, researched resources, the shared misconception library,
+    and explanation-outcome records — which teaching method actually precedes
+    success, per concept and per learner</td></tr>
+  </table>
+
+  <h2>Honest scope</h2>
+  <p>Sources are the live open web (arXiv, OpenAlex, Semantic Scholar,
+  Wikipedia, GitHub, HN, Crossref, GDELT; open courseware best-effort) — no LMS
+  integrations. Mastery evidence comes only from graded interactions inside the
+  system. Code practice is Python-only in an isolated subprocess.
+  Visualizations are mermaid concept maps generated deterministically from the
+  graph, bundled with each lesson as markdown + static HTML.</p>
+
+  <h2>Run it</h2>
+  <pre>.venv/bin/python -m learn_engine study "Teach me machine learning" --steps 3
+# or the API on :8020 — reference answers never ship to the client</pre>
+
+  <div class="foot">
+    <a href="https://github.com/MoreSalamander/learn-engine">github.com/MoreSalamander/learn-engine</a>
+    · 31 offline tests · substrate:
+    <a href="https://moresalamander.github.io/research-engine/">research-engine</a>
+    · part of <a href="https://moresalamander.github.io">MoreSalamander</a>
+  </div>
+</main>
+</body>
+</html>
