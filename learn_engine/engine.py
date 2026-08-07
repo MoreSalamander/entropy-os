@@ -82,10 +82,10 @@ class LearnEngine:
         await self.kg.absorb_roadmap(roadmap)
         research = EducationalResearch()
         try:
+            from .research import concepts_to_research
             resources, stats = await research.research_concepts(
-                roadmap.learning_order[-RESEARCH_CONCEPT_CAP:]
-                if len(roadmap.learning_order) > RESEARCH_CONCEPT_CAP
-                else roadmap.learning_order)
+                concepts_to_research(roadmap.learning_order,
+                                     RESEARCH_CONCEPT_CAP))
         finally:
             await research.aclose()
         self.kg.absorb_resources(resources)

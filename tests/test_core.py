@@ -146,3 +146,14 @@ class TestKnowledgeGraphReasoning:
                                 "confuses learning rate with gradient")
         assert any("learning rate" in m
                    for m in kg.misconceptions_for("Gradient Descent"))
+
+
+class TestResearchSlicing:
+    def test_research_covers_first_taught_concepts(self):
+        # regression: the live run researched the goal tier and taught the
+        # deepest prerequisite (Calculus, position 1) with zero resources
+        from learn_engine.research import concepts_to_research
+        order = ["Calculus", "Linear Algebra", "Probability", "Python",
+                 "Gradient Descent", "ML", "NN", "Transformers"]
+        assert concepts_to_research(order, 6) == order[:6]
+        assert concepts_to_research(order, 6)[0] == "Calculus"

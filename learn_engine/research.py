@@ -37,6 +37,14 @@ RESEARCH_AGENTS = ["Academic Research Agent", "Explanation Agent",
                    "Industry Agent", "Assessment Agent"]
 
 
+def concepts_to_research(learning_order: list[str], cap: int) -> list[str]:
+    """The FIRST `cap` concepts in learning order — teaching starts at the
+    deepest prerequisites, so research must cover them first. (The initial
+    live run sliced from the goal end and taught Calculus with zero
+    resources; this helper exists so that mistake stays fixed and tested.)"""
+    return learning_order[:cap]
+
+
 class EducationalResearch:
     def __init__(self):
         self.client = httpx.AsyncClient(
