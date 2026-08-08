@@ -35,6 +35,22 @@ def base_url() -> str:
     return os.environ.get("ONE_ENGINE_URL", DEFAULT_URL).rstrip("/")
 
 
+def describe_location() -> str:
+    """Where the composite runs, in terms a reader can actually evaluate.
+
+    `http://127.0.0.1:9100` is accurate and useless to a visitor — on a hosted
+    page it looks like their own laptop. What matters is whose machine it is.
+    """
+    url = base_url()
+    loopback = "127.0.0.1" in url or "localhost" in url
+    if not loopback:
+        return url
+    host = os.environ.get("FLY_APP_NAME", "")
+    if host:
+        return f"in this server ({host}), alongside the front door"
+    return "on this machine, alongside the front door"
+
+
 def _down(reason: str) -> dict[str, Any]:
     """The honest empty answer. Callers render the reason rather than a blank."""
     return {"reachable": False, "reason": reason, "url": base_url()}
@@ -63,6 +79,11 @@ async def overview() -> dict[str, Any]:
     return {
         "reachable": True,
         "url": base_url(),
+        # A loopback URL printed on a hosted page reads as the VISITOR's own
+        # machine, which is the opposite of the truth: it means the composite
+        # runs inside this same server. Say that instead of showing an address
+        # the reader will inevitably mis-attribute.
+        "location": describe_location(),
         "contract_version": composition.get("contract_version", ""),
         "identity": identity,
         "composition": identity.get("composition", {}),
