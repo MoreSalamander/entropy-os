@@ -49,4 +49,8 @@ primary_region = "dfw"           # matches the veritas_data volume (created clos
   # dockerd + a 256m sandbox container + the front door, and now one-engine's
   # five processes (four adapter servers and the composite) on loopback. Each
   # is a small FastAPI app, but five of them do not fit in the old 1024.
-  memory = "4096"
+  #
+  # 2048 is the ceiling for shared-cpu-1x — Fly rejects anything higher on this
+  # size. Going beyond it means moving to shared-cpu-2x, which costs more; the
+  # steady-state footprint here (~1.1G plus the 256m sandbox) fits inside 2048.
+  memory = "2048"

@@ -52,6 +52,12 @@ RUN pip install --no-cache-dir . \
 #
 # `ruff` is the one dependency the --no-deps installs would otherwise miss
 # (code-engine runs it as part of its verification gate).
+#
+# one-engine takes its [orchestration] extra even though no Temporal server
+# runs here: the unified app imports temporalio at module load, and the extra
+# exists precisely because only the composite may depend on it — engines never
+# import Temporal. Installing the client without a server is the honest state;
+# composed runs fall back to inline execution and health reports degraded.
 ARG ONE_ENGINE_REF=main
 RUN pip install --no-cache-dir \
       "research-engine @ git+https://github.com/MoreSalamander/research-engine@main" \
@@ -62,7 +68,7 @@ RUN pip install --no-cache-dir \
  && pip install --no-cache-dir ruff \
  && git clone --depth 1 --branch "${ONE_ENGINE_REF}" \
       https://github.com/MoreSalamander/one-engine.git /opt/one-engine \
- && pip install --no-cache-dir -e /opt/one-engine
+ && pip install --no-cache-dir -e "/opt/one-engine[orchestration]"
 
 # The laptop's config points at local repo paths and venvs; this one does not.
 COPY deploy/fly/one-engine.config.yaml /opt/one-engine/config.yaml
