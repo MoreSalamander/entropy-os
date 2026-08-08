@@ -10,6 +10,7 @@ from __future__ import annotations
 import os
 
 from ..contract import ArtifactRef, CapabilitySpec, ExecuteRequest, FieldSpec
+from ..llm import build_llm
 from .base import Emit, LeafAdapter
 
 
@@ -31,6 +32,7 @@ class WebAdapter(LeafAdapter):
         if self._engine is None:
             from design_engine.engine import DesignEngine
             self._engine = DesignEngine(
+                llm=build_llm(),      # None on local → the engine's own client
                 brave_key=os.environ.get("BRAVE_SEARCH_API_KEY", ""),
                 serper_key=os.environ.get("SERPER_API_KEY", ""),
                 datahub_gms=os.environ.get("DATAHUB_GMS",

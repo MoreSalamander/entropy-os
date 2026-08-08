@@ -11,6 +11,7 @@ from __future__ import annotations
 import os
 
 from ..contract import ArtifactRef, CapabilitySpec, ExecuteRequest, FieldSpec
+from ..llm import build_llm
 from .base import Emit, LeafAdapter
 
 # Composed runs push this engine harder than a standalone session does: the
@@ -50,7 +51,9 @@ class ResearchAdapter(LeafAdapter):
             # Only ever raise the ceiling: an operator who deliberately set a
             # longer timeout in the engine's own config keeps it.
             cfg.llm.timeout_s = max(cfg.llm.timeout_s, wanted)
-            self._engine = Engine(cfg)
+            # None on the local backend, so the engine builds its own Ollama
+            # client exactly as it always has.
+            self._engine = Engine(cfg, llm=build_llm())
         return self._engine
 
     def capabilities(self) -> list[CapabilitySpec]:

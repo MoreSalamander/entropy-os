@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 
 from ..contract import ArtifactRef, CapabilitySpec, ExecuteRequest, FieldSpec
+from ..llm import build_llm
 from .base import Emit, LeafAdapter
 
 
@@ -34,6 +35,7 @@ class SoftwareAdapter(LeafAdapter):
         if self._engine is None:
             from code_engine.engine import CodeEngine
             self._engine = CodeEngine(
+                llm=build_llm(),      # None on local → the engine's own client
                 parallel_key=os.environ.get("PARALLEL_API_KEY", ""),
                 datahub_gms=os.environ.get("DATAHUB_GMS",
                                            "http://localhost:8080"))

@@ -12,6 +12,7 @@ from __future__ import annotations
 import os
 
 from ..contract import ArtifactRef, CapabilitySpec, ExecuteRequest, FieldSpec
+from ..llm import build_llm
 from .base import Emit, LeafAdapter
 
 
@@ -33,8 +34,10 @@ class UniversityAdapter(LeafAdapter):
 
     def _new_engine(self):
         from learn_engine.engine import LearnEngine
-        return LearnEngine(datahub_gms=os.environ.get(
-            "DATAHUB_GMS", "http://localhost:8080"))
+        return LearnEngine(
+            llm=build_llm(),          # None on local → the engine's own client
+            datahub_gms=os.environ.get("DATAHUB_GMS",
+                                       "http://localhost:8080"))
 
     def _session(self, session_id: str):
         eng = self._sessions.get(session_id)
