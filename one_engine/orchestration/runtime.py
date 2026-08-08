@@ -148,7 +148,16 @@ async def run_and_record_stage(member: ComposableEngine, stage: PlannedStage,
                  # The handles by which a later run can find this work. This
                  # is what makes the event log sufficient for impact
                  # analysis, without reading any engine's private vocabulary.
-                 "produced": identifying(result.outputs)}))
+                 "produced": identifying(result.outputs),
+                 # Where the work actually landed. Without this the refs live
+                 # only in this process's memory and die with it — which is
+                 # exactly what happened to the earliest runs, leaving their
+                 # outputs findable only by guessing at each engine's naming
+                 # convention. A path recorded here is a path the vending
+                 # machine can package later without guessing.
+                 "artifacts": [{"kind": a.kind, "path": a.path,
+                                "description": a.description}
+                               for a in result.artifacts]}))
     return result, stage_urn
 
 

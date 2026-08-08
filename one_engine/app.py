@@ -157,6 +157,77 @@ def build_unified_app() -> FastAPI:
             "events": [e.model_dump() for e in events],
         }
 
+    # --- the vending path: what a run produced, and its contents ------------
+    # A run's outputs live in each engine's own storage, so "where is it" was
+    # answerable only by knowing four private layouts. These routes answer it
+    # from the run's own record, and say whether each path was recorded by the
+    # run or derived from an id it recorded.
+
+    def _artifacts_for(objective_id: str) -> list:
+        from .artifacts import repos_from_config, resolve
+        from .export import export_runs
+        data = export_runs(cfg.events_log_path)
+        obj = next((o for o in data["objectives"]
+                    if o["objective_id"] == objective_id), None)
+        if obj is None:
+            raise HTTPException(404, f"no objective {objective_id}")
+        return resolve(obj["stages"], repos_from_config(cfg), obj.get("facts"))
+
+    @app.get("/objectives/{objective_id}/artifacts")
+    async def list_artifacts(objective_id: str):
+        arts = _artifacts_for(objective_id)
+        return {"objective_id": objective_id,
+                "artifacts": [a.as_dict() | {"index": i}
+                              for i, a in enumerate(arts)]}
+
+    @app.get("/objectives/{objective_id}/artifacts/{index}/tree")
+    async def artifact_tree(objective_id: str, index: int):
+        """The files inside one artifact. A single-file artifact lists itself."""
+        arts = _artifacts_for(objective_id)
+        if not 0 <= index < len(arts):
+            raise HTTPException(404, "no such artifact")
+        art = arts[index]
+        root = Path(art.path)
+        if not root.exists():
+            raise HTTPException(404, f"artifact path is gone: {art.path}")
+        if root.is_file():
+            return {"kind": art.kind, "root": art.path, "origin": art.origin,
+                    "files": [{"path": root.name, "size": root.stat().st_size}]}
+        files = sorted(
+            ({"path": str(f.relative_to(root)), "size": f.stat().st_size}
+             for f in root.rglob("*") if f.is_file()),
+            key=lambda d: d["path"])
+        return {"kind": art.kind, "root": art.path, "origin": art.origin,
+                "files": files}
+
+    @app.get("/objectives/{objective_id}/artifacts/{index}/file")
+    async def artifact_file(objective_id: str, index: int, path: str = ""):
+        """One file's text.
+
+        `path` is client-supplied, so it is resolved and then checked to be
+        inside the artifact root. Serving files by a caller-provided path
+        without that check is how a read surface becomes an arbitrary-file
+        read; the containment test is the whole security of this route.
+        """
+        arts = _artifacts_for(objective_id)
+        if not 0 <= index < len(arts):
+            raise HTTPException(404, "no such artifact")
+        root = Path(arts[index].path)
+        target = root if root.is_file() else (root / path)
+        try:
+            resolved = target.resolve(strict=True)
+            base = (root.parent if root.is_file() else root).resolve(strict=True)
+            resolved.relative_to(base)
+        except (OSError, ValueError):
+            raise HTTPException(404, "no such file inside this artifact") from None
+        if not resolved.is_file():
+            raise HTTPException(404, "not a file")
+        if resolved.stat().st_size > 2_000_000:
+            raise HTTPException(413, "file too large to serve inline")
+        return {"path": path or resolved.name,
+                "size": resolved.stat().st_size,
+                "text": resolved.read_text(encoding="utf-8", errors="replace")}
+
     @app.post("/objectives/{objective_id}/approve")
     async def approve(objective_id: str, req: SignalRequest):
         if not app.state.launcher:

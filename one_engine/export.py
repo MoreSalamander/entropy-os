@@ -160,6 +160,10 @@ def _stages(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
             "urn": e.get("subject", ""),
             "ts": e.get("ts", ""),
             "produced": p.get("produced", {}),
+            # Recorded from the run itself when present. Absent on the earliest
+            # runs, which is why one_engine.artifacts exists to resolve those by
+            # convention — and to say that is what it did.
+            "artifacts": p.get("artifacts", []),
             "gates_recorded": gate is not None,
             "gates": None if gate is None else {
                 "decision": gate.get("decision", ""),
