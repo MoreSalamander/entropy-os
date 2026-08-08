@@ -71,16 +71,27 @@ def fetch(gms: str, urn: str) -> dict | None:
         return None
 
 
-def reingest(gms: str, entity: dict) -> tuple[bool, str]:
-    """Write the entity back exactly as it came out.
+def reingest(gms: str, entity: dict, stamp: str) -> tuple[bool, str]:
+    """Write the entity back, marked with when it was re-indexed.
+
+    A byte-identical write is a no-op: DataHub suppresses it, emits no
+    metadata change log, and the search index never learns anything — which
+    is exactly what the first version of this script did, successfully and
+    uselessly, for twenty datasets. The write has to actually change
+    something, so it records the one true new fact: that this dataset was
+    re-indexed, and when. Nothing else is touched.
 
     GET returns `{"value": {"com.linkedin…DatasetSnapshot": {…}}}`; ingest
     expects that union wrapped one level deeper, as
-    `{"entity": {"value": <union>}}`. Getting the nesting wrong fails every
-    row identically, which is why the error text is returned rather than
-    swallowed — a silent False here would look like a server problem.
+    `{"entity": {"value": <union>}}`.
     """
-    body = json.dumps({"entity": {"value": entity["value"]}}).encode()
+    union = entity["value"]
+    snapshot = next(iter(union.values()))
+    for aspect in snapshot.get("aspects", []):
+        props = aspect.get("com.linkedin.dataset.DatasetProperties")
+        if props is not None:
+            props.setdefault("customProperties", {})["reindexed_at"] = stamp
+    body = json.dumps({"entity": {"value": union}}).encode()
     req = urllib.request.Request(f"{gms}/entities?action=ingest",
                                  data=body, headers=HEADERS)
     try:
@@ -111,6 +122,8 @@ def main() -> int:
             print("  ", u)
         return 0
 
+    from datetime import datetime, timezone
+    stamp = datetime.now(timezone.utc).isoformat()
     touched = missing = failed = 0
     for urn in urns:
         entity = fetch(args.gms, urn)
@@ -118,7 +131,7 @@ def main() -> int:
             missing += 1
             print(f"  MISSING  {urn}")
             continue
-        ok, why = reingest(args.gms, entity)
+        ok, why = reingest(args.gms, entity, stamp)
         if ok:
             touched += 1
         else:
