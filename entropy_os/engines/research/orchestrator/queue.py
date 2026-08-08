@@ -54,7 +54,7 @@ class AsyncioQueueBackend(QueueBackend):
 
 
 class RedisQueueBackend(QueueBackend):
-    def __init__(self, url: str, key: str = "entropy_os.engines.research:tasks"):
+    def __init__(self, url: str, key: str = "research_engine:tasks"):
         try:
             import redis.asyncio as aioredis  # deferred: optional dependency
         except ImportError as e:

@@ -166,8 +166,8 @@ async def test_the_verification_gate_holds_the_run_a_real_flagship_case(
     from .conftest import FakeSoftware
 
     class RedSuite(FakeSoftware):
-        async def _run(self, req, emit):
-            outputs, artifacts, urns, notes = await super()._run(req, emit)
+        async def _run(self, req, emit, vouch):
+            outputs, artifacts, urns, notes = await super()._run(req, emit, vouch)
             outputs["verification_passed"] = False
             emit("SoftwareVerificationFailed",
                  known_problems=["pytest: test_quiz_service AttributeError"])
@@ -292,8 +292,8 @@ async def test_one_engine_alone_faces_the_same_gates_as_a_stage(unified):
     from .conftest import FakeSoftware
 
     class RedSuite(FakeSoftware):
-        async def _run(self, req, emit):
-            outputs, artifacts, urns, notes = await super()._run(req, emit)
+        async def _run(self, req, emit, vouch):
+            outputs, artifacts, urns, notes = await super()._run(req, emit, vouch)
             outputs["verification_passed"] = False
             emit("SoftwareVerificationFailed", known_problems=["pytest: boom"])
             return outputs, artifacts, urns, notes

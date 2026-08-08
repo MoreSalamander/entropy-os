@@ -9,9 +9,9 @@ from __future__ import annotations
 
 import os
 
-from ..contract import ArtifactRef, CapabilitySpec, ExecuteRequest, FieldSpec
+from ..contract import ArtifactRef, CapabilitySpec, Determinism, ExecuteRequest, FieldSpec
 from ..llm import build_llm
-from .base import Emit, LeafAdapter
+from .base import Emit, LeafAdapter, Vouch
 
 
 class WebAdapter(LeafAdapter):
@@ -60,7 +60,7 @@ class WebAdapter(LeafAdapter):
             },
             tags=["web", "generation", "design"])]
 
-    async def _run(self, req: ExecuteRequest, emit: Emit):
+    async def _run(self, req: ExecuteRequest, emit: Emit, vouch: Vouch):
         request = str(req.inputs.get("request", "")).strip()
         if not request:
             raise ValueError("web.generate_site requires inputs.request")
@@ -77,6 +77,49 @@ class WebAdapter(LeafAdapter):
         urn = self.dataset_urn(f"project.{site.project_id}")
         scores = site.review.scores if site.review else {}
         pages = [p.kind.value for p in site.design_system.pages]
+
+        # The review agents are static analysis over the generated tree —
+        # regex and JSON parsing, no model in the loop — so their scores are
+        # facts about the output rather than opinions about it.
+        if site.review is not None:
+            # Imported here, not at module scope: health() exists to REPORT an
+            # unimportable engine, which it cannot do if importing this adapter
+            # already failed for the same reason.
+            from entropy_os.engines.web.models import ReviewSeverity
+
+            for agent_name, score in scores.items():
+                findings = [f for f in site.review.findings
+                            if f.agent == agent_name]
+                blocking = [f.message for f in findings
+                            if f.severity is ReviewSeverity.BLOCKER]
+                vouch(gate=f"web.review.{agent_name}",
+                      determinism=Determinism.HARD,
+                      # A score is a summary; a BLOCKER is the verdict. An
+                      # agent passes when it found nothing blocking, not when
+                      # its number looks respectable.
+                      passed=not blocking,
+                      evidence=(f"score {score}/100; "
+                                + ("; ".join(blocking[:5]) if blocking
+                                   else "no blocking findings")),
+                      score=score, findings=len(findings),
+                      blockers=len(blocking))
+
+            # The build gate is the only ground truth here: npm actually
+            # builds the site or it does not. `None` means node was missing,
+            # so the gate never ran — which is reported as not-passed with
+            # the reason, never quietly folded into success.
+            build_ok = site.review.build_ok
+            vouch(gate="web.build",
+                  determinism=Determinism.HARD,
+                  passed=build_ok is True,
+                  evidence=(
+                      "next build succeeded" if build_ok is True
+                      else ("next build FAILED: "
+                            + (site.review.build_log_tail or "")[-400:])
+                      if build_ok is False
+                      else "build gate did not run (npm unavailable) — "
+                           "unverified, not passed"),
+                  ran=build_ok is not None)
 
         emit("SiteGenerated", subject=urn, project_id=site.project_id,
              product_name=site.intent.product_name,

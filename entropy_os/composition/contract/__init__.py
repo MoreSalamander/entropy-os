@@ -10,6 +10,7 @@ from .schema import (
     CapabilitySpec,
     CompositionNode,
     ContextDescriptor,
+    Determinism,
     EngineIdentity,
     EngineManifest,
     ExecuteRequest,
@@ -21,6 +22,7 @@ from .schema import (
     Provenance,
     SemanticEvent,
     StateSnapshot,
+    Verdict,
     identifying,
     new_id,
     now_iso,
@@ -32,5 +34,5 @@ __all__ = [
     "CompositionNode", "ContextDescriptor", "EngineIdentity", "EngineManifest",
     "ExecuteRequest", "ExecuteResult", "ExecutionRef", "FieldSpec",
     "HealthReport", "KnowledgeDescriptor", "Provenance", "SemanticEvent",
-    "StateSnapshot", "new_id", "now_iso",
+    "StateSnapshot", "Determinism", "Verdict", "new_id", "now_iso",
 ]

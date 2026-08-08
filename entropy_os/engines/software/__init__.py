@@ -13,7 +13,7 @@ Graph is built BY CONSTRUCTION during generation — every file knows which
 component, feature, and requirement it exists for — then continuously
 checked against reality (pytest, ruff, ast-observed structure, OSV, PyPI).
 The graph ships inside the generated repo as a sidecar
-(.entropy_os.engines.software/graph.json): the software carries its own self-model.
+(.code_engine/graph.json): the software carries its own self-model.
 """
 
 __version__ = "0.1.0"

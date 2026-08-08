@@ -10,9 +10,9 @@ from __future__ import annotations
 
 import os
 
-from ..contract import ArtifactRef, CapabilitySpec, ExecuteRequest, FieldSpec
+from ..contract import ArtifactRef, CapabilitySpec, Determinism, ExecuteRequest, FieldSpec
 from ..llm import build_llm
-from .base import Emit, LeafAdapter
+from .base import Emit, LeafAdapter, Vouch
 
 # Composed runs push this engine harder than a standalone session does: the
 # reasoning agents receive a much larger Context Graph, and long-context
@@ -79,7 +79,7 @@ class ResearchAdapter(LeafAdapter):
             },
             tags=["research", "perception"])]
 
-    async def _run(self, req: ExecuteRequest, emit: Emit):
+    async def _run(self, req: ExecuteRequest, emit: Emit, vouch: Vouch):
         topic = str(req.inputs.get("topic", "")).strip()
         if not topic:
             raise ValueError("research.investigate requires inputs.topic")
@@ -96,6 +96,33 @@ class ResearchAdapter(LeafAdapter):
         session_urn = self.dataset_urn(f"session.{report.session_id}", env)
         report_path = (engine.cfg.resolve_path(engine.cfg.report.output_dir)
                        / f"{report.session_id}.md")
+
+        # The verification gate is the hard floor between context and
+        # knowledge, and it uses no model at all: a claim is verified by
+        # evidence reliability and independent corroboration, both recorded
+        # numbers. Contradictions are a different story — deterministic
+        # pairing proposes them and a judge model confirms — so they are
+        # reported as SOFT and can never read as proof.
+        claims = list(cg.claims.values())
+        verified = [c for c in claims if c.verified]
+        vouch(gate="research.claims_verified", determinism=Determinism.HARD,
+              # Research that verified nothing has not failed — it has found
+              # nothing it is willing to stand behind, which is a real result
+              # and must not be dressed up as one.
+              passed=bool(verified),
+              evidence=(f"{len(verified)}/{len(claims)} claims cleared the "
+                        f"evidence floor (single source at reliability≥0.7, "
+                        f"or ≥2 independent sources at ≥0.45)"),
+              verified=len(verified), claims=len(claims),
+              entities=len(cg.entities))
+        contradictions = int(report.stats.get("contradictions", 0))
+        if contradictions:
+            vouch(gate="research.contradictions", determinism=Determinism.SOFT,
+                  passed=False,
+                  evidence=(f"{contradictions} contradiction(s) between sources "
+                            f"— deterministic pairing proposed them, a judge "
+                            f"model confirmed, so this is recorded opinion"),
+                  count=contradictions)
 
         emit("ResearchCompleted", subject=session_urn, topic=topic,
              session_id=report.session_id, sections=len(report.sections),

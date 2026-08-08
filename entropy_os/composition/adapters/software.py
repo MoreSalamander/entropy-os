@@ -11,9 +11,9 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from ..contract import ArtifactRef, CapabilitySpec, ExecuteRequest, FieldSpec
+from ..contract import ArtifactRef, CapabilitySpec, Determinism, ExecuteRequest, FieldSpec
 from ..llm import build_llm
-from .base import Emit, LeafAdapter
+from .base import Emit, LeafAdapter, Vouch
 
 
 class SoftwareAdapter(LeafAdapter):
@@ -62,7 +62,7 @@ class SoftwareAdapter(LeafAdapter):
             },
             tags=["software", "generation"])]
 
-    async def _run(self, req: ExecuteRequest, emit: Emit):
+    async def _run(self, req: ExecuteRequest, emit: Emit, vouch: Vouch):
         request = str(req.inputs.get("request", "")).strip()
         if not request:
             raise ValueError("software.build requires inputs.request")
@@ -80,6 +80,33 @@ class SoftwareAdapter(LeafAdapter):
 
         urn = self.dataset_urn(f"project.{project.project_id}")
         passed = bool(project.verification and project.verification.passed)
+
+        # Every check this engine ran, reported at the fidelity it was run
+        # with. All of them are HARD: ruff and pytest are subprocesses whose
+        # exit codes are facts, and the security / performance / review agents
+        # — despite the name — are AST and regex analysis, not model calls.
+        # The only LLM in the verification loop PROPOSES repairs and decides
+        # nothing, which is the whole doctrine in one place.
+        for check in (project.verification.results if project.verification else []):
+            skipped = check.status.value == "skipped"
+            vouch(
+                gate=f"software.{check.check}",
+                determinism=Determinism.HARD,
+                # A skipped check has not passed. Counting it as a pass is how
+                # a verification surface starts lying by omission.
+                passed=check.status.value == "pass",
+                evidence=check.detail or f"{check.check}: {check.status.value}",
+                status=check.status.value,
+                skipped=skipped,
+                failures=check.failures[:10],
+                failure_count=len(check.failures),
+            )
+        if project.verification and project.verification.known_problems:
+            # Residue the engine chose to ship with, named rather than buried.
+            vouch(gate="software.known_problems", determinism=Determinism.HARD,
+                  passed=False,
+                  evidence="; ".join(project.verification.known_problems[:5]),
+                  count=len(project.verification.known_problems))
         endpoints = sum(len(c.endpoints)
                         for c in project.architecture.components)
 
@@ -112,7 +139,7 @@ class SoftwareAdapter(LeafAdapter):
                         description=f"generated project: "
                                     f"{project.spec.product_name}"),
             ArtifactRef(kind="sidecar",
-                        path=str(Path(project.out_dir) / ".entropy_os.engines.software"
+                        path=str(Path(project.out_dir) / ".code_engine"
                                  / "graph.json"),
                         description="self-model sidecar (context graph)"),
         ]

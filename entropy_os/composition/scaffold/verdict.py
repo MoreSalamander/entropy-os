@@ -17,18 +17,20 @@ anything:
 
 from __future__ import annotations
 
-from enum import StrEnum
 from typing import Literal
 
 from pydantic import BaseModel, Field
 
+# Determinism and the verdict shape are CONTRACT vocabulary, not scaffold
+# vocabulary. They were defined here first because gates between engines were
+# the first place they were needed; now that an engine can report its own
+# checks across the wire, the same words have to mean the same thing on both
+# sides of the boundary. Restating them would eventually let them drift, and
+# two subtly different definitions of "hard" is precisely the failure this
+# vocabulary exists to prevent.
+from ..contract import Determinism, Verdict
 
-class Determinism(StrEnum):
-    """How the verdict was reached — the honest label, not the flattering one."""
-
-    HARD = "hard"      # a recorded fact: a test result, a count, a score
-    SOFT = "soft"      # an opinion (a judge model). Recorded, never proof.
-    HUMAN = "human"    # a person decided. The proper verifier for judgment calls.
+__all__ = ["Action", "Determinism", "GateVerdict", "Verdict"]
 
 
 # What a failed gate DOES. The gate itself never chooses this — it reports a
@@ -38,14 +40,14 @@ class Determinism(StrEnum):
 Action = Literal["proceed", "hold", "block"]
 
 
-class GateVerdict(BaseModel):
-    """One gate's judgment of one stage."""
+class GateVerdict(Verdict):
+    """One gate's judgment of one STAGE — a Verdict plus its place in a run.
 
-    gate: str
-    determinism: Determinism
-    passed: bool
-    evidence: str                      # what was checked, and what was found
-    facts: dict = Field(default_factory=dict)   # the values the call was made on
+    An engine's own verdict answers "did this check pass"; a composition-level
+    gate verdict also has to answer "on which stage, from which engine",
+    because at that level the same gate runs many times over one objective.
+    """
+
     stage_seq: int = 0
     engine: str = ""
     # Filled by whatever RECORDS the verdict, not by the gate that reached it.

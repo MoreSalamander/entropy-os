@@ -14,7 +14,7 @@ One typed multigraph holds WHAT/WHY/HOW:
 The graph is built BY CONSTRUCTION during generation — the generator calls
 these methods as it writes each artifact, so provenance is never inferred
 after the fact. It persists as a sidecar inside the generated repository
-(.entropy_os.engines.software/graph.json): the software ships carrying its own self-model,
+(.code_engine/graph.json): the software ships carrying its own self-model,
 and impact analysis / evolution reload it from there.
 """
 
@@ -29,7 +29,11 @@ import networkx as nx
 from ..models import (Architecture, CheckResult, ResearchEvidence,
                       SoftwareSpec, now_utc)
 
-SIDECAR_REL = ".entropy_os.engines.software/graph.json"
+# The sidecar directory inside a GENERATED project. This is an on-disk
+# format name, not a module path: every project this engine has already
+# written carries `.code_engine/`, and renaming it here would make those
+# projects unreadable to the impact and evolve commands.
+SIDECAR_REL = ".code_engine/graph.json"
 
 
 class SoftwareContextGraph:

@@ -117,7 +117,7 @@ class CodeEngine:
 
         # sidecar: the software ships carrying its own self-model
         cg.save_sidecar(out)
-        log(f"[model] context graph: {cg.stats()} → {out}/.entropy_os.engines.software/graph.json")
+        log(f"[model] context graph: {cg.stats()} → {out}/.code_engine/graph.json")
 
         # Phase 12 — cross-project memory + DataHub provenance
         outcome = ProjectOutcome(

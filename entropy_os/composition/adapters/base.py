@@ -2,9 +2,11 @@
 the Universal Engine Contract.
 
 An adapter's whole job is translation: contract capability in → the engine's
-existing front door → contract result out, with semantic events and
-provenance collected along the way. Adapters run inside their engine's OWN
-venv and never modify the engine — the four repositories stay byte-identical.
+existing front door → contract result out, with semantic events, verdicts and
+provenance collected along the way. Adapters still call their engine through
+its own public entry point and never reach inside it; what changed when the
+engines were absorbed is only that the import resolves in this environment
+instead of a separate one.
 """
 
 from __future__ import annotations
@@ -20,6 +22,7 @@ from ..contract import (
     CapabilitySpec,
     CompositionNode,
     ContextDescriptor,
+    Determinism,
     EngineIdentity,
     EngineManifest,
     ExecuteRequest,
@@ -29,12 +32,19 @@ from ..contract import (
     Provenance,
     SemanticEvent,
     StateSnapshot,
+    Verdict,
     now_iso,
 )
 
 # emit(kind, subject, **payload) — handed to _run so concrete adapters can
 # narrate their engine's real progress as semantic facts.
 Emit = Callable[..., SemanticEvent]
+
+# vouch(gate, determinism, passed, evidence, **facts) — handed to _run so an
+# adapter can report what its engine CHECKED, at the fidelity the engine
+# actually has. Engines have always run these checks; before this seam their
+# results collapsed into a single output boolean on the way out.
+Vouch = Callable[..., Verdict]
 
 
 class LeafAdapter:
@@ -66,10 +76,16 @@ class LeafAdapter:
     def capabilities(self) -> list[CapabilitySpec]:
         raise NotImplementedError
 
-    async def _run(self, req: ExecuteRequest, emit: Emit
+    async def _run(self, req: ExecuteRequest, emit: Emit, vouch: Vouch
                    ) -> tuple[dict, list[ArtifactRef], list[str], list[str]]:
         """Execute one capability. Returns (outputs, artifacts,
-        datahub_urns, notes)."""
+        datahub_urns, notes).
+
+        `emit` narrates what is happening; `vouch` records what was CHECKED.
+        The two are deliberately separate seams — a progress line is a story
+        and a verdict is a claim, and only one of them a consumer is entitled
+        to trust.
+        """
         raise NotImplementedError
 
     # ----------------------------------------------------------------- #
@@ -108,11 +124,20 @@ class LeafAdapter:
             self._events.append(evt)
             return evt
 
+        verdicts: list[Verdict] = []
+
+        def vouch(gate: str, determinism: Determinism, passed: bool,
+                  evidence: str, **facts) -> Verdict:
+            v = Verdict(gate=gate, determinism=determinism, passed=passed,
+                        evidence=evidence, facts=facts)
+            verdicts.append(v)
+            return v
+
         started = now_iso()
         self._active.add(req.ref.execution_id)
         self._executions_total += 1
         try:
-            outputs, artifacts, urns, notes = await self._run(req, emit)
+            outputs, artifacts, urns, notes = await self._run(req, emit, vouch)
             status, error = "completed", ""
         except Exception:
             outputs, artifacts, urns = {}, [], []
@@ -125,7 +150,7 @@ class LeafAdapter:
         self._counters[req.capability] = self._counters.get(req.capability, 0) + 1
         return ExecuteResult(
             status=status, outputs=outputs, artifacts=artifacts,
-            events=collected, error=error,
+            events=collected, verdicts=verdicts, error=error,
             provenance=Provenance(engine=self.name, capability=req.capability,
                                   ref=req.ref, started_at=started,
                                   finished_at=now_iso(), datahub_urns=urns,

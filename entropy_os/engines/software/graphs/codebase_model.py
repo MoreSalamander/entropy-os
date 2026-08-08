@@ -67,7 +67,7 @@ class CodebaseAnalyzer:
         out: dict[str, FileFacts] = {}
         for py in sorted(self.root.rglob("*.py")):
             rel = str(py.relative_to(self.root))
-            if any(part in (".venv", "node_modules", "__pycache__", ".entropy_os.engines.software")
+            if any(part in (".venv", "node_modules", "__pycache__", ".code_engine")
                    for part in py.parts):
                 continue
             out[rel] = self.analyze_file(rel)

@@ -114,7 +114,7 @@ class ApiEndpoint(BaseModel):
 
 class Component(BaseModel):
     id: str = Field(default_factory=lambda: new_id("cmp"))
-    name: str                         # snake_case service name, e.g. "entropy_os.engines.research"
+    name: str                         # snake_case service name, e.g. "user_service"
     purpose: str
     kind: str = "service"             # service | router | store | ui | infra
     feature_ids: list[str] = Field(default_factory=list)

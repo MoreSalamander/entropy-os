@@ -11,9 +11,9 @@ from __future__ import annotations
 
 import os
 
-from ..contract import ArtifactRef, CapabilitySpec, ExecuteRequest, FieldSpec
+from ..contract import ArtifactRef, CapabilitySpec, Determinism, ExecuteRequest, FieldSpec
 from ..llm import build_llm
-from .base import Emit, LeafAdapter
+from .base import Emit, LeafAdapter, Vouch
 
 
 class UniversityAdapter(LeafAdapter):
@@ -90,7 +90,7 @@ class UniversityAdapter(LeafAdapter):
                 tags=["education"]),
         ]
 
-    async def _run(self, req: ExecuteRequest, emit: Emit):
+    async def _run(self, req: ExecuteRequest, emit: Emit, vouch: Vouch):
         cap = req.capability
         notes: list[str] = []
 
@@ -113,6 +113,18 @@ class UniversityAdapter(LeafAdapter):
                  session_id=eng.session_id, subject_area=roadmap.subject,
                  concepts=len(roadmap.concepts),
                  learning_order=roadmap.learning_order)
+            # The roadmap is a prerequisite DAG or it is a refusal; the
+            # validation notes are what the deterministic check had to say
+            # about the ordering it accepted.
+            vouch(gate="university.roadmap_validated",
+                  determinism=Determinism.HARD,
+                  passed=bool(roadmap.learning_order),
+                  evidence=("; ".join(roadmap.validation_notes[:5])
+                            or f"{len(roadmap.concepts)} concepts ordered "
+                               f"with no prerequisite violations"),
+                  concepts=len(roadmap.concepts),
+                  ordered=len(roadmap.learning_order),
+                  notes=len(roadmap.validation_notes))
             outputs = {"session_id": eng.session_id,
                        "goal": goal,
                        "subject": roadmap.subject,
@@ -140,6 +152,19 @@ class UniversityAdapter(LeafAdapter):
                 emit("LessonBuilt", subject=activity.concept_name,
                      session_id=session_id, method=activity.lesson.method,
                      exercises=len(activity.exercises))
+            # Every exercise here survived the practice gate: multiple choice
+            # must have four options and a real key, numerics must parse, and
+            # a code exercise's reference solution must actually RUN in the
+            # sandbox and produce the output the model claimed. An exercise
+            # that could not be checked was dropped, never shipped unverified.
+            vouch(gate="university.exercises_gated",
+                  determinism=Determinism.HARD,
+                  passed=bool(activity.exercises),
+                  evidence=(f"{len(activity.exercises)} exercise(s) passed the "
+                            f"practice gate for {activity.concept_name!r} "
+                            f"(code exercises verified by execution)"),
+                  exercises=len(activity.exercises),
+                  concept=activity.concept_name)
             outputs = {
                 "session_id": session_id,
                 "activity_id": activity.id,
@@ -173,6 +198,17 @@ class UniversityAdapter(LeafAdapter):
                     emit("MisconceptionDetected",
                          subject=activity.concept_name,
                          misconception=g.misconception)
+            correct = sum(1 for g in graded if g.correct)
+            # Deterministic grading against a stored key — the only door
+            # mastery is allowed to move through, and the reason a mastery
+            # claim means anything at all.
+            vouch(gate="university.graded", determinism=Determinism.HARD,
+                  passed=bool(graded),
+                  evidence=(f"{correct}/{len(graded)} correct on "
+                            f"{activity.concept_name!r}; mastery now {level}"),
+                  correct=correct, total=len(graded), mastery_level=level,
+                  misconceptions=[g.misconception for g in graded
+                                  if g.misconception])
             outputs = {
                 "session_id": session_id,
                 "graded": [{"exercise_id": g.exercise_id,

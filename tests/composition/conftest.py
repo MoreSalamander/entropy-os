@@ -37,7 +37,7 @@ class FakeResearch(LeafAdapter):
     entities = 12
     claims = 30
 
-    async def _run(self, req: ExecuteRequest, emit):
+    async def _run(self, req: ExecuteRequest, emit, vouch):
         topic = req.inputs["topic"]
         urn = self.dataset_urn("session.s1")
         emit("ResearchCompleted", subject=urn, topic=topic)
@@ -58,7 +58,7 @@ class FakeUniversity(LeafAdapter):
             name="university.design_curriculum", summary="fake curriculum",
             inputs={"goal": FieldSpec(type="string", required=True)})]
 
-    async def _run(self, req: ExecuteRequest, emit):
+    async def _run(self, req: ExecuteRequest, emit, vouch):
         goal = req.inputs["goal"]
         urn = self.dataset_urn("session.c1")
         emit("CurriculumCreated", subject=urn, goal=goal)
@@ -78,7 +78,7 @@ class FakeSoftware(LeafAdapter):
             name="software.build", summary="fake build",
             inputs={"request": FieldSpec(type="string", required=True)})]
 
-    async def _run(self, req: ExecuteRequest, emit):
+    async def _run(self, req: ExecuteRequest, emit, vouch):
         urn = self.dataset_urn("project.p1")
         emit("SoftwareBuilt", subject=urn)
         # Echo the request so tests can prove upstream outputs reached here.
@@ -103,7 +103,7 @@ class FakeWeb(LeafAdapter):
     # judges them, so a fake without them would leave that gate untested.
     scores = {"Design Agent": 92.0, "Accessibility Agent": 100.0}
 
-    async def _run(self, req: ExecuteRequest, emit):
+    async def _run(self, req: ExecuteRequest, emit, vouch):
         urn = self.dataset_urn("project.w1")
         emit("SiteGenerated", subject=urn)
         return ({"project_id": "w1", "received_request": req.inputs["request"],

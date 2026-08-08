@@ -138,7 +138,7 @@ async def test_member_progress_is_narrated_while_a_stage_runs(unified, bus,
                 name="research.investigate", summary="slow",
                 inputs={"topic": FieldSpec(type="string", required=True)})]
 
-        async def _run(self, req, emit):
+        async def _run(self, req, emit, vouch):
             emit("ResearchPhaseAdvanced", subject="planning")
             # Long enough for the streamer to poll mid-flight.
             await asyncio.sleep(EVENT_POLL_INTERVAL_S * 1.5)

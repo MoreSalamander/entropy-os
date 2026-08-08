@@ -18,11 +18,15 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
+from enum import StrEnum
 from typing import Literal
 
 from pydantic import BaseModel, Field
 
-CONTRACT_VERSION = "1.0"
+# 1.1 adds ExecuteResult.verdicts. Additive and optional, so a 1.0 consumer
+# reading a 1.1 result is unaffected and a 1.1 consumer reading a 1.0 result
+# sees an empty list — which it must not read as "nothing was checked".
+CONTRACT_VERSION = "1.1"
 
 
 def now_iso() -> str:
@@ -161,12 +165,49 @@ class Provenance(BaseModel):
     children: list[Provenance] = Field(default_factory=list)
 
 
+class Determinism(StrEnum):
+    """How a verdict was reached — the honest label, not the flattering one."""
+
+    HARD = "hard"      # a recorded fact: a test result, a count, a score
+    SOFT = "soft"      # an opinion (a judge model). Recorded, never proof.
+    HUMAN = "human"    # a person decided. The proper verifier for judgment calls.
+
+
+class Verdict(BaseModel):
+    """One check an engine ran on its own work, reported at full fidelity.
+
+    Engines have always verified themselves — ruff and pytest on generated
+    code, a render gate on a generated site, an answerability gate on a
+    lesson. What they could not do was SAY so across the contract: results
+    collapsed into a single boolean at the adapter, and a consumer holding
+    `verified: true` had no way to re-check the claim or to see that half of
+    it came from a judge model rather than a test run.
+
+    That collapse is the thing the doctrine forbids. A verdict carries
+    evidence, never a bare boolean, and it declares its determinism honestly
+    so a consumer can present a judge's opinion as an opinion. Composition-
+    level gate verdicts extend this same shape (see scaffold/verdict.py):
+    one vocabulary, whether the check ran inside an engine or between two.
+    """
+
+    gate: str
+    determinism: Determinism
+    passed: bool
+    evidence: str                              # what was checked, what was found
+    facts: dict = Field(default_factory=dict)  # the values the call was made on
+
+
 class ExecuteResult(BaseModel):
     status: Literal["completed", "failed"]
     outputs: dict = Field(default_factory=dict)
     artifacts: list[ArtifactRef] = Field(default_factory=list)
     events: list[SemanticEvent] = Field(default_factory=list)
     provenance: Provenance = Field(default_factory=Provenance)
+    # What the engine checked about its own output. Empty means the engine
+    # reported nothing — NOT that nothing was checked and never that
+    # everything passed. A consumer that renders acceptance without these is
+    # showing a conclusion while withholding the reasoning.
+    verdicts: list[Verdict] = Field(default_factory=list)
     error: str = ""
 
 

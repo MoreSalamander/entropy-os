@@ -122,6 +122,11 @@ class Engine:
 
         # Context Graph → DataHub (lineage + provenance properties)
         contradictions = sum(1 for f in findings if f.kind == "contradiction")
+        # Carried into the report's stats as well, not only into DataHub. A
+        # contradiction the run FOUND is part of what the run is willing to
+        # say about itself, and a consumer holding the report should not have
+        # to query the metadata graph to learn that the evidence disagreed.
+        run_stats["contradictions"] = contradictions
         datahub_status = await self.datahub.emit_session(
             cg,
             verified=consolidation["claims_verified"],
