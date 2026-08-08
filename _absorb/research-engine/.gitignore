@@ -1,7 +1,0 @@
-.venv/
-__pycache__/
-*.pyc
-.pytest_cache/
-storage_data/
-*.bak.*
-.DS_Store

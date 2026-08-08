@@ -5,14 +5,16 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "entropy-os"
 version = "0.1.0"
-description = "Entropy OS — the front door. Every dashboard and interview lives here; the engines live in Veritas, imported as a library."
+description = "Entropy OS — the front door and the engines it runs: research, software, university and web, composed over the Universal Engine Contract."
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "Apache-2.0" }
 dependencies = [
-    "fastapi>=0.110",
-    "uvicorn>=0.29",
+    "fastapi>=0.115",
+    "uvicorn>=0.32",
     "httpx>=0.27",
+    "pydantic>=2.10",
+    "pyyaml>=6.0",
     # The engine room. Declared so a clean clone resolves (the flaw my-AI-script
     # had with its undeclared engine dep); local development overrides this with
     # `pip install -e ../veritas` via ./dev.sh.
@@ -24,10 +26,28 @@ dependencies = [
     "playwright>=1.40",
     "yt-dlp>=2024.1.0",
     "trafilatura>=1.8",
+
+    # --- the absorbed engines -------------------------------------------------
+    # Four packages that used to declare these separately, now one environment.
+    # There was never a version conflict between them to resolve: all four were
+    # >=3.12 with overlapping pins, and three already depended on the fourth.
+    "networkx>=3.4",           # every engine's knowledge graph
+    "qdrant-client>=1.12",     # every engine's vector index
+    "SQLAlchemy>=2.0",         # research: the evidence ledger
+    "aiosqlite>=0.20",         # research: async ledger access
+    "greenlet>=3.1",           # research: SQLAlchemy's async bridge
+    "feedparser>=6.0",         # research: feed acquisition
+    "beautifulsoup4>=4.12",    # research + web: HTML extraction
+    "ruff>=0.8",               # software: the lint gate runs the real linter
+
+    # Durable execution is not an optional posture. It was an extra while the
+    # composite was the only thing orchestrating; now that engine phases are
+    # meant to survive a crash too, the orchestrator is core to the system.
+    "temporalio>=1.7",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+dev = ["pytest>=8", "pytest-asyncio>=0.23", "mypy>=1.8"]
 
 [tool.setuptools.packages.find]
 include = ["entropy_os*"]
@@ -40,6 +60,11 @@ include = ["entropy_os*"]
 # this.
 [tool.setuptools.package-data]
 "entropy_os" = ["static/**/*"]
+# The web engine writes real Next.js projects from these; a bare install that
+# omitted them would fail at generation time rather than at import time, which
+# is the worst moment to discover a packaging mistake.
+"entropy_os.engines.web" = ["templates/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+asyncio_mode = "auto"

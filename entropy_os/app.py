@@ -34,7 +34,7 @@ from engine.executor import sandbox_active
 from engine.grounding import record_grounding
 from engine.memory import MemoryRecord, MemoryStore, default_memory_store, format_lessons
 from engine.memory_export import sync_vault, vault_status
-from entropy_os import artifact_report, one_engine
+from entropy_os import artifact_report, engine_client
 from entropy_os.accounts import AccountStore, BadCredentials, UsernameTaken, WeakCredentials
 from entropy_os.quota import QuotaStore
 from entropy_os.visits import VisitLog
@@ -1252,31 +1252,31 @@ def create_app(
     # nothing else. ---
     @app.get("/api/one-engine/overview")
     async def one_engine_overview() -> dict[str, Any]:
-        return await one_engine.overview()
+        return await engine_client.overview()
 
     @app.get("/api/one-engine/objectives")
     async def one_engine_objectives() -> dict[str, Any]:
-        return await one_engine.objectives()
+        return await engine_client.objectives()
 
     @app.get("/api/one-engine/objectives/{objective_id}")
     async def one_engine_objective(objective_id: str) -> dict[str, Any]:
-        return await one_engine.objective(objective_id)
+        return await engine_client.objective(objective_id)
 
     # The vending path: what a run produced, and its contents. Reading an
     # artifact is a read; one-engine owns the containment check that keeps a
     # caller-supplied path inside the artifact root, and nothing here widens it.
     @app.get("/api/one-engine/objectives/{objective_id}/artifacts")
     async def one_engine_artifacts(objective_id: str) -> dict[str, Any]:
-        return await one_engine.artifacts(objective_id)
+        return await engine_client.artifacts(objective_id)
 
     @app.get("/api/one-engine/objectives/{objective_id}/artifacts/{index}/tree")
     async def one_engine_artifact_tree(objective_id: str, index: int) -> dict[str, Any]:
-        return await one_engine.artifact_tree(objective_id, index)
+        return await engine_client.artifact_tree(objective_id, index)
 
     @app.get("/api/one-engine/objectives/{objective_id}/artifacts/{index}/file")
     async def one_engine_artifact_file(objective_id: str, index: int,
                                        path: str = "") -> dict[str, Any]:
-        return await one_engine.artifact_file(objective_id, index, path)
+        return await engine_client.artifact_file(objective_id, index, path)
 
     @app.get("/api/models/dev-toggle")
     def get_dev_toggle() -> dict[str, Any]:
@@ -2254,7 +2254,7 @@ def create_app(
         <pre> would destroy exactly the part that makes it a verified report
         rather than an essay, so it is rendered properly instead.
         """
-        arts = await one_engine.artifacts(objective_id)
+        arts = await engine_client.artifacts(objective_id)
         if not arts.get("reachable"):
             raise HTTPException(503, "one-engine is not answering")
         report = next((a for a in arts.get("artifacts", [])
@@ -2262,7 +2262,7 @@ def create_app(
         if report is None:
             raise HTTPException(404, "this run recorded no readable report")
 
-        got = await one_engine.artifact_file(objective_id, report["index"])
+        got = await engine_client.artifact_file(objective_id, report["index"])
         text = got.get("text") or ""
         if not text:
             raise HTTPException(404, "report artifact is empty")

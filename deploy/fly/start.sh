@@ -53,7 +53,7 @@ if [ ! -f "$ONE_ENGINE_DATA/events.jsonl" ] && [ -f /opt/one-engine-seed/events.
 fi
 
 start_member() {  # name port
-  python -m one_engine.adapters.serve "$1" --host 127.0.0.1 --port "$2" \
+  python -m entropy_os.composition.adapters.serve "$1" --host 127.0.0.1 --port "$2" \
     >"/var/log/one-engine-$1.log" 2>&1 &
   echo "one-engine: $1 adapter -> 127.0.0.1:$2 (pid $!)"
 }
@@ -62,7 +62,7 @@ start_member software   9102
 start_member university 9103
 start_member web        9104
 
-python -m uvicorn one_engine.app:app --host 127.0.0.1 --port 9100 --log-level warning \
+python -m uvicorn entropy_os.composition.app:app --host 127.0.0.1 --port 9100 --log-level warning \
   >/var/log/one-engine-unified.log 2>&1 &
 echo "one-engine: unified -> 127.0.0.1:9100 (pid $!)"
 
