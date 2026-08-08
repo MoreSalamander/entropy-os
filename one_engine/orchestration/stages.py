@@ -98,6 +98,19 @@ PREPARED_KEY = "_prepared"
 # request, the software's product shapes the web experience.
 # --------------------------------------------------------------------------- #
 
+# Stage budgets, sized from watching these engines actually run on local
+# hardware rather than from a round number. Research is the long pole: it
+# extracts evidence with an LLM call per document across a hundred-plus
+# sources, then runs six reasoning agents over the resulting graph. A budget
+# that expires mid-stage is worse than no budget, because the retry starts
+# from zero — so these are generous on purpose, and the orchestrator's job is
+# to survive the wait, not to shorten it.
+RESEARCH_BUDGET_S = 10800.0     # 3h — acquisition + per-document extraction + 6 agents
+CURRICULUM_BUDGET_S = 5400.0    # 1.5h — roadmap synthesis + concept research
+BUILD_BUDGET_S = 7200.0         # 2h — research, architecture, generation, verification
+SITE_BUDGET_S = 7200.0          # 2h — site research, synthesis, per-page copy, review
+
+
 def _research_inputs(inputs: dict, acc: Acc) -> dict:
     return {"topic": inputs["topic"]}
 
@@ -147,11 +160,14 @@ LEARNING_PLATFORM = ComposedPipeline(
                             "(requires the Temporal orchestrator)")},
     tags=["composed", "flagship"],
     stages=[
-        PlannedStage(1, "research", "research.investigate", _research_inputs),
+        PlannedStage(1, "research", "research.investigate", _research_inputs,
+                     timeout_s=RESEARCH_BUDGET_S),
         PlannedStage(2, "university", "university.design_curriculum",
-                     _university_inputs),
-        PlannedStage(3, "software", "software.build", _software_inputs),
-        PlannedStage(4, "web", "web.generate_site", _web_inputs),
+                     _university_inputs, timeout_s=CURRICULUM_BUDGET_S),
+        PlannedStage(3, "software", "software.build", _software_inputs,
+                     timeout_s=BUILD_BUDGET_S),
+        PlannedStage(4, "web", "web.generate_site", _web_inputs,
+                     timeout_s=SITE_BUDGET_S),
     ])
 
 # --------------------------------------------------------------------------- #
@@ -224,16 +240,18 @@ EVOLVE_PLATFORM = ComposedPipeline(
     stages=[
         # Perception always runs: you cannot know what changed without looking.
         PlannedStage(1, "research", "research.investigate",
-                     _evolve_research_inputs),
+                     _evolve_research_inputs, timeout_s=RESEARCH_BUDGET_S),
         PlannedStage(2, "university", "university.design_curriculum",
                      _evolve_curriculum_inputs,
+                     timeout_s=CURRICULUM_BUDGET_S,
                      skip_if=lambda i, acc: not _affected(acc, "university"),
                      skip_reason="no existing curriculum for this subject"),
         PlannedStage(3, "software", "software.build",
-                     _evolve_software_inputs,
+                     _evolve_software_inputs, timeout_s=BUILD_BUDGET_S,
                      skip_if=lambda i, acc: not _affected(acc, "software"),
                      skip_reason="no existing software for this subject"),
         PlannedStage(4, "web", "web.generate_site", _evolve_web_inputs,
+                     timeout_s=SITE_BUDGET_S,
                      skip_if=lambda i, acc: not _affected(acc, "web"),
                      skip_reason="no existing web experience for this subject"),
     ])
