@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>research-engine — General Research Intelligence Engine</title>
+<style>
+  :root { --bg:#0b0f14; --panel:#111823; --ink:#dbe4ee; --dim:#8fa1b3;
+          --acc:#34d399; --line:#1e2a38; }
+  * { box-sizing:border-box; margin:0; }
+  body { background:var(--bg); color:var(--ink);
+         font:16px/1.65 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+         padding:3rem 1.2rem 5rem; }
+  main { max-width:860px; margin:0 auto; }
+  h1 { font-size:2rem; letter-spacing:-.02em; }
+  h1 span { color:var(--acc); }
+  .sub { color:var(--dim); margin:.4rem 0 2.2rem; }
+  h2 { font-size:1.15rem; margin:2.4rem 0 .8rem; color:var(--acc); }
+  p { margin:.7rem 0; }
+  .panel { background:var(--panel); border:1px solid var(--line);
+           border-radius:10px; padding:1.1rem 1.3rem; margin:1rem 0; }
+  pre { background:#0d1420; border:1px solid var(--line); border-radius:8px;
+        padding:1rem; overflow-x:auto; font-size:.85rem; color:#a8e6c8; }
+  code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+  table { border-collapse:collapse; width:100%; font-size:.9rem; margin:.8rem 0; }
+  th,td { text-align:left; padding:.45rem .6rem; border-bottom:1px solid var(--line); }
+  th { color:var(--dim); font-weight:600; }
+  .law { border-left:3px solid var(--acc); padding-left:1rem; color:var(--dim);
+         font-style:italic; margin:1.4rem 0; }
+  a { color:var(--acc); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  .foot { margin-top:3.5rem; color:var(--dim); font-size:.85rem;
+          border-top:1px solid var(--line); padding-top:1.2rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>research-<span>engine</span></h1>
+  <div class="sub">General Research Intelligence Engine — enter any topic; get planned,
+  parallel, evidence-gated research with a session Context Graph and a persistent
+  Knowledge Graph. A MoreSalamander StudioLabs production.</div>
+
+  <div class="panel">
+  <pre>User Question → Research Planning → Parallel Information Acquisition
+→ Evidence Extraction → Context Graph Construction
+→ Knowledge Graph Integration → Multi-Agent Reasoning
+→ Research Report + Discoveries</pre>
+  </div>
+
+  <div class="law">Design law: LLMs propose, deterministic code decides. Every claim
+  carries source-linked evidence built from the fetched document — never from model
+  text — or it does not enter a graph.</div>
+
+  <h2>Three foundational systems</h2>
+  <p><strong>Parallel Research Engine.</strong> A planner staffs ten specialized research
+  agents (Academic, Industry, Patent, Open Source, Market, News, Expert Opinion,
+  Historical Context, Technical Documentation, Regulatory) and an asyncio orchestrator
+  fans out agent × source × query tasks through a worker pool — concurrency is a config
+  knob; per-source semaphores keep every public API within its limits.</p>
+  <p><strong>Context Graph.</strong> Per-session situational awareness updated live as
+  documents land: entities, claims, evidence, branches, deterministic contradiction
+  candidates, confidence rollups, open questions. If a local DataHub is running, the
+  session is emitted as a dataset with per-source lineage — research provenance as
+  first-class metadata.</p>
+  <p><strong>Knowledge Graph.</strong> Persistent across sessions. Entity resolution in
+  three rungs: exact/alias match → embedding similarity (Qdrant embedded) → judge-model
+  confirmation from a different model family. Edges keep history (first/last seen,
+  sessions, evidence counts); the planner consults the KG before every run, so the
+  engine never relearns what it already verified.</p>
+
+  <h2>Six graph-reasoning agents</h2>
+  <table>
+    <tr><th>Agent</th><th>Mechanism</th></tr>
+    <tr><td>Verification</td><td>deterministic gate: reliability ≥ 0.7 single-source, or ≥ 2 independent sources ≥ 0.45</td></tr>
+    <tr><td>Contradiction</td><td>opposite-polarity pairing → judge confirms; never auto-confirms</td></tr>
+    <tr><td>Research Analyst</td><td>per-branch summaries voiced only from verified claims</td></tr>
+    <tr><td>Discovery</td><td>graph paths whose endpoints are evidenced by different source categories</td></tr>
+    <tr><td>Trend</td><td>emerging = measured: recent 90-day evidence ≥ 2× trailing baseline</td></tr>
+    <tr><td>Question</td><td>unresolved questions + weak entities → follow-up research paths</td></tr>
+  </table>
+
+  <h2>Sources, honestly</h2>
+  <p>14 adapters live keyless (arXiv, OpenAlex, Semantic Scholar, PubMed, Crossref,
+  Wikipedia, GitHub, GitLab, Hugging Face, Hacker News, Stack Exchange, GDELT,
+  data.gov, Reddit-degraded). Six more ship fully implemented but disabled fail-closed
+  until an API key is pasted (Brave, Serper, NewsAPI, IEEE, PatentsView, Kaggle);
+  WIPO is an honest stub because no free API exists. Every report includes the full
+  source status table — live, degraded, needs-key, error.</p>
+
+  <h2>Run it</h2>
+  <pre>python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+.venv/bin/python -m research_engine "the future of AI hardware"
+# or the API:
+.venv/bin/uvicorn research_engine.api.app:app --port 8017</pre>
+  <p>Local-first: Ollama for all model roles (judge separated by family), Qdrant in
+  embedded mode, SQLite, asyncio queue. The spec's server stack — Neo4j, PostgreSQL,
+  Redis, Qdrant server — is a config flip per layer, adapters included.</p>
+
+  <div class="foot">
+    <a href="https://github.com/MoreSalamander/research-engine">github.com/MoreSalamander/research-engine</a>
+    · 42 offline deterministic tests · part of the
+    <a href="https://moresalamander.github.io">MoreSalamander</a> deterministic-scaffold suite
+  </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,76 @@
+# research-engine configuration.
+# Every backend here is a flip-switch: the embedded default runs with zero servers;
+# the spec's server stack (Neo4j / Redis / PostgreSQL / Qdrant-server) activates by
+# editing this file — no code changes.
+
+llm:
+  # Ollama is the primary provider (local, free). Roles are separated across model
+  # FAMILIES on purpose: the judge must not share weights with the proposer.
+  base_url: "http://localhost:11434"
+  roles:
+    extract: "llama3.1:8b"      # evidence extraction (schema-constrained JSON)
+    plan: "llama3.1:8b"         # research planning
+    judge: "qwen3.5:9b"         # verification / entity-merge confirmation (different family)
+    summarize: "qwen3.5-64k:latest"  # long-context report prose
+    light: "llama3.2:latest"    # cheap calls (query expansion, labels)
+  embed_model: "nomic-embed-text:latest"
+  timeout_s: 120
+  temperature: 0.0              # extraction and judging are deterministic-intent
+
+orchestrator:
+  global_concurrency: 32        # simultaneous in-flight research tasks (raise freely; asyncio scales to hundreds)
+  per_source_concurrency: 3     # politeness cap per external API
+  extract_concurrency: 3        # simultaneous LLM extraction calls
+  max_results_per_source: 8     # per query variant
+  query_variants: 2             # planner-generated reformulations per agent
+
+graph:
+  backend: "networkx"           # "networkx" (embedded, JSON-persisted) | "neo4j"
+  neo4j:
+    uri: "bolt://localhost:7687"
+    user: "neo4j"
+    password: ""                # set via env NEO4J_PASSWORD
+
+vectors:
+  backend: "qdrant-embedded"    # qdrant-client local mode; set url for a real Qdrant server
+  path: "storage_data/qdrant"
+  url: ""                       # e.g. "http://localhost:6333" flips to server mode
+  similarity_merge_threshold: 0.86
+
+db:
+  # Evidence ledger + dedupe cache. SQLite by default; any SQLAlchemy URL works.
+  url: "sqlite+aiosqlite:///storage_data/ledger.db"
+
+queue:
+  backend: "asyncio"            # "asyncio" (in-process) | "redis"
+  redis_url: "redis://localhost:6379/0"
+
+knowledge_graph:
+  path: "storage_data/knowledge_graph.json"
+
+sessions:
+  path: "storage_data/sessions"
+
+datahub:
+  # Context Graph → real DataHub emission (datasets + lineage + run provenance).
+  # "auto" probes gms_url at startup and enables itself only if GMS answers.
+  enabled: "auto"               # auto | true | false
+  gms_url: "http://localhost:8080"
+  platform: "research-engine"
+  env: "PROD"
+
+sources:
+  # API keys for the keyed adapters. Empty string = adapter reports
+  # "disabled: missing key" and is skipped fail-closed (never silently).
+  keys:
+    brave_search: ""            # https://brave.com/search/api/
+    serper: ""                  # https://serper.dev
+    newsapi: ""                 # https://newsapi.org
+    ieee: ""                    # https://developer.ieee.org
+    patentsview: ""             # https://patentsview.org/apis/keyrequest
+    kaggle_username: ""
+    kaggle_key: ""
+  reddit_degraded_ok: true      # public JSON endpoints, no OAuth: works from most IPs, honestly flaky
+
+report:
+  output_dir: "storage_data/reports"
