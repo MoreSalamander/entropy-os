@@ -125,6 +125,13 @@ Research runs, its discoveries shape the curriculum, the curriculum's learning
 order shapes the software request, the software's product name shapes the web
 brief — then everything lands in DataHub as one connected graph.
 
+That has been run for real. [docs/verified-run.md](docs/verified-run.md) is a
+complete objective read back out of the running system and a live DataHub:
+221 entities and 389 claims from 219 documents, an 8-concept curriculum, a
+30-file platform called **GPUcademy** with a failing test reported as failing,
+a 34-file site whose copy names the curriculum's own concepts, and one lineage
+graph spanning five DataHub platforms.
+
 ### External perception, and what it costs
 
 The engines' own Parallel and search integrations are preserved and reused —
