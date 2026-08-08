@@ -32,7 +32,7 @@ from .contract.http import build_engine_app
 from .events.bus import EventBus
 from .federation.datahub import FederationBridge
 from .orchestration.launcher import try_connect
-from .orchestration.stages import COMPOSED_PIPELINES, new_objective_id
+from .orchestration.stages import new_objective_id
 from .remote import RemoteEngine
 
 UI_PATH = Path(__file__).resolve().parent / "ui" / "index.html"
@@ -89,10 +89,12 @@ def build_unified_app() -> FastAPI:
 
     @app.post("/objectives")
     async def start_objective(req: ObjectiveRequest):
-        if req.capability not in COMPOSED_PIPELINES:
+        # Validate against what THIS composite declares, not a module-level
+        # registry — the same rule that keeps recursion sound.
+        if req.capability not in composite.pipelines:
             raise HTTPException(
                 400, f"unknown composed capability {req.capability!r}; "
-                     f"available: {sorted(COMPOSED_PIPELINES)}")
+                     f"available: {sorted(composite.pipelines)}")
         if not str(req.inputs.get("topic", "")).strip():
             raise HTTPException(400, "inputs.topic is required")
         objective_id = new_objective_id()
@@ -103,6 +105,11 @@ def build_unified_app() -> FastAPI:
         # caller gets an id immediately and follows the event stream.
         task = asyncio.create_task(composite.execute(exec_req))
         app.state.running[objective_id] = task
+        # Retrieve any exception as soon as the task settles, so a failed
+        # objective is reported through /objectives/{id} rather than surfacing
+        # as an "exception was never retrieved" warning at garbage collection.
+        task.add_done_callback(
+            lambda t: t.cancelled() or t.exception())
         return {"objective_id": objective_id,
                 "capability": req.capability,
                 "orchestrator": ("temporal" if app.state.launcher
