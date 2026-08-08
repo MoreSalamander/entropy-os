@@ -9,22 +9,28 @@ including the demo's own export tooling. Nothing is lost; it is unfindable,
 which is worse than a loud failure because it looks like success.
 
 This reads each dataset back by URN (the MySQL path, which works even with the
-index down) and re-ingests it byte-for-byte. The write re-emits the metadata
-change log, and the now-healthy index picks it up. No aspect is modified, and
-nothing outside one-engine's platforms is touched — deliberately narrower than
-DataHub's own RestoreIndices, which would rebuild the whole instance.
+index down) and writes it again, adding exactly one property: `reindexed_at`.
+That addition is not cosmetic — DataHub suppresses byte-identical writes, so a
+faithful copy produces no metadata change log and the index learns nothing. A
+real change is the only thing that triggers re-indexing, so the change made is
+the one fact that is actually new.
+
+Nothing else is altered, and nothing outside one-engine's platforms is touched
+— deliberately narrower than DataHub's own RestoreIndices, which rebuilds the
+whole instance.
 
     python3 tools/reindex.py [--gms http://localhost:8080] [--dry-run]
 
-URNs come from one-engine's durable event log, so the event log is the
-authority on what should exist — which is the same claim the architecture
-makes everywhere else.
+URNs come from one-engine's durable event log, plus the concept URNs that
+log's objectives imply — because a tool for repairing history should not be
+defeated by that history being incomplete.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import urllib.error
 import urllib.parse
@@ -36,9 +42,27 @@ HEADERS = {"Content-Type": "application/json",
            "X-RestLi-Protocol-Version": "2.0.0"}
 
 
-def urns_from_event_log(log_path: Path) -> list[str]:
-    """Every one-engine-family dataset URN the system says it published."""
+def _slug(text: str, max_len: int = 60) -> str:
+    """The federation's concept-slug rule, duplicated deliberately: this tool
+    is stdlib-only so it can be run against any instance from anywhere,
+    including a checkout without one-engine installed."""
+    s = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+    return s[:max_len].rstrip("-") or "unnamed"
+
+
+def urns_from_event_log(log_path: Path, platform: str = "one-engine",
+                        env: str = "PROD") -> list[str]:
+    """Every dataset URN this system published, as the log records it —
+    plus the ones it can be shown to imply.
+
+    Concept datasets are DERIVED rather than read: an objective's subject
+    determines its concept URN by the federation's own slug rule, so a run
+    whose log predates the concept URN being recorded is still recoverable.
+    A tool that repairs history should not be defeated by history being
+    incomplete.
+    """
     found: set[str] = set()
+    subjects: set[str] = set()
     if not log_path.exists():
         return []
     with log_path.open() as f:
@@ -50,6 +74,8 @@ def urns_from_event_log(log_path: Path) -> list[str]:
                 event = json.loads(line)
             except json.JSONDecodeError:
                 continue
+            if event.get("kind") == "ObjectiveStarted" and event.get("subject"):
+                subjects.add(event["subject"])
             # Subjects and payload values carry the URNs the run emitted.
             candidates = [event.get("subject", "")]
             for value in (event.get("payload") or {}).values():
@@ -58,6 +84,10 @@ def urns_from_event_log(log_path: Path) -> list[str]:
             for c in candidates:
                 if c.startswith("urn:li:dataset:"):
                     found.add(c)
+
+    for subject in subjects:
+        found.add(f"urn:li:dataset:(urn:li:dataPlatform:{platform},"
+                  f"concept.{_slug(subject)},{env})")
     return sorted(found)
 
 

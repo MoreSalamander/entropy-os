@@ -264,6 +264,13 @@ async def finalize_and_assemble(pipeline: ComposedPipeline, inputs: dict,
                  "stages_completed": len(stage_results) - skipped,
                  "stages_skipped": skipped,
                  "orchestrator": orchestrator,
+                 # The cross-domain identity node, recorded durably. Without
+                 # it the event log is not the authority on what this system
+                 # published — objectives and stages arrive as event subjects,
+                 # but the concept lived only in the returned result, which
+                 # nothing persists. Anything rebuilding DataHub state from
+                 # the log silently omitted it.
+                 "concept_urn": concept_urn,
                  "datahub": federation.status}))
 
     artifacts: list[ArtifactRef] = []

@@ -59,3 +59,36 @@ async def test_emission_degrades_to_urns_when_gms_is_down():
                                    "wf", "", "")
     assert urn.endswith("objective.obj-1,PROD)")
     assert "not reachable" in fed.status
+
+
+async def test_the_event_log_names_every_dataset_the_run_published(
+        unified, bus):
+    """The event log is the authority on what this system published, and
+    anything that rebuilds DataHub state reads it. All three federation
+    dataset kinds must therefore appear in it.
+
+    Regression-guards a real gap: objective and stage URNs arrive as event
+    subjects, but the concept URN lived only in the returned result — which
+    nothing persists — so a re-index driven by the log silently omitted the
+    cross-domain identity node.
+    """
+    from one_engine.contract import ExecuteRequest
+
+    result = await unified.execute(ExecuteRequest(
+        capability="compose.learning_platform",
+        inputs={"topic": "WebGPU compute shaders"}))
+
+    published = {result.outputs["concept_urn"],
+                 result.outputs["objective_urn"]}
+    assert all(published), "the run must publish both a concept and an objective"
+
+    logged: set[str] = set()
+    for event in bus.recent():
+        for value in [event.subject, *event.payload.values()]:
+            if isinstance(value, str) and value.startswith("urn:li:dataset:"):
+                logged.add(value)
+
+    assert published <= logged, (
+        f"published but never logged: {sorted(published - logged)}")
+    # And the stages too, so a rebuild covers the whole graph.
+    assert sum(1 for u in logged if ",stage." in u) == 4

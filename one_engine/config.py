@@ -88,7 +88,8 @@ def load_config(path: Path | None = None) -> SystemConfig:
         "TEMPORAL_ADDRESS", tp.get("address", cfg.temporal_address))
     cfg.temporal_namespace = os.environ.get(
         "TEMPORAL_NAMESPACE", tp.get("namespace", cfg.temporal_namespace))
-    cfg.temporal_task_queue = tp.get("task_queue", cfg.temporal_task_queue)
+    cfg.temporal_task_queue = os.environ.get(
+        "TEMPORAL_TASK_QUEUE", tp.get("task_queue", cfg.temporal_task_queue))
     ev = raw.get("events") or {}
     if ev.get("log_path"):
         p = Path(ev["log_path"])
