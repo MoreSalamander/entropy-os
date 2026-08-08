@@ -11,11 +11,10 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from one_engine.composite import CompositeEngine
-from one_engine.contract import (ArtifactRef, CapabilitySpec, ExecuteRequest,
-                                 FieldSpec)
-from one_engine.contract.http import build_engine_app
 from one_engine.adapters.base import LeafAdapter
+from one_engine.composite import CompositeEngine
+from one_engine.contract import ArtifactRef, CapabilitySpec, ExecuteRequest, FieldSpec
+from one_engine.contract.http import build_engine_app
 from one_engine.events.bus import EventBus
 from one_engine.federation.datahub import FederationBridge
 from one_engine.remote import RemoteEngine
@@ -34,7 +33,7 @@ class FakeResearch(LeafAdapter):
 
     async def _run(self, req: ExecuteRequest, emit):
         topic = req.inputs["topic"]
-        urn = self.dataset_urn(f"session.s1")
+        urn = self.dataset_urn("session.s1")
         emit("ResearchCompleted", subject=urn, topic=topic)
         return ({"session_id": "s1", "topic": topic,
                  "findings": [f"{topic} is real"]},

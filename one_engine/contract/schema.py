@@ -17,7 +17,7 @@ system consume a composed system without knowing what is inside it.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -27,7 +27,7 @@ CONTRACT_VERSION = "1.0"
 
 def now_iso() -> str:
     """UTC timestamps everywhere; provenance is worthless without a clock."""
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def new_id(prefix: str) -> str:
@@ -49,7 +49,7 @@ class CompositionNode(BaseModel):
     name: str
     kind: Literal["leaf", "composite"]
     summary: str = ""
-    members: list["CompositionNode"] = Field(default_factory=list)
+    members: list[CompositionNode] = Field(default_factory=list)
 
 
 class EngineIdentity(BaseModel):
@@ -158,7 +158,7 @@ class Provenance(BaseModel):
     # For composites: the member provenances beneath this one. A consumer may
     # ignore this entirely (opacity) or descend it (transparency) — both are
     # legitimate, which is exactly the abstraction the contract promises.
-    children: list["Provenance"] = Field(default_factory=list)
+    children: list[Provenance] = Field(default_factory=list)
 
 
 class ExecuteResult(BaseModel):

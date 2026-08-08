@@ -20,8 +20,8 @@ Routes (the contract, verbatim):
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
-from typing import Awaitable, Callable
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse

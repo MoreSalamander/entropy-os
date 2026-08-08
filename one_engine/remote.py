@@ -17,10 +17,16 @@ from __future__ import annotations
 
 import httpx
 
-from .contract.schema import (ContextDescriptor, EngineManifest,
-                              ExecuteRequest, ExecuteResult, HealthReport,
-                              KnowledgeDescriptor, SemanticEvent,
-                              StateSnapshot)
+from .contract.schema import (
+    ContextDescriptor,
+    EngineManifest,
+    ExecuteRequest,
+    ExecuteResult,
+    HealthReport,
+    KnowledgeDescriptor,
+    SemanticEvent,
+    StateSnapshot,
+)
 
 
 class RemoteEngine:

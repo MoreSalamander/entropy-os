@@ -22,11 +22,9 @@ from ..contract import ComposableEngine, ExecuteResult, Provenance
 from ..events.bus import EventBus
 from ..federation.datahub import FederationBridge
 from ..remote import RemoteEngine
-from .runtime import (finalize_and_assemble, run_and_record_stage,
-                      start_objective)
+from .runtime import finalize_and_assemble, run_and_record_stage, start_objective
 from .stages import COMPOSED_PIPELINES, Registry, StageOutcome
-from .workflows import (FINALIZE_ACTIVITY, START_ACTIVITY, STAGE_ACTIVITY,
-                        ComposedObjectiveWorkflow)
+from .workflows import FINALIZE_ACTIVITY, STAGE_ACTIVITY, START_ACTIVITY, ComposedObjectiveWorkflow
 
 
 class ObjectiveActivities:

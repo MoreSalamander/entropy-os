@@ -11,8 +11,7 @@ from __future__ import annotations
 
 import os
 
-from ..contract import (ArtifactRef, CapabilitySpec, ExecuteRequest,
-                        FieldSpec)
+from ..contract import ArtifactRef, CapabilitySpec, ExecuteRequest, FieldSpec
 from .base import Emit, LeafAdapter
 
 

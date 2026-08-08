@@ -14,15 +14,21 @@ from __future__ import annotations
 
 import asyncio
 
-from ..contract import (ArtifactRef, ComposableEngine, ExecuteRequest,
-                        ExecuteResult, ExecutionRef, Provenance,
-                        SemanticEvent, now_iso)
+from ..contract import (
+    ArtifactRef,
+    ComposableEngine,
+    ExecuteRequest,
+    ExecuteResult,
+    ExecutionRef,
+    Provenance,
+    SemanticEvent,
+    now_iso,
+)
 from ..events.bus import EventBus
 from ..federation import impact
 from ..federation.datahub import FederationBridge
 from ..federation.semantics import identifying
-from .stages import (PREPARED_KEY, ComposedPipeline, PlannedStage,
-                     concept_representations)
+from .stages import PREPARED_KEY, ComposedPipeline, PlannedStage, concept_representations
 
 # How often a running stage is asked what it has learned so far. Engine work
 # is measured in minutes, so this is cheap; the point is that a long stage is
@@ -56,7 +62,7 @@ async def _stream_member_events(member: ComposableEngine, bus: EventBus,
             pass
         try:
             await asyncio.wait_for(stop.wait(), timeout=EVENT_POLL_INTERVAL_S)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             continue
 
 
@@ -180,7 +186,9 @@ async def finalize_and_assemble(pipeline: ComposedPipeline, inputs: dict,
     acc: dict[str, dict] = {}
     status, error = "completed", ""
     skipped = 0
-    for stage, result in zip(pipeline.stages, stage_results):
+    # Deliberately ragged: a run that stopped early has fewer results
+    # than stages, and zip stopping at the shorter one IS the intent.
+    for stage, result in zip(pipeline.stages, stage_results, strict=False):
         if result.status != "completed":
             status = "failed"
             error = (f"stage {stage.seq} ({stage.capability}) failed: "
@@ -223,7 +231,8 @@ async def finalize_and_assemble(pipeline: ComposedPipeline, inputs: dict,
     artifacts: list[ArtifactRef] = []
     for r in stage_results:
         artifacts.extend(r.artifacts)
-    by_seq = {s.seq: r for s, r in zip(pipeline.stages, stage_results)}
+    by_seq = {s.seq: r
+              for s, r in zip(pipeline.stages, stage_results, strict=False)}
     outputs = {
         "objective_id": objective_id,
         "topic": topic,

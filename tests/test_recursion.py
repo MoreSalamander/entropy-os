@@ -12,8 +12,7 @@ from one_engine.composite import CompositeEngine
 from one_engine.contract import ExecuteRequest, FieldSpec
 from one_engine.events.bus import EventBus
 from one_engine.federation.datahub import FederationBridge
-from one_engine.orchestration.stages import (Acc, ComposedPipeline,
-                                             PlannedStage)
+from one_engine.orchestration.stages import Acc, ComposedPipeline, PlannedStage
 
 from .conftest import in_process_remote
 

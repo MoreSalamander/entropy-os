@@ -23,8 +23,6 @@ Run it:  python -m systems.meta_studio
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import uvicorn
 
 from one_engine.composite import CompositeEngine
@@ -33,8 +31,7 @@ from one_engine.contract import FieldSpec
 from one_engine.contract.http import build_engine_app
 from one_engine.events.bus import EventBus
 from one_engine.federation.datahub import FederationBridge
-from one_engine.orchestration.stages import (Acc, ComposedPipeline,
-                                             PlannedStage, Registry)
+from one_engine.orchestration.stages import Acc, ComposedPipeline, PlannedStage, Registry
 from one_engine.remote import RemoteEngine
 
 

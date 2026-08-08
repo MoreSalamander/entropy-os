@@ -123,8 +123,9 @@ async def test_member_progress_is_narrated_while_a_stage_runs(unified, bus,
     when it returns — and each fact must appear exactly once."""
     import asyncio
 
-    from one_engine.contract import ArtifactRef, CapabilitySpec, FieldSpec
     from one_engine.adapters.base import LeafAdapter
+    from one_engine.contract import CapabilitySpec, FieldSpec
+
     from .conftest import in_process_remote
 
     class SlowResearch(LeafAdapter):
@@ -146,8 +147,8 @@ async def test_member_progress_is_narrated_while_a_stage_runs(unified, bus,
 
     unified.members["research"] = in_process_remote(SlowResearch(),
                                                     "http://slow.test")
-    unified.members.pop("university"); unified.members.pop("software")
-    unified.members.pop("web")
+    for gone in ("university", "software", "web"):
+        unified.members.pop(gone)
 
     await unified.execute(ExecuteRequest(
         capability="compose.learning_platform", inputs={"topic": "Slow"},

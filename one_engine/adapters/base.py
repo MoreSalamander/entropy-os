@@ -13,13 +13,24 @@ import asyncio
 import importlib.util
 import traceback
 from collections import deque
-from typing import Callable
+from collections.abc import Callable
 
-from ..contract import (ArtifactRef, CapabilitySpec, CompositionNode,
-                        ContextDescriptor, EngineIdentity, EngineManifest,
-                        ExecuteRequest, ExecuteResult, HealthReport,
-                        KnowledgeDescriptor, Provenance, SemanticEvent,
-                        StateSnapshot, now_iso)
+from ..contract import (
+    ArtifactRef,
+    CapabilitySpec,
+    CompositionNode,
+    ContextDescriptor,
+    EngineIdentity,
+    EngineManifest,
+    ExecuteRequest,
+    ExecuteResult,
+    HealthReport,
+    KnowledgeDescriptor,
+    Provenance,
+    SemanticEvent,
+    StateSnapshot,
+    now_iso,
+)
 
 # emit(kind, subject, **payload) — handed to _run so concrete adapters can
 # narrate their engine's real progress as semantic facts.

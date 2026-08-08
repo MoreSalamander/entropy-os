@@ -21,13 +21,11 @@ from one_engine.contract import ExecuteResult, FieldSpec
 from one_engine.events.bus import EventBus
 from one_engine.federation.datahub import FederationBridge
 from one_engine.orchestration.launcher import TemporalLauncher
-from one_engine.orchestration.stages import (Acc, ComposedPipeline,
-                                             PlannedStage)
+from one_engine.orchestration.stages import Acc, ComposedPipeline, PlannedStage
 from one_engine.orchestration.worker import ObjectiveActivities
 from one_engine.orchestration.workflows import ComposedObjectiveWorkflow
 
-from .conftest import (FakeResearch, FakeSoftware, FakeUniversity, FakeWeb,
-                       in_process_remote)
+from .conftest import FakeResearch, FakeSoftware, FakeUniversity, FakeWeb, in_process_remote
 
 ADDRESS = "localhost:7233"
 

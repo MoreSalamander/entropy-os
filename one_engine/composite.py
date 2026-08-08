@@ -17,20 +17,33 @@ honest — the orchestrator used is recorded in provenance).
 from __future__ import annotations
 
 import asyncio
-from typing import Awaitable, Callable
+from collections.abc import Awaitable, Callable
 
-from .contract import (CapabilitySpec, ComposableEngine, CompositionNode,
-                       ContextDescriptor, EngineIdentity, EngineManifest,
-                       ExecuteRequest, ExecuteResult, FieldSpec,
-                       HealthReport, KnowledgeDescriptor, Provenance,
-                       SemanticEvent, StateSnapshot, now_iso)
+from .contract import (
+    CapabilitySpec,
+    ComposableEngine,
+    CompositionNode,
+    ContextDescriptor,
+    EngineIdentity,
+    EngineManifest,
+    ExecuteRequest,
+    ExecuteResult,
+    HealthReport,
+    KnowledgeDescriptor,
+    Provenance,
+    SemanticEvent,
+    StateSnapshot,
+    now_iso,
+)
 from .events.bus import EventBus
 from .federation.datahub import FederationBridge
-from .orchestration.runtime import (finalize_and_assemble,
-                                    run_and_record_stage, skipped_result,
-                                    start_objective)
-from .orchestration.stages import (COMPOSED_PIPELINES, Registry,
-                                   new_objective_id)
+from .orchestration.runtime import (
+    finalize_and_assemble,
+    run_and_record_stage,
+    skipped_result,
+    start_objective,
+)
+from .orchestration.stages import COMPOSED_PIPELINES, Registry, new_objective_id
 
 # Temporal path, injected by the app when the cluster is reachable:
 # (capability, inputs, objective_id) → ExecuteResult.
@@ -74,7 +87,7 @@ class CompositeEngine:
             *(self.members[k].describe() for k in keys),
             return_exceptions=True)
         out: dict[str, EngineManifest] = {}
-        for k, m in zip(keys, manifests):
+        for k, m in zip(keys, manifests, strict=True):
             if isinstance(m, EngineManifest):
                 out[k] = m
         return out
@@ -85,7 +98,7 @@ class CompositeEngine:
         events: set[str] = {"ObjectiveStarted", "StageCompleted",
                             "ObjectiveCompleted"}
         children: list[CompositionNode] = []
-        for key, m in manifests.items():
+        for _key, m in manifests.items():
             children.append(m.identity.composition
                             or CompositionNode(name=m.identity.name,
                                                kind=m.identity.kind))
@@ -240,7 +253,7 @@ class CompositeEngine:
         checks: dict[str, str] = {}
         status = "ok"
         reachable = 0
-        for k, r in zip(keys, results):
+        for k, r in zip(keys, results, strict=True):
             if isinstance(r, HealthReport):
                 checks[f"member:{k}"] = r.status
                 reachable += 1
@@ -302,7 +315,7 @@ class CompositeEngine:
         stores = [{"engine": self.name,
                    "datahub_platform": self.datahub_platform,
                    "holds": "cross-domain objectives, stages, concepts"}]
-        for k, r in zip(keys, results):
+        for _k, r in zip(keys, results, strict=True):
             if isinstance(r, KnowledgeDescriptor):
                 stores.append({"engine": r.engine,
                                "datahub_platform": r.datahub_platform,

@@ -81,8 +81,8 @@ async def main() -> None:
         b_url = f"http://localhost:{cfg.system_b_port}"
         b_ident = await get(c, b_url, "/identity")
         if "__error__" in b_ident:
-            print(f"  meta-studio not running "
-                  f"(start: python -m systems.meta_studio)")
+            print("  meta-studio not running "
+                  "(start: python -m systems.meta_studio)")
         else:
             b_caps = await get(c, b_url, "/capabilities")
             print(f"  {b_ident['name']} — kind={b_ident['kind']}\n")

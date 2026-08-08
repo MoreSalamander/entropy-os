@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-import pytest
-
-from one_engine.contract import (ComposableEngine, ExecuteRequest,
-                                 ExecutionRef)
+from one_engine.contract import ComposableEngine, ExecuteRequest, ExecutionRef
 
 from .conftest import FakeResearch, in_process_remote
 

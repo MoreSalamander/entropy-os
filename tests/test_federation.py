@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 from one_engine.federation.datahub import FederationBridge
-from one_engine.federation.semantics import (PRIMITIVES, primitive_for,
-                                             slugify)
+from one_engine.federation.semantics import PRIMITIVES, primitive_for, slugify
 from one_engine.orchestration.stages import concept_representations
 
 

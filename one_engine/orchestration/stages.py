@@ -15,8 +15,8 @@ half lives in runtime.py.
 from __future__ import annotations
 
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Callable
 
 from pydantic import BaseModel
 

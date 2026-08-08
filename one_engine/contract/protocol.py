@@ -11,9 +11,16 @@ from __future__ import annotations
 
 from typing import Protocol, runtime_checkable
 
-from .schema import (ContextDescriptor, EngineManifest, ExecuteRequest,
-                     ExecuteResult, HealthReport, KnowledgeDescriptor,
-                     SemanticEvent, StateSnapshot)
+from .schema import (
+    ContextDescriptor,
+    EngineManifest,
+    ExecuteRequest,
+    ExecuteResult,
+    HealthReport,
+    KnowledgeDescriptor,
+    SemanticEvent,
+    StateSnapshot,
+)
 
 
 @runtime_checkable
