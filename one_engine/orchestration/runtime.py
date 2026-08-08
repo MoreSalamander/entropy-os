@@ -12,12 +12,49 @@ global registry, because pipelines belong to a composite, not to the process.
 
 from __future__ import annotations
 
+import asyncio
+
 from ..contract import (ArtifactRef, ComposableEngine, ExecuteRequest,
                         ExecuteResult, ExecutionRef, Provenance,
                         SemanticEvent, now_iso)
 from ..events.bus import EventBus
 from ..federation.datahub import FederationBridge
 from .stages import ComposedPipeline, PlannedStage, concept_representations
+
+# How often a running stage is asked what it has learned so far. Engine work
+# is measured in minutes, so this is cheap; the point is that a long stage is
+# visible while it runs rather than only once it returns.
+EVENT_POLL_INTERVAL_S = 3.0
+
+
+async def _stream_member_events(member: ComposableEngine, bus: EventBus,
+                                objective_id: str, seen: set[str],
+                                stop: asyncio.Event) -> None:
+    """Forward a member's semantic events onto the unified bus WHILE it works.
+
+    This is the contract's GET /events route used for exactly what it is for:
+    an engine narrating facts as they happen, without the composite reaching
+    inside it. Failures are swallowed — losing progress narration must never
+    disturb the execution it is narrating.
+    """
+    since = ""
+    while not stop.is_set():
+        try:
+            for event in await member.recent_events(since):
+                since = event.event_id
+                # Other objectives may share this engine; only this run's
+                # facts belong in this objective's narration.
+                if event.objective_id != objective_id:
+                    continue
+                if event.event_id not in seen:
+                    seen.add(event.event_id)
+                    await bus.publish(event)
+        except Exception:
+            pass
+        try:
+            await asyncio.wait_for(stop.wait(), timeout=EVENT_POLL_INTERVAL_S)
+        except asyncio.TimeoutError:
+            continue
 
 
 async def start_objective(pipeline: ComposedPipeline, inputs: dict,
@@ -51,9 +88,22 @@ async def run_and_record_stage(member: ComposableEngine, stage: PlannedStage,
         inputs=stage.make_inputs(objective_inputs, acc),
         ref=ExecutionRef(objective_id=objective_id, workflow_id=workflow_id),
         timeout_s=stage.timeout_s)
-    result = await member.execute(req)
 
-    await bus.publish_all(result.events)
+    # Narrate the stage while it runs, then publish whatever the streamer did
+    # not already catch — deduplicated by event id, so a stage that finishes
+    # between polls still contributes every fact exactly once.
+    seen: set[str] = set()
+    stop = asyncio.Event()
+    streamer = asyncio.create_task(
+        _stream_member_events(member, bus, objective_id, seen, stop))
+    try:
+        result = await member.execute(req)
+    finally:
+        stop.set()
+        await streamer
+
+    await bus.publish_all([e for e in result.events
+                           if e.event_id not in seen])
     stage_urn = await federation.emit_stage(
         objective_id, stage.seq,
         engine=result.provenance.engine or stage.engine,

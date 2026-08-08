@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from one_engine.contract import ExecuteRequest, ExecutionRef
+from one_engine.orchestration.runtime import EVENT_POLL_INTERVAL_S
 
 
 async def test_composite_exposes_members_capabilities_as_its_own(unified):
@@ -114,3 +115,47 @@ async def test_provenance_names_the_orchestrator(unified):
     result = await unified.execute(ExecuteRequest(
         capability="compose.learning_platform", inputs={"topic": "Nim"}))
     assert "orchestrator: inline" in result.provenance.notes
+
+
+async def test_member_progress_is_narrated_while_a_stage_runs(unified, bus,
+                                                              members):
+    """A stage that takes minutes must be visible while it runs, not only
+    when it returns — and each fact must appear exactly once."""
+    import asyncio
+
+    from one_engine.contract import ArtifactRef, CapabilitySpec, FieldSpec
+    from one_engine.adapters.base import LeafAdapter
+    from .conftest import in_process_remote
+
+    class SlowResearch(LeafAdapter):
+        name = "slow-research"
+        datahub_platform = "slow-research"
+        events_emitted = ["ResearchPhaseAdvanced", "ResearchCompleted"]
+
+        def capabilities(self):
+            return [CapabilitySpec(
+                name="research.investigate", summary="slow",
+                inputs={"topic": FieldSpec(type="string", required=True)})]
+
+        async def _run(self, req, emit):
+            emit("ResearchPhaseAdvanced", subject="planning")
+            # Long enough for the streamer to poll mid-flight.
+            await asyncio.sleep(EVENT_POLL_INTERVAL_S * 1.5)
+            emit("ResearchCompleted", subject="done")
+            return {"session_id": "s1", "topic": req.inputs["topic"]}, [], [], []
+
+    unified.members["research"] = in_process_remote(SlowResearch(),
+                                                    "http://slow.test")
+    unified.members.pop("university"); unified.members.pop("software")
+    unified.members.pop("web")
+
+    await unified.execute(ExecuteRequest(
+        capability="compose.learning_platform", inputs={"topic": "Slow"},
+        ref=ExecutionRef(objective_id="obj-slow")))
+
+    kinds = [e.kind for e in bus.recent()]
+    # Exactly once each, despite being both streamed and returned.
+    assert kinds.count("ResearchPhaseAdvanced") == 1
+    assert kinds.count("ResearchCompleted") == 1
+    # And streamed BEFORE the stage finished.
+    assert kinds.index("ResearchPhaseAdvanced") < kinds.index("StageCompleted")
