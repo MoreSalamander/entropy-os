@@ -8,8 +8,18 @@ narrates its typed ProgressEvents as semantic events.
 
 from __future__ import annotations
 
+import os
+
 from ..contract import ArtifactRef, CapabilitySpec, ExecuteRequest, FieldSpec
 from .base import Emit, LeafAdapter
+
+# Composed runs push this engine harder than a standalone session does: the
+# reasoning agents receive a much larger Context Graph, and long-context
+# generations against it were observed exceeding the engine's own 120s default
+# (Ollama returning 500 after exactly 2m0s, repeatedly). Raising the ceiling is
+# deployment tuning, not a change to the engine — it goes through the engine's
+# own public Config, so the repository stays untouched.
+DEFAULT_LLM_TIMEOUT_S = 600
 
 
 class ResearchAdapter(LeafAdapter):
@@ -31,8 +41,16 @@ class ResearchAdapter(LeafAdapter):
             # Imported here, not at module top: this module is importable in
             # any venv (for tests/registry), but the real engine only exists
             # in research-engine's own environment.
+            from research_engine.config import load_config
             from research_engine.engine import Engine
-            self._engine = Engine()
+
+            cfg = load_config()
+            wanted = int(os.environ.get("ONE_ENGINE_LLM_TIMEOUT_S",
+                                        DEFAULT_LLM_TIMEOUT_S))
+            # Only ever raise the ceiling: an operator who deliberately set a
+            # longer timeout in the engine's own config keeps it.
+            cfg.llm.timeout_s = max(cfg.llm.timeout_s, wanted)
+            self._engine = Engine(cfg)
         return self._engine
 
     def capabilities(self) -> list[CapabilitySpec]:
