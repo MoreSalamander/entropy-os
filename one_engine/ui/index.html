@@ -27,7 +27,13 @@
   .status { display: flex; gap: 18px; font-size: 12.5px; font-family: var(--mono); }
   .status div { color: var(--muted); }
   .status b { color: var(--text); font-weight: 500; }
-  main { padding: 26px 32px 64px; max-width: 1180px; }
+  main { padding: 26px 32px 64px; max-width: 1640px; margin: 0 auto; }
+  /* Two columns: the system on the left, what it IS on the right. The
+     explainer is persistent rather than a link, because someone watching a
+     run should be able to read what they are watching without leaving it. */
+  .shell { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 22px; }
+  .col-main { min-width: 0; }
+  @media (max-width: 1280px) { .shell { grid-template-columns: 1fr; } }
   .ask {
     display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;
   }
@@ -88,6 +94,49 @@
   .cap.composed { border-color: var(--accent); color: var(--accent); }
   .urn { font-family: var(--mono); font-size: 11px; color: var(--muted); word-break: break-all; }
   a { color: var(--accent2); }
+
+  /* ---- the explainer ---- */
+  .about { position: sticky; top: 26px; align-self: start;
+           max-height: calc(100vh - 52px); overflow-y: auto; }
+  @media (max-width: 1280px) { .about { position: static; max-height: none; } }
+  .about h2 { margin-top: 0; }
+  .about h3 {
+    margin: 22px 0 7px; font-size: 12.5px; letter-spacing: .02em;
+    color: var(--accent); font-weight: 620;
+  }
+  .about h3:first-of-type { margin-top: 16px; }
+  .about p { font-size: 13.5px; color: var(--muted); margin: 0 0 10px; }
+  .about p strong { color: var(--text); font-weight: 560; }
+  .about .flow {
+    font-family: var(--mono); font-size: 11.5px; line-height: 1.75;
+    color: var(--muted); background: #0d1116; border: 1px solid var(--line);
+    border-radius: 8px; padding: 11px 13px; margin: 4px 0 12px;
+    overflow-x: auto; white-space: pre;
+  }
+  .about .flow b { color: var(--accent); font-weight: 500; }
+  .about dl { margin: 0 0 12px; }
+  .about dt {
+    font-family: var(--mono); font-size: 11.5px; color: var(--text);
+    margin-top: 9px;
+  }
+  .about dd { margin: 1px 0 0; font-size: 12.5px; color: var(--muted); }
+  .about .owns { display: flex; gap: 9px; font-size: 12.5px; padding: 5px 0;
+                 border-bottom: 1px solid var(--line); }
+  .about .owns:last-child { border-bottom: 0; }
+  .about .owns b {
+    font-family: var(--mono); font-size: 11.5px; color: var(--accent2);
+    min-width: 74px; font-weight: 500;
+  }
+  .about .owns span { color: var(--muted); }
+  .about code {
+    font-family: var(--mono); font-size: 11.5px; color: var(--text);
+    background: #0d1116; border: 1px solid var(--line);
+    padding: 1px 5px; border-radius: 4px;
+  }
+  .about em { color: var(--text); font-style: italic; }
+  .about .foot { margin-top: 20px; padding-top: 14px;
+                 border-top: 1px solid var(--line); font-size: 12.5px;
+                 color: var(--muted); }
 </style>
 </head>
 <body>
@@ -104,6 +153,8 @@
 </header>
 
 <main>
+<div class="shell">
+<div class="col-main">
   <div class="ask">
     <input type="text" id="topic" placeholder="A technology to learn, teach, build, and ship — e.g. WebGPU compute shaders">
     <button id="go">Create</button>
@@ -139,6 +190,105 @@
       <div class="caps" id="caps"></div>
     </section>
   </div>
+</div>
+
+<aside class="about">
+  <section>
+    <h2>What this is</h2>
+    <p><strong>Four autonomous AI engines converge into one engine — and that
+    engine can be composed again.</strong></p>
+    <p>Not four applications wired together. Independent engines join into a
+    unified system through a single contract, and the unified system exposes
+    <em>that same contract</em> — so it can become a capability inside
+    something larger. Composition is recursive by construction, not by
+    special case.</p>
+
+    <div class="flow">research + software + university + web
+                 ↓
+      <b>UNIFIED INTELLIGENCE</b>
+                 ↓
+           <b>CAPABILITY</b>
+                 ↓
+        <b>HIGHER SYSTEM</b>
+                 ↓
+             <b>BEYOND</b></div>
+    <p>Every arrow is the same move: a system that speaks the contract becomes
+    a capability another system consumes by URL — without knowing what is
+    inside it.</p>
+
+    <h3>The four stay four</h3>
+    <p>Each keeps its own codebase, agents, external search, Context Graph,
+    Knowledge Graph, and DataHub platform. <strong>Not one line of those four
+    repositories was modified</strong> — each adapter runs inside its engine's
+    own environment and calls its existing front door.</p>
+    <dl>
+      <dt>research-engine</dt>
+      <dd>Planning, source acquisition, evidence extraction, six reasoning
+      agents, verified reports.</dd>
+      <dt>learn-engine</dt>
+      <dd>Prerequisite DAG, adaptive teaching, evidence-based mastery,
+      misconception repair.</dd>
+      <dt>code-engine</dt>
+      <dd>Intent, architecture gates, code generation, verification, a
+      self-model sidecar.</dd>
+      <dt>design-engine</dt>
+      <dd>Real-site design research, design knowledge graph, gated synthesis,
+      review agents.</dd>
+    </dl>
+
+    <h3>The keystone: one contract</h3>
+    <p>Every engine — leaf or composite — serves the same nine routes:
+    <code>identity</code>, <code>capabilities</code>, <code>context</code>,
+    <code>knowledge</code>, <code>state</code>, <code>health</code>,
+    <code>events</code>, <code>execute</code>, and event ingest.</p>
+    <p>Because a composite serves exactly what it consumes, one small client
+    class is the whole composition mechanism at <em>every</em> level. If
+    recursion needed a different mechanism one level up, the claim would be
+    false.</p>
+
+    <h3>Four layers, four owners</h3>
+    <div class="owns"><b>Parallel</b><span>perception — the engines' own
+      acquisition, reused, never duplicated</span></div>
+    <div class="owns"><b>DataHub</b><span>memory — what the system
+      <em>knows</em>: identity, relationships, provenance</span></div>
+    <div class="owns"><b>Agents</b><span>reasoning — each engine's own
+      specialists, untouched</span></div>
+    <div class="owns"><b>Temporal</b><span>execution — what the system is
+      <em>doing</em>: state, retries, signals, recovery</span></div>
+    <p style="margin-top:10px">Temporal is never the knowledge graph; DataHub
+    is never the workflow state. Enforced by packaging — an engine cannot
+    import Temporal.</p>
+
+    <h3>Reading this page</h3>
+    <p><strong>Objective</strong> is one request crossing every engine. Each
+    stage's inputs are built from what earlier stages produced: research
+    shapes the curriculum, the curriculum shapes the software request, the
+    software's product name shapes the web brief.</p>
+    <p><strong>What the system is doing</strong> is the semantic event log —
+    past-tense facts. No event tells another engine what to do; that
+    restraint is what keeps them autonomous while the system behaves as one.</p>
+    <p><strong>Federation, not flattening:</strong> each engine keeps
+    publishing to its own DataHub platform. A composed run adds only the
+    cross-domain edges, so it renders as one graph spanning five platforms.</p>
+
+    <h3>Honest degradation</h3>
+    <p>Health reads <code>ok</code> only when the system can deliver what the
+    architecture promises. Without DataHub there is no provenance; without
+    Temporal there is no durability — both report <code>degraded</code> rather
+    than pretending. A run still completes either way, and provenance records
+    which orchestrator actually ran.</p>
+
+    <div class="foot">
+      <a href="/composition">/composition</a> ·
+      <a href="/capabilities">/capabilities</a> ·
+      <a href="/health">/health</a> ·
+      <a href="https://github.com/MoreSalamander/one-engine">source</a>
+      <br><br>
+      Apache 2.0 · a MoreSalamander StudioLabs Production.
+    </div>
+  </section>
+</aside>
+</div>
 </main>
 
 <script>
