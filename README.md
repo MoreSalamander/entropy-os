@@ -125,6 +125,23 @@ Research runs, its discoveries shape the curriculum, the curriculum's learning
 order shapes the software request, the software's product name shapes the web
 brief — then everything lands in DataHub as one connected graph.
 
+### External perception, and what it costs
+
+The engines' own Parallel and search integrations are preserved and reused —
+the unified system never duplicates them. What they actually reach depends on
+which keys are set in the environment when `./scripts/up.sh` starts them:
+
+| Key | Used by | Without it |
+| --- | --- | --- |
+| `PARALLEL_API_KEY` | code-engine | its parallel.ai adapter sits out |
+| `BRAVE_SEARCH_API_KEY`, `SERPER_API_KEY` | research-engine, design-engine | keyed web search sits out |
+
+Keyless sources still carry a real run: a live objective on "WebGPU compute
+shaders" pulled 219 documents from crossref, arxiv, openalex, github,
+stackexchange, hackernews, and gdelt, extracted 109 of them, and rejected 181
+items at the evidence gate. Set the keys for broader perception; the
+architecture does not change either way.
+
 ### Evolution
 
 The system is not limited to one-time generation. `compose.evolve` researches
