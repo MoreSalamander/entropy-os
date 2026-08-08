@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>design-engine — AI-native Website Intelligence &amp; Generation</title>
+<style>
+  :root { --bg:#0c0e14; --panel:#141824; --ink:#e6eaf2; --dim:#93a0b4;
+          --acc:#b18cff; --line:#20263a; }
+  * { box-sizing:border-box; margin:0; }
+  body { background:var(--bg); color:var(--ink);
+         font:16px/1.65 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+         padding:3rem 1.2rem 5rem; }
+  main { max-width:860px; margin:0 auto; }
+  h1 { font-size:2rem; letter-spacing:-.02em; }
+  h1 span { color:var(--acc); }
+  .sub { color:var(--dim); margin:.4rem 0 2.2rem; }
+  h2 { font-size:1.15rem; margin:2.4rem 0 .8rem; color:var(--acc); }
+  p { margin:.7rem 0; }
+  .panel { background:var(--panel); border:1px solid var(--line);
+           border-radius:10px; padding:1.1rem 1.3rem; margin:1rem 0; }
+  pre { background:#0e1220; border:1px solid var(--line); border-radius:8px;
+        padding:1rem; overflow-x:auto; font-size:.85rem; color:#d3c2ff; }
+  code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+  table { border-collapse:collapse; width:100%; font-size:.9rem; margin:.8rem 0; }
+  th,td { text-align:left; padding:.45rem .6rem; border-bottom:1px solid var(--line); }
+  th { color:var(--dim); font-weight:600; }
+  .law { border-left:3px solid var(--acc); padding-left:1rem; color:var(--dim);
+         font-style:italic; margin:1.4rem 0; }
+  a { color:var(--acc); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  .foot { margin-top:3.5rem; color:var(--dim); font-size:.85rem;
+          border-top:1px solid var(--line); padding-top:1.2rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>design-<span>engine</span></h1>
+  <div class="sub">AI-native Website Intelligence and Generation Engine — an AI web
+  design organization that researches real sites, learns design intelligence into
+  graphs, and generates original Next.js websites. Built on the research-engine
+  substrate. A MoreSalamander StudioLabs production.</div>
+
+  <div class="panel">
+  <pre>User Idea → Intent Analysis → Parallel Web Intelligence (6 workers)
+→ Design Context Graph → Design Knowledge Graph
+→ Design Synthesis → Copywriting → Code Generation
+→ Review Agents → Auto-Improve → Build Gate
+→ Finished Website → Graph Memory Loop</pre>
+  </div>
+
+  <div class="law">Originality is enforced, not promised: the site analyzer reduces
+  fetched pages to abstract traits (markup never crosses that boundary), the
+  synthesis model sees only aggregate statistics, and a deterministic novelty gate
+  de-derives any palette that tracks a single source. WCAG AA contrast is math,
+  applied before any CSS is written.</div>
+
+  <h2>What generation means here</h2>
+  <p>The LLM proposes design tokens, section plans, and copy through schema gates.
+  A typed 16-component library (accessible, responsive, CSS-animated with
+  reduced-motion support) renders the actual code: a complete Next.js 15 / React 19
+  / TypeScript / Tailwind 4 repository with per-page SEO metadata, sitemap, robots,
+  security headers, and zero raster assets. <code>next build</code> is the QA
+  agent's compile gate.</p>
+
+  <h2>The agent organization</h2>
+  <table>
+    <tr><th>Research</th><td>UX Research · Visual Design · Branding · Competitor
+    Analysis · Industry Research · Frontend Architecture — six workers running in
+    parallel, feeding one Context Graph from live site analysis</td></tr>
+    <tr><th>Generation</th><td>Design Synthesis (gated) · Copywriting (real-brand
+    personas scrubbed deterministically)</td></tr>
+    <tr><th>Review</th><td>Accessibility · Performance · Design · UX/Conversion ·
+    Security — deterministic rules over the generated source, then an automatic
+    improvement loop with monotone score checks</td></tr>
+  </table>
+
+  <h2>The graphs</h2>
+  <p><strong>Context Graph</strong> — the current design problem: psychology axes
+  from intent, analyzed sites, extracted traits, section priors. <strong>Knowledge
+  Graph</strong> — persistent: websites, traits, industries, projects, with
+  count-weighted industry↔trait edges, semantic fingerprint matching, and a scored
+  memory of every generated site (review scores + optional human feedback; no
+  fabricated conversion data). Both emit to a live DataHub as datasets with
+  design-source lineage.</p>
+
+  <h2>Run it</h2>
+  <pre>.venv/bin/python -m design_engine "Create a website for an AI healthcare startup" --build
+# then: cd storage_data/sites/&lt;project&gt; && npm install && npm run dev</pre>
+
+  <div class="foot">
+    <a href="https://github.com/MoreSalamander/design-engine">github.com/MoreSalamander/design-engine</a>
+    · 29 offline deterministic tests · substrate:
+    <a href="https://moresalamander.github.io/research-engine/">research-engine</a>
+    · part of <a href="https://moresalamander.github.io">MoreSalamander</a>
+  </div>
+</main>
+</body>
+</html>
