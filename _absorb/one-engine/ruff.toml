@@ -1,0 +1,7 @@
+# Quality gate for one-engine. The rule set is deliberately small: correctness
+# (F, E, W, B), import hygiene (I), and modern-Python idiom (UP). Anything
+# stricter would be style opinion rather than a defect check.
+line-length = 100
+
+[lint]
+select = ["F", "E", "W", "I", "B", "UP"]
