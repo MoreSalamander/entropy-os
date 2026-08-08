@@ -155,6 +155,22 @@ about state changes. No event tells another engine what to do, and ingesting
 one provably executes nothing. That restraint is what keeps the engines
 autonomous while the system behaves as one.</p>
 
+<h2>It evolves, and it does less on purpose</h2>
+<p>The system is not limited to one-time generation. Asked to re-evaluate a
+subject, it researches what changed, then reads <em>its own history</em> to
+work out what it already built — and skips every stage whose domain has
+nothing to update. Each skip records its reason rather than leaving a hole.</p>
+<div class="scroll"><pre>new information about X
+        ↓
+research                    what has changed about X?
+        ↓
+impact analysis             what has this system already made for X?
+        ↓
+curriculum · software · web only where something exists to update</pre></div>
+<p>Impact reads the composite's own stage narration rather than each engine's
+private event vocabulary — so an engine that joins later becomes legible to it
+by naming its outputs conventionally, with no table to update anywhere.</p>
+
 <h2>Degradation is honest</h2>
 <table>
   <tr><th>Missing</th><th>Behavior</th><th>Health</th></tr>

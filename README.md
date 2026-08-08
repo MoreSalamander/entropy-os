@@ -125,6 +125,23 @@ Research runs, its discoveries shape the curriculum, the curriculum's learning
 order shapes the software request, the software's product name shapes the web
 brief — then everything lands in DataHub as one connected graph.
 
+### Evolution
+
+The system is not limited to one-time generation. `compose.evolve` researches
+what changed about a subject, works out from its **own history** what it has
+already built for that subject, and updates only what is actually affected:
+
+```bash
+curl -X POST http://localhost:9100/objectives -H 'content-type: application/json' \
+  -d '{"capability":"compose.evolve","inputs":{"topic":"WebGPU compute shaders"}}'
+```
+
+A subject the system has never seen costs one research stage — the other three
+skip themselves and record why. A subject with an existing curriculum,
+platform, and site updates all three, with the previous product name and
+curriculum carried into the new requests. Details in
+[docs/evolution.md](docs/evolution.md).
+
 ### The second level
 
 ```bash
@@ -160,11 +177,14 @@ promises.
 .venv/bin/python -m pytest -q
 ```
 
-27 tests. The Temporal ones run against a **real** cluster (they skip when
+35 tests. The Temporal ones run against a **real** cluster (they skip when
 it's not up) with fake members, so a failure there is unambiguously an
 orchestration failure rather than a model failure. The recursion tests build a
 three-level stack — `holding-co → meta-studio → one-engine → four leaves` —
 and assert provenance resolves cleanly through every level.
+
+There is also `scripts/walkthrough.py`, which prints the architecture's claims
+by querying the **running** system rather than narrating a diagram.
 
 ---
 
