@@ -23,6 +23,7 @@ class SoftwareAdapter(LeafAdapter):
                    "generation, verification (ruff + pytest + lint agents), "
                    "self-model sidecar, cross-project memory.")
     datahub_platform = "code-engine"
+    member_key = "software"
     engine_module = "entropy_os.engines.software.engine"
     events_emitted = ["SoftwareBuildProgress", "SoftwareBuilt",
                       "SoftwareVerificationFailed"]

@@ -53,3 +53,5 @@ ignore = [
 "tests/test_hub_tutorial.py" = ["E501"]
 "tests/test_quota.py" = ["E501"]
 "tests/test_wedge_create.py" = ["E501"]
+"entropy_os/wedge.py" = ["E501"]
+"tests/test_wedge_core.py" = ["E501"]

@@ -21,6 +21,7 @@ class WebAdapter(LeafAdapter):
                    "copywriting, Next.js code generation, review agents "
                    "with auto-improve and an optional build gate.")
     datahub_platform = "design-engine"
+    member_key = "web"
     engine_module = "entropy_os.engines.web.engine"
     events_emitted = ["SiteGenerationProgress", "SiteGenerated"]
 

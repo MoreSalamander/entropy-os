@@ -100,16 +100,6 @@ from products.tutorial.generate import (
 )
 from products.tutorial.publish import publish_tutorial
 from products.tutorial.spec import TutorialSpec
-from products.wedge import (
-    Authenticator,
-    OrgNotVendable,
-    QuotaExceeded,
-    SandboxUnavailable,
-    SourcesUnavailable,
-    Unauthorized,
-    Wedge,
-    WedgeAuth,
-)
 from pydantic import BaseModel
 
 from entropy_os import artifact_report, engine_client
@@ -122,6 +112,16 @@ from entropy_os.keytracker import KeyTrackerStore
 from entropy_os.org_presentation import presentation_for
 from entropy_os.quota import QuotaStore
 from entropy_os.visits import VisitLog
+from entropy_os.wedge import (
+    Authenticator,
+    OrgNotVendable,
+    QuotaExceeded,
+    SandboxUnavailable,
+    SourcesUnavailable,
+    Unauthorized,
+    Wedge,
+    WedgeAuth,
+)
 
 # Veritas-anchored paths (its config/, its docs/) still resolve against the
 # engine checkout via the library's own repo_root(); the PROCESS concerns —

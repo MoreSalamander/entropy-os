@@ -25,7 +25,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from products.wedge import QuotaExceeded
+from entropy_os.wedge import QuotaExceeded
 
 _DEFAULT_WINDOW = timedelta(days=1)
 

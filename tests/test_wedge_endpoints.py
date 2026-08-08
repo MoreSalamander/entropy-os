@@ -1,7 +1,7 @@
 """Wedge HTTP surface — storefront + auth + streaming submit, over entropy_os.app.
 
 Split out of veritas tests/test_wedge.py when the web surface moved here; the
-wedge-core logic tests stayed with products/wedge.py in the engine room.
+wedge-core logic tests live beside it in tests/test_wedge_core.py.
 """
 
 from __future__ import annotations
@@ -9,7 +9,8 @@ from __future__ import annotations
 import json
 
 from engine.model import ScriptedProvider
-from products.wedge import Wedge, WedgeAuth
+
+from entropy_os.wedge import Wedge, WedgeAuth
 
 GOOD_SPEC = json.dumps({
     "function_name": "add", "description": "add two numbers", "signature": "def add(a, b)",

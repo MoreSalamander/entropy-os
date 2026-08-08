@@ -22,6 +22,7 @@ class UniversityAdapter(LeafAdapter):
                    "researched resources → adaptive lesson/practice loop → "
                    "evidence-based mastery with misconception repair.")
     datahub_platform = "learn-engine"
+    member_key = "university"
     engine_module = "entropy_os.engines.university.engine"
     events_emitted = ["CurriculumCreated", "LessonBuilt", "RoadmapMastered",
                       "MasteryEvidenceRecorded", "MisconceptionDetected",

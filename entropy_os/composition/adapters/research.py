@@ -29,6 +29,7 @@ class ResearchAdapter(LeafAdapter):
                    "acquisition, evidence extraction, graph reasoning by six "
                    "agents, verified report with DataHub provenance.")
     datahub_platform = "research-engine"
+    member_key = "research"
     engine_module = "entropy_os.engines.research.engine"
     events_emitted = ["ResearchPhaseAdvanced", "ResearchCompleted",
                       "KnowledgeConsolidated"]

@@ -16,7 +16,9 @@ import importlib.util
 import traceback
 from collections import deque
 from collections.abc import Callable
+from pathlib import Path
 
+from ...paths import engine_storage
 from ..contract import (
     ArtifactRef,
     CapabilitySpec,
@@ -54,6 +56,10 @@ class LeafAdapter:
     description: str = ""
     datahub_platform: str = ""
     events_emitted: list[str] = []
+    # Which contract member this engine is. It names the engine's storage
+    # root, which is the ONLY directory it will serve files out of — see
+    # artifact_root() and the /artifacts/file route.
+    member_key: str = ""
     # Import path of the wrapped engine, checked by health(). Engines are
     # constructed lazily (they load models and graph stores), so without this
     # an adapter would report "ok" right up until the first execution failed
@@ -155,6 +161,19 @@ class LeafAdapter:
                                   ref=req.ref, started_at=started,
                                   finished_at=now_iso(), datahub_urns=urns,
                                   notes=notes))
+
+    def artifact_root(self) -> Path | None:
+        """The one directory this engine will serve files from, or None.
+
+        An engine's artifacts live under its own storage root, so that root
+        is the containment boundary for reads. Returning None means "I do not
+        serve files", which is the honest answer for an engine that has no
+        storage of its own rather than an invitation to fall back to the
+        filesystem.
+        """
+        if not self.member_key:
+            return None
+        return engine_storage(self.member_key)
 
     async def health(self) -> HealthReport:
         checks = {"adapter": "up"}

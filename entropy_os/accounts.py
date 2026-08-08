@@ -30,7 +30,7 @@ import sqlite3
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from products.wedge import Unauthorized, parse_bearer
+from entropy_os.wedge import Unauthorized, parse_bearer
 
 # A user id becomes a tenant directory, so it must satisfy the wedge's tenant rule by construction.
 _ID_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")

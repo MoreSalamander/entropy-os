@@ -151,3 +151,76 @@ def test_the_three_determinisms_are_the_whole_vocabulary(value):
     assert Determinism(value).value == value
     with pytest.raises(ValueError):
         Determinism("probably")
+
+
+# --------------------------------------------------------------------------- #
+# Serving artifacts: the engine that made it, and nothing outside its root
+# --------------------------------------------------------------------------- #
+
+class Producer(Checker):
+    """An engine with a real storage root, so file serving has a boundary."""
+
+    name = "producer"
+    datahub_platform = "producer"
+
+    def __init__(self, root):
+        super().__init__()
+        self._root = root
+
+    def artifact_root(self):
+        return self._root
+
+
+async def test_an_engine_serves_a_file_from_its_own_artifact_root(tmp_path):
+    root = tmp_path / "engine"
+    (root / "project").mkdir(parents=True)
+    (root / "project" / "main.py").write_text("print('hello')\n")
+
+    remote = in_process_remote(Producer(root), "http://producer.test")
+    r = await remote._client.get("/artifacts/file",
+                                 params={"path": str(root / "project"),
+                                         "rel": "main.py"})
+    assert r.status_code == 200
+    assert r.json()["text"] == "print('hello')\n"
+
+
+async def test_a_path_outside_the_root_is_refused(tmp_path):
+    """`path` comes from the caller. Without the containment check this route
+    is an arbitrary-file read on the host, so the refusal is the feature."""
+    root = tmp_path / "engine"
+    root.mkdir(parents=True)
+    secret = tmp_path / "secret.txt"
+    secret.write_text("not yours")
+
+    remote = in_process_remote(Producer(root), "http://producer.test")
+
+    r = await remote._client.get("/artifacts/file", params={"path": str(secret)})
+    assert r.status_code == 404
+
+    # …and the same thing dressed up as a relative escape.
+    r = await remote._client.get("/artifacts/file",
+                                 params={"path": str(root), "rel": "../secret.txt"})
+    assert r.status_code == 404
+
+
+async def test_a_symlink_pointing_out_of_the_root_is_refused(tmp_path):
+    """Resolution happens BEFORE the containment test, so a link cannot walk
+    out of the root while still looking like it is inside it."""
+    root = tmp_path / "engine"
+    root.mkdir(parents=True)
+    secret = tmp_path / "secret.txt"
+    secret.write_text("not yours")
+    (root / "escape.txt").symlink_to(secret)
+
+    remote = in_process_remote(Producer(root), "http://producer.test")
+    r = await remote._client.get("/artifacts/file",
+                                 params={"path": str(root), "rel": "escape.txt"})
+    assert r.status_code == 404
+
+
+async def test_an_engine_without_storage_says_so_rather_than_guessing(tmp_path):
+    """No root means the engine does not serve files. It must not fall back to
+    reading the filesystem on the caller's word."""
+    remote = in_process_remote(Checker(), "http://checker.test")
+    r = await remote._client.get("/artifacts/file", params={"path": str(tmp_path)})
+    assert r.status_code == 404
