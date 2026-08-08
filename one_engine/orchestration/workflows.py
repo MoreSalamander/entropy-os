@@ -19,6 +19,7 @@ from temporalio.common import RetryPolicy
 
 with workflow.unsafe.imports_passed_through():
     from ..contract import ExecuteResult
+    from .runtime import skipped_result
     from .stages import COMPOSED_PIPELINES, StageOutcome
 
 # Activity names are addressed as strings so the workflow never imports the
@@ -83,7 +84,10 @@ class ComposedObjectiveWorkflow:
         # Deterministic clock: replay must reproduce the same start stamp.
         started_at = info.start_time.isoformat()
 
-        await workflow.execute_activity(
+        # The start activity also gathers whatever the pipeline needs before
+        # any stage runs — for an evolving pipeline, the impact report that
+        # decides which stages are worth running at all.
+        acc: dict[str, dict] = await workflow.execute_activity(
             START_ACTIVITY,
             args=[capability, inputs, objective_id, "temporal"],
             start_to_close_timeout=timedelta(minutes=2),
@@ -94,13 +98,25 @@ class ComposedObjectiveWorkflow:
         # autonomous run for a human decision has to exist.
         approve_before = int(inputs.get("approve_before_stage", 0) or 0)
 
-        acc: dict[str, dict] = {}
         results: list[ExecuteResult] = []
         stage_urns: list[str] = []
         prev_urn = ""
 
         for stage in pipeline.stages:
             self._current = stage.seq
+
+            # Deterministic, data-only predicate over state the workflow
+            # already holds — safe to evaluate here, and it means a skipped
+            # stage costs no activity, no engine call, and no time.
+            if stage.should_skip(inputs, acc):
+                results.append(skipped_result(stage))
+                self._stage_status.append({"seq": stage.seq,
+                                           "engine": stage.engine,
+                                           "capability": stage.capability,
+                                           "status": "skipped",
+                                           "reason": stage.skip_reason})
+                continue
+
             if approve_before and stage.seq == approve_before:
                 self._awaiting_approval = True
                 await workflow.wait_condition(

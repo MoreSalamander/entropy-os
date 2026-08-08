@@ -27,7 +27,8 @@ from .contract import (CapabilitySpec, ComposableEngine, CompositionNode,
 from .events.bus import EventBus
 from .federation.datahub import FederationBridge
 from .orchestration.runtime import (finalize_and_assemble,
-                                    run_and_record_stage, start_objective)
+                                    run_and_record_stage, skipped_result,
+                                    start_objective)
 from .orchestration.stages import (COMPOSED_PIPELINES, Registry,
                                    new_objective_id)
 
@@ -188,14 +189,17 @@ class CompositeEngine:
         """
         pipeline = self.pipelines[capability]
         started = now_iso()
-        await start_objective(pipeline, inputs, objective_id, orchestrator,
-                              self.name, self.bus, self.federation)
+        acc = await start_objective(pipeline, inputs, objective_id,
+                                    orchestrator, self.name, self.bus,
+                                    self.federation)
 
-        acc: dict[str, dict] = {}
         results: list[ExecuteResult] = []
         stage_urns: list[str] = []
         prev_urn = ""
         for stage in pipeline.stages:
+            if stage.should_skip(inputs, acc):
+                results.append(skipped_result(stage))
+                continue
             member = self.members.get(stage.engine)
             if member is None:
                 results.append(ExecuteResult(

@@ -42,12 +42,27 @@ EVENT_PRIMITIVES: dict[str, str] = {
     "ObjectiveStarted": "Workflow",
     "StageCompleted": "Task",
     "ObjectiveCompleted": "Workflow",
+    "ImpactAnalyzed": "Decision",
     "RelationshipDiscovered": "Relationship",
 }
 
 
 def primitive_for(event_kind: str) -> str:
     return EVENT_PRIMITIVES.get(event_kind, "Event")
+
+
+# The output fields that IDENTIFY what a stage produced — the handles by
+# which a later run can find, reference, or update that work. Stated once and
+# used by both the DataHub federation (as queryable dataset properties) and
+# impact analysis (as the record of what exists), so a new engine becomes
+# legible to both by naming its outputs conventionally rather than by being
+# added to a table somewhere.
+IDENTIFYING_OUTPUTS = ("session_id", "project_id", "product_name",
+                       "learning_order", "subject", "out_dir")
+
+
+def identifying(outputs: dict) -> dict:
+    return {k: v for k, v in outputs.items() if k in IDENTIFYING_OUTPUTS}
 
 
 def slugify(text: str, max_len: int = 60) -> str:

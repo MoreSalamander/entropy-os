@@ -42,6 +42,14 @@ class PlannedStage:
     capability: str
     make_inputs: Callable[[dict, Acc], dict]   # (objective inputs, acc) → inputs
     timeout_s: float = 3600.0
+    # Deterministic predicate over data the orchestrator already holds. It is
+    # evaluated INSIDE the workflow, so it must never do I/O — everything it
+    # needs (including impact analysis) arrives in `acc` beforehand.
+    skip_if: Callable[[dict, Acc], bool] | None = None
+    skip_reason: str = ""
+
+    def should_skip(self, inputs: dict, acc: Acc) -> bool:
+        return bool(self.skip_if and self.skip_if(inputs, acc))
 
 
 @dataclass(frozen=True)
@@ -51,6 +59,11 @@ class ComposedPipeline:
     stages: list[PlannedStage]
     inputs: dict[str, FieldSpec] = field(default_factory=dict)
     tags: list[str] = field(default_factory=list)
+    # Optional context gathered once, before any stage runs, and seeded into
+    # `acc` under PREPARED_KEY. This is where an evolving pipeline learns what
+    # its subject already affects. Named rather than inlined because it does
+    # I/O and therefore has to run in an activity.
+    prepare: str = ""
 
     def spec(self, engine_name: str) -> CapabilitySpec:
         return CapabilitySpec(
@@ -70,6 +83,10 @@ class ComposedPipeline:
 
 
 Registry = dict[str, ComposedPipeline]
+
+# Where a pipeline's prepared context lands in `acc`. Underscore-prefixed so
+# it can never collide with a member key.
+PREPARED_KEY = "_prepared"
 
 
 # --------------------------------------------------------------------------- #
@@ -137,9 +154,95 @@ LEARNING_PLATFORM = ComposedPipeline(
         PlannedStage(4, "web", "web.generate_site", _web_inputs),
     ])
 
+# --------------------------------------------------------------------------- #
+# Evolution: the system does not only generate once — it reacts to new
+# information about something it has already built.
+#
+# The hard part is not re-running; it is knowing what NEEDS re-running. An
+# impact report (gathered by the `impact` prepare hook, from the system's own
+# event history) seeds `acc`, and each downstream stage skips itself when
+# nothing it owns is affected. New research always runs; a curriculum is only
+# redesigned if one exists; software is only rebuilt if there is software.
+# --------------------------------------------------------------------------- #
+
+def _impact(acc: Acc) -> dict:
+    return (acc.get(PREPARED_KEY) or {}).get("impact") or {}
+
+
+def _affected(acc: Acc, engine: str) -> dict:
+    return (_impact(acc).get("affected") or {}).get(engine) or {}
+
+
+def _evolve_research_inputs(inputs: dict, acc: Acc) -> dict:
+    return {"topic": f"What has recently changed about {inputs['topic']}: "
+                     f"new releases, deprecations, and current best practice"}
+
+
+def _evolve_curriculum_inputs(inputs: dict, acc: Acc) -> dict:
+    topic = inputs["topic"]
+    prior = _affected(acc, "university").get("learning_order") or []
+    known = f" The previous curriculum covered: {', '.join(prior[:8])}." if prior else ""
+    return {"goal": f"Understand {topic} as it stands today, including what "
+                    f"recently changed and why.{known}",
+            "learner_name": inputs.get("learner_name", "one-engine")}
+
+
+def _evolve_software_inputs(inputs: dict, acc: Acc) -> dict:
+    topic = inputs["topic"]
+    prior = _affected(acc, "software")
+    order = (acc.get("university", {}).get("learning_order") or [])[:6]
+    product = prior.get("product_name") or f"{topic} Academy"
+    return {"request": (
+        f"An updated release of '{product}', an educational platform teaching "
+        f"{topic}. The curriculum has been revised to: "
+        f"{', '.join(order) if order else topic}. Keep lesson pages, graded "
+        f"quizzes, and per-concept mastery tracking; reflect what recently "
+        f"changed about {topic}.")}
+
+
+def _evolve_web_inputs(inputs: dict, acc: Acc) -> dict:
+    topic = inputs["topic"]
+    product = (acc.get("software", {}).get("product_name")
+               or _affected(acc, "software").get("product_name")
+               or f"{topic} Academy")
+    return {"request": (
+        f"An updated public website for '{product}', teaching {topic}. "
+        f"Lead with what has changed recently in {topic} and why the "
+        f"curriculum was revised.")}
+
+
+EVOLVE_PLATFORM = ComposedPipeline(
+    name="compose.evolve",
+    summary="React to new information about a subject the system has already "
+            "worked on: research what changed, determine impact from the "
+            "system's own history, and update only what is actually affected.",
+    inputs={"topic": FieldSpec(type="string", required=True,
+                               description="the subject to re-evaluate"),
+            "approve_before_stage": FieldSpec(type="number")},
+    tags=["composed", "evolution"],
+    prepare="impact",
+    stages=[
+        # Perception always runs: you cannot know what changed without looking.
+        PlannedStage(1, "research", "research.investigate",
+                     _evolve_research_inputs),
+        PlannedStage(2, "university", "university.design_curriculum",
+                     _evolve_curriculum_inputs,
+                     skip_if=lambda i, acc: not _affected(acc, "university"),
+                     skip_reason="no existing curriculum for this subject"),
+        PlannedStage(3, "software", "software.build",
+                     _evolve_software_inputs,
+                     skip_if=lambda i, acc: not _affected(acc, "software"),
+                     skip_reason="no existing software for this subject"),
+        PlannedStage(4, "web", "web.generate_site", _evolve_web_inputs,
+                     skip_if=lambda i, acc: not _affected(acc, "web"),
+                     skip_reason="no existing web experience for this subject"),
+    ])
+
+
 # The unified system's registry. A composite is constructed with a registry;
 # this one is the default because it is what one-engine itself offers.
-COMPOSED_PIPELINES: Registry = {LEARNING_PLATFORM.name: LEARNING_PLATFORM}
+COMPOSED_PIPELINES: Registry = {LEARNING_PLATFORM.name: LEARNING_PLATFORM,
+                                EVOLVE_PLATFORM.name: EVOLVE_PLATFORM}
 
 
 def concept_representations(topic: str, acc: Acc) -> dict[str, str]:

@@ -18,8 +18,11 @@ from ..contract import (ArtifactRef, ComposableEngine, ExecuteRequest,
                         ExecuteResult, ExecutionRef, Provenance,
                         SemanticEvent, now_iso)
 from ..events.bus import EventBus
+from ..federation import impact
 from ..federation.datahub import FederationBridge
-from .stages import ComposedPipeline, PlannedStage, concept_representations
+from ..federation.semantics import identifying
+from .stages import (PREPARED_KEY, ComposedPipeline, PlannedStage,
+                     concept_representations)
 
 # How often a running stage is asked what it has learned so far. Engine work
 # is measured in minutes, so this is cheap; the point is that a long stage is
@@ -60,15 +63,35 @@ async def _stream_member_events(member: ComposableEngine, bus: EventBus,
 async def start_objective(pipeline: ComposedPipeline, inputs: dict,
                           objective_id: str, orchestrator: str,
                           engine_name: str, bus: EventBus,
-                          federation: FederationBridge) -> None:
+                          federation: FederationBridge) -> dict:
+    """Open an objective and gather whatever context its pipeline needs before
+    any stage runs. Returns the prepared `acc` seed — for an evolving
+    pipeline, the impact report that decides which stages are worth running.
+    """
     await federation.probe()
+    subject = str(inputs.get("topic", ""))
+    prepared: dict = {}
+
+    if pipeline.prepare == "impact":
+        report = impact.analyze(subject, bus)
+        prepared = {"impact": report.to_dict()}
+        await bus.publish(SemanticEvent(
+            kind="ImpactAnalyzed", engine=engine_name, subject=subject,
+            objective_id=objective_id,
+            payload={"concept_slug": report.concept_slug,
+                     "prior_objectives": report.prior_objectives,
+                     "affected": sorted(report.affected),
+                     "unaffected": report.unaffected,
+                     "is_new_subject": report.is_new_subject}))
+
     await bus.publish(SemanticEvent(
         kind="ObjectiveStarted", engine=engine_name,
-        subject=str(inputs.get("topic", "")), objective_id=objective_id,
+        subject=subject, objective_id=objective_id,
         payload={"capability": pipeline.name, "inputs": inputs,
                  "orchestrator": orchestrator,
                  "stages": [f"{s.seq}:{s.engine}.{s.capability}"
                             for s in pipeline.stages]}))
+    return {PREPARED_KEY: prepared} if prepared else {}
 
 
 async def run_and_record_stage(member: ComposableEngine, stage: PlannedStage,
@@ -114,8 +137,32 @@ async def run_and_record_stage(member: ComposableEngine, stage: PlannedStage,
         objective_id=objective_id,
         payload={"seq": stage.seq, "engine": stage.engine,
                  "capability": stage.capability, "status": result.status,
-                 "orchestrator": orchestrator}))
+                 "orchestrator": orchestrator,
+                 # The handles by which a later run can find this work. This
+                 # is what makes the event log sufficient for impact
+                 # analysis, without reading any engine's private vocabulary.
+                 "produced": identifying(result.outputs)}))
     return result, stage_urn
+
+
+def skipped_result(stage: PlannedStage) -> ExecuteResult:
+    """A stage that was deliberately not run.
+
+    Modeled as a completed result carrying `skipped`, rather than a failure:
+    an evolution run that finds no software to rebuild has not gone wrong, it
+    has correctly done less work. The reason travels in provenance so the
+    record shows *why* a stage was passed over.
+    """
+    return ExecuteResult(
+        status="completed",
+        outputs={"skipped": True, "reason": stage.skip_reason},
+        provenance=Provenance(engine=stage.engine,
+                              capability=stage.capability,
+                              notes=[f"skipped: {stage.skip_reason}"]))
+
+
+def was_skipped(result: ExecuteResult) -> bool:
+    return bool(result.outputs.get("skipped"))
 
 
 async def finalize_and_assemble(pipeline: ComposedPipeline, inputs: dict,
@@ -132,14 +179,20 @@ async def finalize_and_assemble(pipeline: ComposedPipeline, inputs: dict,
 
     acc: dict[str, dict] = {}
     status, error = "completed", ""
+    skipped = 0
     for stage, result in zip(pipeline.stages, stage_results):
-        if result.status == "completed":
-            acc[stage.engine] = result.outputs
-        else:
+        if result.status != "completed":
             status = "failed"
             error = (f"stage {stage.seq} ({stage.capability}) failed: "
                      f"{result.error}")
             break
+        if was_skipped(result):
+            # A skipped stage contributes nothing to acc, so later stages
+            # fall through to their own fallbacks instead of consuming a
+            # placeholder as if it were real output.
+            skipped += 1
+            continue
+        acc[stage.engine] = result.outputs
     if len(stage_results) < len(pipeline.stages) and not error:
         status = "failed"
         error = (f"pipeline stopped after {len(stage_results)} of "
@@ -162,21 +215,27 @@ async def finalize_and_assemble(pipeline: ComposedPipeline, inputs: dict,
         kind="ObjectiveCompleted", engine=engine_name,
         subject=objective_urn, objective_id=objective_id,
         payload={"capability": pipeline.name, "status": status,
-                 "stages_completed": len(stage_results),
+                 "stages_completed": len(stage_results) - skipped,
+                 "stages_skipped": skipped,
                  "orchestrator": orchestrator,
                  "datahub": federation.status}))
 
     artifacts: list[ArtifactRef] = []
     for r in stage_results:
         artifacts.extend(r.artifacts)
+    by_seq = {s.seq: r for s, r in zip(pipeline.stages, stage_results)}
     outputs = {
         "objective_id": objective_id,
         "topic": topic,
         "status": status,
         "stages": [{"seq": s.seq, "engine": s.engine,
                     "capability": s.capability,
-                    "outputs": acc.get(s.engine, {})}
+                    "ran": not (s.seq in by_seq and was_skipped(by_seq[s.seq])),
+                    "outputs": (by_seq[s.seq].outputs if s.seq in by_seq
+                                and was_skipped(by_seq[s.seq])
+                                else acc.get(s.engine, {}))}
                    for s in pipeline.stages],
+        "stages_skipped": skipped,
         "concept_urn": concept_urn,
         "objective_urn": objective_urn,
     }

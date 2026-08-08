@@ -47,10 +47,13 @@ class ObjectiveActivities:
 
     @activity.defn(name=START_ACTIVITY)
     async def start_objective(self, capability: str, inputs: dict,
-                              objective_id: str, orchestrator: str) -> None:
-        await start_objective(self.pipelines[capability], inputs,
-                              objective_id, orchestrator, self.engine_name,
-                              self.bus, self.federation)
+                              objective_id: str,
+                              orchestrator: str) -> dict[str, dict]:
+        # Returns the prepared `acc` seed (impact analysis, for pipelines
+        # that declare it) so the workflow can decide what to skip.
+        return await start_objective(
+            self.pipelines[capability], inputs, objective_id, orchestrator,
+            self.engine_name, self.bus, self.federation)
 
     @activity.defn(name=STAGE_ACTIVITY)
     async def run_stage(self, capability: str, seq: int, objective_id: str,
