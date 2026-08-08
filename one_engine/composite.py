@@ -39,6 +39,7 @@ from .events.bus import EventBus
 from .federation.datahub import FederationBridge
 from .orchestration.runtime import (
     finalize_and_assemble,
+    record_judgment,
     run_and_record_stage,
     skipped_result,
     start_objective,
@@ -228,6 +229,27 @@ class CompositeEngine:
             if stage_urn:
                 stage_urns.append(stage_urn)
                 prev_urn = stage_urn
+
+            # The same gates the durable path enforces. Inline execution is a
+            # degraded ORCHESTRATOR, never a degraded scaffold — a run that
+            # loses Temporal must not thereby lose its decisions.
+            judgment = stage.judge(result)
+            await record_judgment(objective_id, judgment, self.name,
+                                  self.bus, self.federation)
+            if judgment.action in ("block", "hold"):
+                # No human is reachable on the inline path, so a hold cannot
+                # be waited on — it stops, and provenance says which gate and
+                # that nobody was there to decide.
+                results[-1] = result.model_copy(update={
+                    "status": "failed",
+                    "error": f"held by gate(s) "
+                             f"{', '.join(v.gate for v in judgment.failed)}: "
+                             f"{judgment.failed[0].evidence}"
+                             + ("" if judgment.action == "block" else
+                                " (needs a human decision; the inline "
+                                "orchestrator has no one to ask)")})
+                break
+
             if result.status != "completed":
                 break
             acc[stage.engine] = result.outputs

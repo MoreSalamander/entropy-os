@@ -22,12 +22,13 @@ from ..contract import (
     ExecutionRef,
     Provenance,
     SemanticEvent,
+    identifying,
     now_iso,
 )
 from ..events.bus import EventBus
 from ..federation import impact
 from ..federation.datahub import FederationBridge
-from ..federation.semantics import identifying
+from ..scaffold import StageJudgment
 from .stages import PREPARED_KEY, ComposedPipeline, PlannedStage, concept_representations
 
 # How often a running stage is asked what it has learned so far. Engine work
@@ -151,6 +152,36 @@ async def run_and_record_stage(member: ComposableEngine, stage: PlannedStage,
     return result, stage_urn
 
 
+async def record_judgment(objective_id: str, judgment: StageJudgment,
+                          engine_name: str, bus: EventBus,
+                          federation: FederationBridge) -> None:
+    """Publish a gate decision as a fact, and as DataHub provenance.
+
+    A verdict nobody can find later is not governance, it is a log line. Each
+    judgment becomes a semantic event carrying every gate's evidence, and a
+    dataset under the federation platform so the decision is queryable next to
+    the work it judged.
+    """
+    # The gates reached these verdicts deterministically, with no clock in
+    # reach. Stamping happens here, where a clock is legitimate.
+    stamped = now_iso()
+    for verdict in judgment.verdicts:
+        if not verdict.checked_at:
+            verdict.checked_at = stamped
+
+    await bus.publish(SemanticEvent(
+        kind="GatesEvaluated", engine=engine_name,
+        subject=f"stage.{judgment.stage_seq}.{judgment.engine}",
+        objective_id=objective_id,
+        payload={"stage_seq": judgment.stage_seq,
+                 "engine": judgment.engine,
+                 "decision": judgment.action,
+                 "summary": judgment.summary(),
+                 "verdicts": [v.model_dump(mode="json")
+                              for v in judgment.verdicts]}))
+    await federation.emit_judgment(objective_id, judgment)
+
+
 def skipped_result(stage: PlannedStage) -> ExecuteResult:
     """A stage that was deliberately not run.
 
@@ -162,7 +193,14 @@ def skipped_result(stage: PlannedStage) -> ExecuteResult:
     return ExecuteResult(
         status="completed",
         outputs={"skipped": True, "reason": stage.skip_reason},
-        provenance=Provenance(engine=stage.engine,
+        # An explicit, DERIVED ref rather than the default factory: this runs
+        # inside the workflow sandbox, where the default's uuid4 would be a
+        # determinism violation. A skipped stage never executed anything, so
+        # naming it after the stage is also more honest than a random id.
+        provenance=Provenance(ref=ExecutionRef(
+                                  execution_id=f"skipped.{stage.seq}."
+                                               f"{stage.engine}"),
+                              engine=stage.engine,
                               capability=stage.capability,
                               notes=[f"skipped: {stage.skip_reason}"]))
 

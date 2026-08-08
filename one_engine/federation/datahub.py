@@ -148,6 +148,46 @@ class FederationBridge:
             self.status = f"stage emission failed: {e}"
         return urn
 
+    async def emit_judgment(self, objective_id: str, judgment) -> str:
+        """Publish one stage's gate decision as its own dataset.
+
+        Verdicts live beside the work they judged, with each gate's determinism
+        and evidence as queryable properties — so "why was this allowed to
+        continue" is answerable from the catalog rather than from a log file.
+        Upstream is the stage it judged, which puts the decision downstream of
+        the work in the lineage graph, exactly where it belongs.
+        """
+        urn = self.dataset_urn(
+            f"judgment.{objective_id}.{judgment.stage_seq}-{judgment.engine}")
+        if not self.enabled:
+            return urn
+        custom: dict = {
+            "objective_id": objective_id,
+            "stage_seq": judgment.stage_seq,
+            "engine": judgment.engine,
+            "decision": judgment.action,
+            "primitive": "Decision",
+            "gates_total": len(judgment.verdicts),
+            "gates_failed": len(judgment.failed),
+        }
+        for v in judgment.verdicts:
+            custom[f"gate.{v.gate}"] = (
+                f"{'pass' if v.passed else 'FAIL'} "
+                f"[{v.determinism.value}] {v.evidence}")
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                await self._ingest(
+                    client, urn,
+                    f"Gate decision for stage {judgment.stage_seq} "
+                    f"({judgment.engine}): {judgment.action}",
+                    custom,
+                    upstreams=[self.dataset_urn(
+                        f"stage.{objective_id}.{judgment.stage_seq}-"
+                        f"{judgment.engine}")])
+        except httpx.HTTPError as e:
+            self.status = f"judgment emission failed: {e}"
+        return urn
+
     async def emit_objective(self, objective_id: str, title: str,
                              stage_urns: list[str], concept_urn: str,
                              engines_used: list[str], status: str,

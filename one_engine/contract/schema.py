@@ -174,6 +174,30 @@ class ExecuteResult(BaseModel):
 # Observability — "how are you, what are you doing, what do you know?"
 # --------------------------------------------------------------------------- #
 
+# The output fields that IDENTIFY what an execution produced — the handles by
+# which later work can find, reference, or update it.
+#
+# This lives in the contract, not in any consumer, because it is a statement
+# about ExecuteResult.outputs rather than about what any one consumer does
+# with it. Federation publishes these as queryable dataset properties, impact
+# analysis reads them as the record of what exists, and a composition gate
+# checks that a stage produced any of them — three consumers, one convention,
+# and none of them a dependency of the others.
+#
+# Keeping it here also keeps this module a dependency-free leaf, which matters
+# concretely: composition gates are evaluated inside the Temporal workflow
+# sandbox, so anything they import must be free of I/O. An earlier version
+# imported this from the federation package and dragged httpx (and therefore
+# urllib) into the sandbox, which Temporal correctly refused.
+IDENTIFYING_OUTPUTS = ("session_id", "project_id", "product_name",
+                       "learning_order", "subject", "out_dir")
+
+
+def identifying(outputs: dict) -> dict:
+    """The identifying subset of an execution's outputs."""
+    return {k: v for k, v in outputs.items() if k in IDENTIFYING_OUTPUTS}
+
+
 class HealthReport(BaseModel):
     engine: str = ""
     status: Literal["ok", "degraded", "down"] = "ok"

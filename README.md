@@ -132,6 +132,36 @@ complete objective read back out of the running system and a live DataHub:
 a 34-file site whose copy names the curriculum's own concepts, and one lineage
 graph spanning five DataHub platforms.
 
+### The deterministic scaffold — the engines propose, it decides
+
+Federation gave the system memory and Temporal gave it durability. Neither
+gave it judgment, and the first flagship run showed the cost: `code-engine`
+honestly reported `verification_passed: False`, and the pipeline generated a
+public website for that software anyway. Nobody had *decided* whether that was
+acceptable.
+
+A **composition gate** is a pure function from a stage's contract result to a
+verdict, declaring its determinism honestly — the same vocabulary Veritas uses
+one level down:
+
+| | Meaning | On failure |
+| --- | --- | --- |
+| `HARD` | a recorded fact: a test result, a count, a score | **block** |
+| `SOFT` | an opinion, never dressed up as proof | **proceed**, recorded |
+| `HUMAN` | a person decides | **hold** for a signal |
+
+`VerificationPassed` is `HUMAN` on purpose: whether the suite is red is a hard
+fact the gate settles; whether to ship anyway is a judgment a person makes.
+
+Gates read only the contract, so they add decision without adding coupling —
+an engine that joins later is judged by the same gates without either side
+knowing about the other. They run *inside the workflow*, so the decision is
+the orchestrator's and lands in durable history; an activity only records it.
+Every verdict is published as a `GatesEvaluated` event and a DataHub
+`judgment.*` dataset downstream of the stage it judged.
+
+Details in [docs/scaffold.md](docs/scaffold.md).
+
 ### External perception, and what it costs
 
 The engines' own Parallel and search integrations are preserved and reused —

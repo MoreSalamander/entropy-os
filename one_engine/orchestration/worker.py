@@ -22,9 +22,16 @@ from ..contract import ComposableEngine, ExecuteResult, Provenance
 from ..events.bus import EventBus
 from ..federation.datahub import FederationBridge
 from ..remote import RemoteEngine
-from .runtime import finalize_and_assemble, run_and_record_stage, start_objective
+from ..scaffold import StageJudgment
+from .runtime import finalize_and_assemble, record_judgment, run_and_record_stage, start_objective
 from .stages import COMPOSED_PIPELINES, Registry, StageOutcome
-from .workflows import FINALIZE_ACTIVITY, STAGE_ACTIVITY, START_ACTIVITY, ComposedObjectiveWorkflow
+from .workflows import (
+    FINALIZE_ACTIVITY,
+    JUDGMENT_ACTIVITY,
+    STAGE_ACTIVITY,
+    START_ACTIVITY,
+    ComposedObjectiveWorkflow,
+)
 
 
 class ObjectiveActivities:
@@ -42,6 +49,33 @@ class ObjectiveActivities:
         self.engine_name = engine_name
         self.pipelines: Registry = (COMPOSED_PIPELINES if pipelines is None
                                     else pipelines)
+        self._assert_workflow_agrees()
+
+    def _assert_workflow_agrees(self) -> None:
+        """The workflow resolves pipelines from the MODULE registry; these
+        activities may be handed a different one. They must agree on the stage
+        list, or the workflow will ask for a stage the activities cannot find
+        — as a KeyError, mid-run, after real work has already happened.
+
+        Only the stage identities are compared. Timeouts, gates, and input
+        builders legitimately differ (a test may tighten a budget); the
+        sequence of (seq, engine, capability) may not.
+        """
+        def shape(pipeline) -> list[tuple[int, str, str]]:
+            return [(s.seq, s.engine, s.capability) for s in pipeline.stages]
+
+        for name, pipeline in self.pipelines.items():
+            canonical = COMPOSED_PIPELINES.get(name)
+            if canonical is None:
+                raise ValueError(
+                    f"pipeline {name!r} is unknown to the workflow, which "
+                    f"resolves from one_engine.orchestration.stages."
+                    f"COMPOSED_PIPELINES. Register it there too.")
+            if shape(pipeline) != shape(canonical):
+                raise ValueError(
+                    f"pipeline {name!r} disagrees with the workflow's copy:\n"
+                    f"  activities: {shape(pipeline)}\n"
+                    f"  workflow:   {shape(canonical)}")
 
     @activity.defn(name=START_ACTIVITY)
     async def start_objective(self, capability: str, inputs: dict,
@@ -75,6 +109,15 @@ class ObjectiveActivities:
             self.bus, self.federation, prev_stage_urn, "temporal",
             self.engine_name)
         return StageOutcome(result=result, stage_urn=stage_urn)
+
+    @activity.defn(name=JUDGMENT_ACTIVITY)
+    async def record_judgment(self, objective_id: str,
+                              judgment: StageJudgment) -> None:
+        # The decision was already made, deterministically, in the workflow.
+        # This activity only records it — publishing the verdict as a fact and
+        # as DataHub provenance.
+        await record_judgment(objective_id, judgment, self.engine_name,
+                              self.bus, self.federation)
 
     @activity.defn(name=FINALIZE_ACTIVITY)
     async def finalize_objective(self, capability: str, inputs: dict,
@@ -114,6 +157,7 @@ async def main() -> None:
     worker = Worker(client, task_queue=cfg.temporal_task_queue,
                     workflows=[ComposedObjectiveWorkflow],
                     activities=[acts.start_objective, acts.run_stage,
+                                acts.record_judgment,
                                 acts.finalize_objective])
     print(f"[worker] task queue: {cfg.temporal_task_queue} | "
           f"members: {', '.join(members)} | datahub: {federation.status}")

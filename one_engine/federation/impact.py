@@ -22,8 +22,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from ..contract import identifying
 from ..events.bus import EventBus
-from .semantics import identifying, slugify
+from .semantics import slugify
 
 # Ceiling on how much history one analysis reads. The log is append-only and
 # a long-lived system accumulates; this keeps analysis bounded and fast while

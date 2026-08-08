@@ -259,6 +259,22 @@
     is never the workflow state. Enforced by packaging — an engine cannot
     import Temporal.</p>
 
+    <h3>The engines propose; the scaffold decides</h3>
+    <p>Those four layers give the system memory and durability. Neither gives
+    it <em>judgment</em> — so a <strong>composition gate</strong> decides
+    whether a run may continue past each stage. It is a pure function of what
+    the contract already recorded, and it declares how it judged:</p>
+    <div class="owns"><b>HARD</b><span>a recorded fact — a test result, a
+      count, a score. Failing blocks the run.</span></div>
+    <div class="owns"><b>SOFT</b><span>an opinion, never dressed up as proof.
+      Recorded, never stops work on its own.</span></div>
+    <div class="owns"><b>HUMAN</b><span>a person decides. Failing holds the run
+      until someone signals.</span></div>
+    <p style="margin-top:10px">Verification is <code>HUMAN</code> on purpose:
+    whether the test suite is red is a hard fact the gate settles; whether to
+    ship anyway is a judgment a person makes. Gates read only the contract, so
+    they add decision without adding coupling.</p>
+
     <h3>Reading this page</h3>
     <p><strong>Objective</strong> is one request crossing every engine. Each
     stage's inputs are built from what earlier stages produced: research

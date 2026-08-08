@@ -31,11 +31,18 @@ class FakeResearch(LeafAdapter):
             name="research.investigate", summary="fake research",
             inputs={"topic": FieldSpec(type="string", required=True)})]
 
+    # Fakes mirror the SHAPE the real adapters return, including the fields
+    # the composition gates judge. A fake that omits them would make the
+    # scaffold untestable and, worse, would let a gate regression pass.
+    entities = 12
+    claims = 30
+
     async def _run(self, req: ExecuteRequest, emit):
         topic = req.inputs["topic"]
         urn = self.dataset_urn("session.s1")
         emit("ResearchCompleted", subject=urn, topic=topic)
         return ({"session_id": "s1", "topic": topic,
+                 "entities": self.entities, "claims": self.claims,
                  "findings": [f"{topic} is real"]},
                 [ArtifactRef(kind="report", path="/tmp/r.md")], [urn], [])
 
@@ -92,11 +99,15 @@ class FakeWeb(LeafAdapter):
             name="web.generate_site", summary="fake site",
             inputs={"request": FieldSpec(type="string", required=True)})]
 
+    # Review scores mirror what design-engine returns; the ReviewFloor gate
+    # judges them, so a fake without them would leave that gate untested.
+    scores = {"Design Agent": 92.0, "Accessibility Agent": 100.0}
+
     async def _run(self, req: ExecuteRequest, emit):
         urn = self.dataset_urn("project.w1")
         emit("SiteGenerated", subject=urn)
         return ({"project_id": "w1", "received_request": req.inputs["request"],
-                 "pages": ["home", "about"]},
+                 "pages": ["home", "about"], "scores": dict(self.scores)},
                 [ArtifactRef(kind="site", path="/tmp/w1")], [urn], [])
 
 

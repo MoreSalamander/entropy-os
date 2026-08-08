@@ -26,6 +26,7 @@ with workflow.unsafe.imports_passed_through():
 # activity module (which pulls in httpx, the bus, and the federation bridge).
 START_ACTIVITY = "start_objective"
 STAGE_ACTIVITY = "run_stage"
+JUDGMENT_ACTIVITY = "record_judgment"
 FINALIZE_ACTIVITY = "finalize_objective"
 
 # Engines run local models and real builds; a stage may legitimately take
@@ -56,6 +57,8 @@ class ComposedObjectiveWorkflow:
         self._approved: bool | None = None
         self._approval_note: str = ""
         self._awaiting_approval: bool = False
+        self._judgments: list[dict] = []
+        self._held_by: str = ""      # which gate is holding, if any
 
     @workflow.signal
     def approve(self, note: str = "") -> None:
@@ -70,7 +73,9 @@ class ComposedObjectiveWorkflow:
         return {"current_stage": self._current,
                 "stages": self._stage_status,
                 "awaiting_approval": self._awaiting_approval,
-                "approval_note": self._approval_note}
+                "approval_note": self._approval_note,
+                "held_by": self._held_by,
+                "judgments": self._judgments}
 
     @workflow.run
     async def run(self, capability: str, inputs: dict,
@@ -140,13 +145,46 @@ class ComposedObjectiveWorkflow:
                 retry_policy=STAGE_RETRY)
 
             results.append(outcome.result)
-            self._stage_status.append({"seq": stage.seq,
-                                       "engine": stage.engine,
-                                       "capability": stage.capability,
-                                       "status": outcome.result.status})
             if outcome.stage_urn:
                 stage_urns.append(outcome.stage_urn)
                 prev_urn = outcome.stage_urn
+
+            # ---- the deterministic scaffold decides ------------------------
+            # The engine proposed a result; gates now say whether the run may
+            # continue past it. Pure functions of what the contract recorded,
+            # evaluated HERE rather than in an activity, so the decision is
+            # the orchestrator's and lands in durable workflow history.
+            judgment = stage.judge(outcome.result)
+            self._judgments.append(judgment.model_dump(mode="json"))
+            self._stage_status.append({"seq": stage.seq,
+                                       "engine": stage.engine,
+                                       "capability": stage.capability,
+                                       "status": outcome.result.status,
+                                       "gates": judgment.summary(),
+                                       "decision": judgment.action})
+            await workflow.execute_activity(
+                JUDGMENT_ACTIVITY,
+                args=[objective_id, judgment],
+                start_to_close_timeout=timedelta(minutes=2),
+                retry_policy=BOOKKEEPING_RETRY)
+
+            if judgment.action == "block":
+                # A hard fact says no. Stop rather than build on it.
+                self._held_by = ", ".join(v.gate for v in judgment.failed)
+                break
+            if judgment.action == "hold":
+                # A judgment call: the gate settled the fact, a person decides
+                # the consequence. The run waits rather than assuming.
+                self._held_by = ", ".join(v.gate for v in judgment.failed)
+                self._approved = None
+                self._awaiting_approval = True
+                await workflow.wait_condition(
+                    lambda: self._approved is not None)
+                self._awaiting_approval = False
+                if self._approved is False:
+                    break
+                self._held_by = ""
+
             if outcome.result.status != "completed":
                 break
             acc[stage.engine] = outcome.result.outputs

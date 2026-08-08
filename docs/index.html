@@ -148,6 +148,30 @@ composed run renders as one connected graph spanning five platforms.</p>
 stage.&lt;obj&gt;.&lt;n&gt;-&lt;eng&gt;   one member execution  — upstreams: that engine's OWN datasets
 objective.&lt;obj&gt;         the composed run      — upstreams: every stage + the concept</pre></div>
 
+<h2>The engines propose; the scaffold decides</h2>
+<p>Federation gave the system memory and Temporal gave it durability. Neither
+gave it judgment — and the first real run showed the cost: the software engine
+honestly reported a failing test suite, and the pipeline generated a public
+website for that software anyway. Nobody had <em>decided</em> whether that was
+acceptable.</p>
+<p>A <strong>composition gate</strong> is a pure function from a stage's
+contract result to a verdict. It declares how it judged, honestly:</p>
+<table>
+  <tr><th>Determinism</th><th>Meaning</th><th>On failure</th></tr>
+  <tr><td><code>HARD</code></td><td>a recorded fact — a test result, a count,
+    a score</td><td>block the run</td></tr>
+  <tr><td><code>SOFT</code></td><td>an opinion, never dressed up as
+    proof</td><td>recorded only</td></tr>
+  <tr><td><code>HUMAN</code></td><td>a person decides</td><td>hold for a
+    signal</td></tr>
+</table>
+<p>Verification is <code>HUMAN</code> on purpose: whether the suite is red is a
+hard fact the gate settles; whether to ship anyway is a judgment a person
+makes. Gates read only the contract, so they add decision without adding
+coupling — and they run <em>inside</em> the workflow, so the decision is the
+orchestrator's and lands in durable history. Every verdict is published as an
+event and as a DataHub dataset downstream of the stage it judged.</p>
+
 <h2>Events describe; they never command</h2>
 <p><code>ResearchCompleted</code>, <code>CurriculumCreated</code>,
 <code>SoftwareBuilt</code>, <code>SiteGenerated</code> — past-tense facts

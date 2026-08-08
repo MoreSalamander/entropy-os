@@ -21,6 +21,16 @@ from dataclasses import dataclass, field
 from pydantic import BaseModel
 
 from ..contract import CapabilitySpec, ExecuteResult, FieldSpec
+from ..scaffold import (
+    CompositionGate,
+    CurriculumIsOrdered,
+    EvidenceFloor,
+    ProducedSomething,
+    ReviewFloor,
+    StageJudgment,
+    StageSucceeded,
+    VerificationPassed,
+)
 
 # Accumulated outputs: member key ("research", "university", …) → outputs.
 Acc = dict[str, dict]
@@ -47,9 +57,20 @@ class PlannedStage:
     # needs (including impact analysis) arrives in `acc` beforehand.
     skip_if: Callable[[dict, Acc], bool] | None = None
     skip_reason: str = ""
+    # The deterministic scaffold for this stage: the gates that decide whether
+    # the composed run may continue past it. Pure functions of the stage's
+    # contract result, evaluated by the orchestrator.
+    gates: tuple[CompositionGate, ...] = ()
 
     def should_skip(self, inputs: dict, acc: Acc) -> bool:
         return bool(self.skip_if and self.skip_if(inputs, acc))
+
+    def judge(self, result: ExecuteResult) -> StageJudgment:
+        """Run every declared gate against the stage's result."""
+        return StageJudgment(
+            stage_seq=self.seq, engine=self.engine,
+            verdicts=[g.evaluate(result, self.seq, self.engine)
+                      for g in self.gates])
 
 
 @dataclass(frozen=True)
@@ -161,13 +182,21 @@ LEARNING_PLATFORM = ComposedPipeline(
     tags=["composed", "flagship"],
     stages=[
         PlannedStage(1, "research", "research.investigate", _research_inputs,
-                     timeout_s=RESEARCH_BUDGET_S),
+                     timeout_s=RESEARCH_BUDGET_S,
+                     gates=(StageSucceeded(), ProducedSomething(),
+                            EvidenceFloor())),
         PlannedStage(2, "university", "university.design_curriculum",
-                     _university_inputs, timeout_s=CURRICULUM_BUDGET_S),
+                     _university_inputs, timeout_s=CURRICULUM_BUDGET_S,
+                     gates=(StageSucceeded(), ProducedSomething(),
+                            CurriculumIsOrdered())),
         PlannedStage(3, "software", "software.build", _software_inputs,
-                     timeout_s=BUILD_BUDGET_S),
+                     timeout_s=BUILD_BUDGET_S,
+                     gates=(StageSucceeded(), ProducedSomething(),
+                            VerificationPassed())),
         PlannedStage(4, "web", "web.generate_site", _web_inputs,
-                     timeout_s=SITE_BUDGET_S),
+                     timeout_s=SITE_BUDGET_S,
+                     gates=(StageSucceeded(), ProducedSomething(),
+                            ReviewFloor())),
     ])
 
 # --------------------------------------------------------------------------- #
@@ -240,20 +269,28 @@ EVOLVE_PLATFORM = ComposedPipeline(
     stages=[
         # Perception always runs: you cannot know what changed without looking.
         PlannedStage(1, "research", "research.investigate",
-                     _evolve_research_inputs, timeout_s=RESEARCH_BUDGET_S),
+                     _evolve_research_inputs, timeout_s=RESEARCH_BUDGET_S,
+                     gates=(StageSucceeded(), ProducedSomething(),
+                            EvidenceFloor())),
         PlannedStage(2, "university", "university.design_curriculum",
                      _evolve_curriculum_inputs,
                      timeout_s=CURRICULUM_BUDGET_S,
                      skip_if=lambda i, acc: not _affected(acc, "university"),
-                     skip_reason="no existing curriculum for this subject"),
+                     skip_reason="no existing curriculum for this subject",
+                     gates=(StageSucceeded(), ProducedSomething(),
+                            CurriculumIsOrdered())),
         PlannedStage(3, "software", "software.build",
                      _evolve_software_inputs, timeout_s=BUILD_BUDGET_S,
                      skip_if=lambda i, acc: not _affected(acc, "software"),
-                     skip_reason="no existing software for this subject"),
+                     skip_reason="no existing software for this subject",
+                     gates=(StageSucceeded(), ProducedSomething(),
+                            VerificationPassed())),
         PlannedStage(4, "web", "web.generate_site", _evolve_web_inputs,
                      timeout_s=SITE_BUDGET_S,
                      skip_if=lambda i, acc: not _affected(acc, "web"),
-                     skip_reason="no existing web experience for this subject"),
+                     skip_reason="no existing web experience for this subject",
+                     gates=(StageSucceeded(), ProducedSomething(),
+                            ReviewFloor())),
     ])
 
 

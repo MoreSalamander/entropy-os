@@ -148,6 +148,52 @@ Two implementation details worth knowing, both found by running it:
 - `workflow_id == objective_id`, so re-submitting an objective attaches to the
   running workflow instead of starting a second one.
 
+## The deterministic scaffold
+
+Federation gave the system memory; Temporal gave it durability; neither gave
+it judgment. A **composition gate** is a pure function from a stage's contract
+result to a verdict, and it is the only thing in a composed run allowed to say
+whether the run may continue. Full treatment in
+[scaffold.md](scaffold.md); the load-bearing points:
+
+- Gates read **only the contract**, so they add decision without adding
+  coupling.
+- They declare determinism honestly (`HARD` / `SOFT` / `HUMAN`), and the
+  *scaffold* — not the gate — maps that onto block / proceed / hold.
+- They run **inside the workflow**, so the decision belongs to the
+  orchestrator and lands in durable history; an activity only records it.
+- The inline path enforces the same gates. Inline is a degraded
+  *orchestrator*, never a degraded *scaffold*.
+
+Two determinism bugs surfaced while wiring this, both caught by the Temporal
+sandbox rather than by review, and both the same mistake: **constructing
+convenience defaults inside the deterministic sandbox.**
+
+- `GateVerdict.checked_at` defaulted to `now_iso()`. Gates run in the
+  workflow, so that was wall-clock access — refused, correctly. A gate is a
+  pure function of facts and has no business reading a clock; the timestamp
+  now belongs to whatever *records* the verdict.
+- `skipped_result()` leaned on `ExecutionRef`'s default factory, which
+  generates a `uuid4`. Skips are decided in the workflow too. The ref is now
+  derived (`skipped.2.university`), which is both deterministic and more
+  honest than a random id for a stage that never executed.
+
+The second had never fired: no Temporal test exercised a skip, and the one
+live evolution run had every stage affected. There is now a test for each.
+
+A third was a layering mistake rather than a default: a gate reached for
+`identifying()` through the federation package, whose `__init__` imports
+httpx — pulling urllib into the sandbox. The convention moved to the contract
+(a dependency-free leaf), `federation/__init__` explicitly declines to
+re-export it, and a subprocess test asserts the workflow's import graph stays
+free of I/O modules.
+
+One more, structural: the workflow resolves pipelines from the module-level
+registry while `ObjectiveActivities` may be handed its own. A divergence
+surfaces as `KeyError: no stage 3` mid-run, after real work has happened, so
+the activities now refuse to construct when the two disagree on stage
+identities.
+
 ## Honest degradation
 
 | Missing | Behavior | Health |

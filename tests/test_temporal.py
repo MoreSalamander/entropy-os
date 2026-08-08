@@ -80,6 +80,7 @@ def durable_members():
             "web": in_process_remote(FakeWeb(), "http://w.test")}
 
 
+
 async def test_workflow_runs_the_composed_pipeline_durably(
         temporal_client, durable_members, tmp_path):
     """The full durable path: workflow → activities → contract → members,
@@ -95,6 +96,7 @@ async def test_workflow_runs_the_composed_pipeline_durably(
     async with Worker(temporal_client, task_queue=queue,
                       workflows=[ComposedObjectiveWorkflow],
                       activities=[acts.start_objective, acts.run_stage,
+                                  acts.record_judgment,
                                   acts.finalize_objective]):
         launcher = TemporalLauncher(temporal_client, queue)
         objective_id = f"obj-test-{uuid.uuid4().hex[:8]}"
@@ -134,6 +136,7 @@ async def test_human_approval_gate_blocks_then_releases(
     async with Worker(temporal_client, task_queue=queue,
                       workflows=[ComposedObjectiveWorkflow],
                       activities=[acts.start_objective, acts.run_stage,
+                                  acts.record_judgment,
                                   acts.finalize_objective]):
         objective_id = f"obj-gate-{uuid.uuid4().hex[:8]}"
         handle = await temporal_client.start_workflow(
@@ -174,6 +177,7 @@ async def test_rejection_at_the_gate_stops_the_run_honestly(
     async with Worker(temporal_client, task_queue=queue,
                       workflows=[ComposedObjectiveWorkflow],
                       activities=[acts.start_objective, acts.run_stage,
+                                  acts.record_judgment,
                                   acts.finalize_objective]):
         objective_id = f"obj-rej-{uuid.uuid4().hex[:8]}"
         handle = await temporal_client.start_workflow(
@@ -197,3 +201,91 @@ async def test_rejection_at_the_gate_stops_the_run_honestly(
     # history, not a hole.
     assert len(result.provenance.children) == 1
     assert [e.kind for e in bus.recent()][-1] == "ObjectiveCompleted"
+
+
+async def test_a_skipped_stage_is_workflow_safe(temporal_client,
+                                                durable_members, tmp_path):
+    """Skips are decided INSIDE the workflow, so everything they construct
+    must be deterministic. Regression-guards a real bug: the skipped result's
+    default ExecutionRef generated a uuid4, which the sandbox correctly
+    refuses — and no Temporal test exercised a skip until this one.
+
+    It uses the real `compose.evolve` pipeline rather than a bespoke one,
+    because the workflow sandbox re-imports its modules: a pipeline
+    registered at runtime is invisible inside a workflow, so tests must
+    exercise pipelines that exist at import time.
+    """
+    bus = EventBus(tmp_path / "events.jsonl")
+    federation = FederationBridge("http://127.0.0.1:9", "one-engine")
+    queue = f"one-engine-skip-{uuid.uuid4().hex[:8]}"
+    acts = ObjectiveActivities(durable_members, bus, federation,
+                               engine_name="one-engine")
+
+    async with Worker(temporal_client, task_queue=queue,
+                      workflows=[ComposedObjectiveWorkflow],
+                      activities=[acts.start_objective, acts.run_stage,
+                                  acts.record_judgment,
+                                  acts.finalize_objective]):
+        launcher = TemporalLauncher(temporal_client, queue)
+        objective_id = f"obj-skip-{uuid.uuid4().hex[:8]}"
+        # A subject with no history: research runs, the other three skip.
+        result = await launcher(
+            "compose.evolve",
+            {"topic": f"Nothing Ever Built {uuid.uuid4().hex[:6]}"},
+            objective_id)
+
+    assert result.status == "completed"
+    assert result.outputs["stages_skipped"] == 3
+    ran = {s["engine"]: s["ran"] for s in result.outputs["stages"]}
+    assert ran == {"research": True, "university": False,
+                   "software": False, "web": False}
+    # The skipped stages' provenance is named, not random — the determinism
+    # fix, asserted.
+    skipped = [c for c in result.provenance.children
+               if c.ref.execution_id.startswith("skipped.")]
+    assert len(skipped) == 3
+    assert "skipped.3.software" in {c.ref.execution_id for c in skipped}
+
+
+async def test_gates_decide_inside_the_workflow(temporal_client, tmp_path):
+    """The scaffold runs in the deterministic sandbox and its verdicts reach
+    durable history — a hard gate stops the run before the next stage."""
+    from .conftest import FakeResearch
+
+    class GroundlessResearch(FakeResearch):
+        entities = 0
+        claims = 0
+
+    members = {"research": in_process_remote(GroundlessResearch(),
+                                             "http://g.test"),
+               "university": in_process_remote(FakeUniversity(),
+                                               "http://u.test"),
+               "software": in_process_remote(FakeSoftware(), "http://s.test"),
+               "web": in_process_remote(FakeWeb(), "http://w.test")}
+    bus = EventBus(tmp_path / "events.jsonl")
+    federation = FederationBridge("http://127.0.0.1:9", "one-engine")
+    queue = f"one-engine-gated-{uuid.uuid4().hex[:8]}"
+    acts = ObjectiveActivities(members, bus, federation,
+                               engine_name="one-engine")
+
+    async with Worker(temporal_client, task_queue=queue,
+                      workflows=[ComposedObjectiveWorkflow],
+                      activities=[acts.start_objective, acts.run_stage,
+                                  acts.record_judgment,
+                                  acts.finalize_objective]):
+        launcher = TemporalLauncher(temporal_client, queue)
+        objective_id = f"obj-gated-{uuid.uuid4().hex[:8]}"
+        result = await launcher("compose.learning_platform",
+                                {"topic": "Ungrounded"}, objective_id)
+
+    assert result.status == "failed"
+    # Research ran; the curriculum stage never did.
+    assert len(result.provenance.children) == 1
+    judged = [e for e in bus.recent() if e.kind == "GatesEvaluated"]
+    assert len(judged) == 1
+    assert judged[0].payload["decision"] == "block"
+    gates = {v["gate"]: v for v in judged[0].payload["verdicts"]}
+    assert gates["evidence_floor"]["passed"] is False
+    assert "0 entities, 0 claims" in gates["evidence_floor"]["evidence"]
+    # Stamped outside the sandbox, where a clock is legitimate.
+    assert gates["evidence_floor"]["checked_at"]

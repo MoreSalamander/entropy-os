@@ -94,8 +94,8 @@ entry is a real identifier that domain actually issued.
 
 ## Evolution, against this run's own history
 
-A later `compose.evolve` objective on the same subject emitted `ImpactAnalyzed`
-**before any stage ran**:
+A later objective, `obj-0bfdf845b130` — `compose.evolve` on the same subject —
+emitted `ImpactAnalyzed` **before any stage ran**:
 
 ```json
 {"concept_slug": "webgpu-compute-shaders",
@@ -105,7 +105,29 @@ A later `compose.evolve` objective on the same subject emitted `ImpactAnalyzed`
 ```
 
 The system read its own record, found what it had built, and decided what
-needed updating before spending anything.
+needed updating before spending anything. Then it behaved like an update
+rather than a rebuild, in three observable ways:
+
+**It asked a different question.** Research ran on *"What has recently changed
+about WebGPU compute shaders: new releases, deprecations, and current best
+practice"* — 169 entities, 192 claims — not a re-run of the original topic.
+
+**It carried the prior curriculum forward.** The new goal was built from the
+impact report: *"Understand WebGPU compute shaders as it stands today,
+including what recently changed and why. The previous curriculum covered:
+WebGPU Compute Shader API, Compute Shaders Fundamentals, Debugging…"*
+
+**The curriculum grew where the change was.** 8 concepts became 10, and the
+two additions are exactly the ones an update should produce:
+
+```
++ Recent Changes in WebGPU Compute Shaders
++ Why Recent Changes Matter
+```
+
+That is the difference between regenerating and evolving: the system did not
+rediscover the subject, it discovered what had moved and folded that into what
+it already taught.
 
 ## Two problems this run exposed
 
