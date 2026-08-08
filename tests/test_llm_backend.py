@@ -13,9 +13,16 @@ from __future__ import annotations
 
 import pytest
 
-from one_engine.llm import LLMSpec, build_llm, describe_backend, spec_from_env
+from one_engine.llm import (
+    ROLES,
+    HybridClient,
+    LLMSpec,
+    RoutedClient,
+    build_llm,
+    describe_backend,
+    spec_from_env,
+)
 from one_engine.llm.claude import LLMUnavailable, adapt_schema
-from one_engine.llm.hybrid import HybridClient
 
 # --------------------------------------------------------------------------- #
 # selection — local stays untouched
@@ -64,6 +71,76 @@ def test_backend_selection_is_per_run_not_per_process(monkeypatch):
     monkeypatch.setenv("ONE_ENGINE_LLM_BACKEND", "local")
     assert build_llm() is None
     assert isinstance(build_llm(LLMSpec(backend="claude")), HybridClient)
+
+
+# --------------------------------------------------------------------------- #
+# per-role routing — judge to the cloud, the rest stays home
+# --------------------------------------------------------------------------- #
+
+def test_only_the_named_role_goes_to_the_cloud(monkeypatch):
+    monkeypatch.setenv("ONE_ENGINE_CLAUDE_ROLES", "judge")
+    spec = spec_from_env()
+    assert spec.routes_to_cloud("judge") is True
+    assert spec.routes_to_cloud("extract") is False
+    assert spec.is_mixed is True
+
+
+def test_a_mistyped_role_is_dropped_rather_than_silently_routing_nothing(
+        monkeypatch):
+    """A typo must not look configured. `judgement` is not a role, so it is
+    discarded — and the run stays fully local rather than appearing to route."""
+    monkeypatch.setenv("ONE_ENGINE_CLAUDE_ROLES", "judgement")
+    spec = spec_from_env()
+    assert spec.cloud_roles == frozenset()
+    assert spec.any_cloud is False
+    assert build_llm(spec) is None
+
+
+def test_a_mixed_run_builds_both_halves():
+    spec = LLMSpec(cloud_roles=frozenset({"judge"}))
+    client = build_llm(spec, local=_StubChat)
+    assert isinstance(client, RoutedClient)
+
+
+def test_routing_all_roles_is_not_treated_as_mixed():
+    """Naming every role is the same request as backend=claude, and must not
+    drag in a local chat client nothing would use."""
+    spec = LLMSpec(cloud_roles=frozenset(ROLES))
+    assert spec.is_mixed is False
+    assert isinstance(build_llm(spec), HybridClient)
+
+
+@pytest.mark.asyncio
+async def test_the_judge_call_goes_to_the_cloud_and_extraction_stays_local():
+    """The point of the whole feature: the model that grades a claim can be a
+    stronger one than the model that produced it, across providers."""
+    local, cloud = _StubChat("local"), _StubChat("cloud")
+    client = RoutedClient(local, cloud, LLMSpec(cloud_roles=frozenset({"judge"})))
+
+    await client.chat_json("judge", "s", "u", {})
+    await client.chat_json("extract", "s", "u", {})
+    await client.chat_text("summarize", "s", "u")
+
+    assert cloud.calls == ["json:judge"]
+    assert local.calls == ["json:extract", "text:summarize"]
+
+
+@pytest.mark.asyncio
+async def test_embeddings_never_leave_the_local_half():
+    """The cloud half has no embeddings endpoint at all, so routing a role
+    there must never drag vectors along with it."""
+    local, cloud = _StubChat("local"), _StubChat("cloud")
+    local.embed = _StubEmbedder().embed
+    client = RoutedClient(local, cloud, LLMSpec(cloud_roles=frozenset({"judge"})))
+    assert len(await client.embed(["a"])) == 1
+    assert cloud.calls == []
+
+
+def test_a_mixed_spec_describes_both_sides_without_the_key():
+    spec = LLMSpec(cloud_roles=frozenset({"judge"})).with_key("sk-ant-xyz")
+    described = spec.describe()
+    assert "judge" in described
+    assert "sk-ant" not in described
 
 
 # --------------------------------------------------------------------------- #
@@ -206,7 +283,8 @@ def test_union_branches_are_translated_too():
 class _StubChat:
     """Stands in for a chat backend; asserts routing without a network."""
 
-    def __init__(self):
+    def __init__(self, name: str = "stub"):
+        self.name = name
         self.calls: list[str] = []
 
     async def available(self) -> bool:

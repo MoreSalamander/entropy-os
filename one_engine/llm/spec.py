@@ -51,6 +51,12 @@ class LLMSpec:
     """
 
     backend: str = "local"                 # "local" | "claude"
+    # Roles that go to Claude while everything else stays local. This is the
+    # interesting case, not a convenience: `judge` is the role that grades what
+    # the other roles proposed, so routing only it to a stronger model buys
+    # scrutiny exactly where the thesis puts the weight, and leaves the bulk
+    # extraction work local and free.
+    cloud_roles: frozenset[str] = frozenset()
     claude_models: dict[str, str] = field(default_factory=dict)
     claude_api_key: str = ""               # empty → the SDK's own resolution
     claude_effort: str = ""                # "" → the API's default
@@ -64,24 +70,48 @@ class LLMSpec:
     def model_for(self, role: str) -> str:
         return self.claude_models.get(role, DEFAULT_CLAUDE_MODEL)
 
+    def routes_to_cloud(self, role: str) -> bool:
+        return self.backend == "claude" or role in self.cloud_roles
+
+    @property
+    def any_cloud(self) -> bool:
+        return self.backend == "claude" or bool(self.cloud_roles)
+
+    @property
+    def is_mixed(self) -> bool:
+        """Some roles cloud, some local — the case that needs both clients."""
+        return (self.backend != "claude" and bool(self.cloud_roles)
+                and not self.cloud_roles.issuperset(ROLES))
+
     def with_key(self, api_key: str) -> LLMSpec:
         """A copy that uses a caller-supplied credential.
 
         This is the hook a hosted deployment needs: the same default spec, one
         run's key, never written back to the process environment and never
         shared with the next run.
+
+        Supplying a key does not escalate an already-routed run: if some roles
+        were deliberately kept local, "here is a credential" must not silently
+        promote the whole run to the cloud. It only turns on the cloud when
+        nothing was routed there yet.
         """
-        return replace(self, claude_api_key=api_key, backend="claude")
+        backend = self.backend if self.any_cloud else "claude"
+        return replace(self, claude_api_key=api_key, backend=backend)
 
     def describe(self) -> str:
         """Operator-readable summary. Never includes the credential."""
-        if self.backend == "local":
+        if not self.any_cloud:
             return "local (ollama)"
         source = "caller-supplied key" if self.claude_api_key else "environment"
-        models = sorted(set(self.model_for(r) for r in ROLES))
+        cloud = [r for r in ROLES if self.routes_to_cloud(r)]
+        models = sorted({self.model_for(r) for r in cloud})
+        where = "all roles" if len(cloud) == len(ROLES) else "+".join(cloud)
+        local = [r for r in ROLES if not self.routes_to_cloud(r)]
+        rest = f"; local: {'+'.join(local)}" if local else ""
         embed = f"{self.embed_model} @ {self.embed_base_url}" \
             if self.embed_base_url else "disabled"
-        return f"claude [{', '.join(models)}] via {source}; embeddings: {embed}"
+        return (f"claude [{', '.join(models)}] for {where} via {source}{rest}; "
+                f"embeddings: {embed}")
 
 
 def spec_from_env() -> LLMSpec:
@@ -92,6 +122,8 @@ def spec_from_env() -> LLMSpec:
     explicitly says otherwise.
 
         ONE_ENGINE_LLM_BACKEND        local (default) | claude
+        ONE_ENGINE_CLAUDE_ROLES       roles to send to Claude while the rest
+                                      stay local, e.g. "judge"
         ANTHROPIC_API_KEY             read by the SDK; never logged or echoed
         ONE_ENGINE_CLAUDE_MODEL       one model for every role
         ONE_ENGINE_CLAUDE_MODEL_JUDGE per-role override (…_EXTRACT, _PLAN,
@@ -114,8 +146,15 @@ def spec_from_env() -> LLMSpec:
         if chosen:
             models[role] = chosen
 
+    # Unknown role names are dropped rather than carried: a typo'd role would
+    # otherwise look configured while silently routing nothing.
+    requested = {r.strip().lower()
+                 for r in os.environ.get("ONE_ENGINE_CLAUDE_ROLES", "").split(",")}
+    cloud_roles = frozenset(r for r in requested if r in ROLES)
+
     return LLMSpec(
         backend=backend,
+        cloud_roles=cloud_roles,
         claude_models=models,
         # Left empty on purpose: the Anthropic SDK resolves the credential
         # itself (env var, then an `ant auth login` profile). Reading the key

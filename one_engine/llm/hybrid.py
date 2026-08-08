@@ -18,7 +18,7 @@ from typing import Any
 import httpx
 
 from .claude import LLMUnavailable
-from .spec import LLMSpec
+from .spec import ROLES, LLMSpec
 
 
 class OllamaEmbedder:
@@ -85,6 +85,52 @@ class HybridClient:
 
     async def aclose(self) -> None:
         for part in (self._chat, self._embedder):
+            if part is not None and hasattr(part, "aclose"):
+                await part.aclose()
+
+
+class RoutedClient:
+    """One `LLMClient` that sends some roles to the cloud and the rest local.
+
+    The motivating case is `judge`. Locally the roles are already routed to
+    different models so that the model grading a claim is not the model that
+    produced it; this extends that separation across providers rather than just
+    across model files. The expensive, high-stakes grading call goes to a
+    frontier model while bulk extraction stays local and free — and because the
+    scaffold still owns the decision, a better judge sharpens the evidence the
+    gates read without moving authority into the model.
+
+    Embeddings always stay local: the cloud half has none.
+    """
+
+    def __init__(self, local: Any, cloud: Any, spec: LLMSpec):
+        self._local = local
+        self._cloud = cloud
+        self._spec = spec
+
+    def _for(self, role: str) -> Any:
+        return self._cloud if self._spec.routes_to_cloud(role) else self._local
+
+    async def available(self) -> bool:
+        # Whichever side carries the ordinary work is the honest answer: the
+        # local client also serves embeddings, so it is checked unless every
+        # role has been routed away from it.
+        local_roles = [r for r in ROLES if not self._spec.routes_to_cloud(r)]
+        target = self._local if local_roles else self._cloud
+        return await target.available()
+
+    async def chat_json(self, role: str, system: str, user: str,
+                        schema: dict[str, Any]) -> dict[str, Any]:
+        return await self._for(role).chat_json(role, system, user, schema)
+
+    async def chat_text(self, role: str, system: str, user: str) -> str:
+        return await self._for(role).chat_text(role, system, user)
+
+    async def embed(self, texts: list[str]) -> list[list[float]]:
+        return await self._local.embed(texts)
+
+    async def aclose(self) -> None:
+        for part in (self._local, self._cloud):
             if part is not None and hasattr(part, "aclose"):
                 await part.aclose()
 

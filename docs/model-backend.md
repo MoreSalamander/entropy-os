@@ -41,6 +41,38 @@ the model that grades a claim is not the model that produced it.
 | light | `llama3.2` |
 | embed | `nomic-embed-text` |
 
+## Sending only the judge to Claude
+
+The interesting configuration is not "all local" or "all cloud" — it is routing
+**one role**:
+
+```
+ONE_ENGINE_CLAUDE_ROLES=judge
+```
+
+Bulk extraction, planning and prose stay local and free; the role that *grades*
+what the others proposed goes to a frontier model. That is the local judge-
+separation idea (the model grading a claim is not the model that produced it)
+extended across providers rather than just across model files.
+
+It fits the thesis rather than bending it. The scaffold still owns the decision
+— gates read evidence and return verdicts. A stronger judge sharpens the
+evidence those gates read; it does not move authority into the model.
+
+```
+describe → claude [claude-opus-5] for judge via environment;
+           local: extract+plan+summarize+light;
+           embeddings: nomic-embed-text @ http://localhost:11434
+```
+
+Mixed mode is the only case where one-engine constructs a local client itself,
+so each adapter passes the client its engine would have built — research-engine
+loads its own config, so its adapter hands that in rather than accepting a
+generic default. Embeddings always stay local; the cloud half has none.
+
+A role name that is not real (`judgement`) is dropped rather than carried, so a
+typo cannot look configured while silently routing nothing.
+
 ## The cloud backend
 
 ```
@@ -118,7 +150,10 @@ fall back to exact-match entity resolution — a path they already have. Returni
 zero vectors instead would silently corrupt semantic search with confident
 nonsense.
 
-## Bring your own — what is easy and what is a tunnel
+## Bring your own — banked, not built
+
+> **Status: deferred (2026-08-08).** Recorded here because the analysis is the
+> useful part; none of it is implemented beyond the per-run seam below.
 
 Backend selection is a **per-run value**, not a process-wide switch:
 

@@ -52,8 +52,13 @@ class ResearchAdapter(LeafAdapter):
             # longer timeout in the engine's own config keeps it.
             cfg.llm.timeout_s = max(cfg.llm.timeout_s, wanted)
             # None on the local backend, so the engine builds its own Ollama
-            # client exactly as it always has.
-            self._engine = Engine(cfg, llm=build_llm())
+            # client exactly as it always has. A mixed run (say, judge on
+            # Claude) needs a local half too — and this engine loads its own
+            # config, so the local half is built from that rather than from a
+            # generic default, keeping its tuned timeout and role routing.
+            from research_engine.llm.client import OllamaClient
+            self._engine = Engine(
+                cfg, llm=build_llm(local=lambda: OllamaClient(cfg.llm)))
         return self._engine
 
     def capabilities(self) -> list[CapabilitySpec]:
