@@ -34,7 +34,7 @@ from engine.executor import sandbox_active
 from engine.grounding import record_grounding
 from engine.memory import MemoryRecord, MemoryStore, default_memory_store, format_lessons
 from engine.memory_export import sync_vault, vault_status
-from entropy_os import one_engine
+from entropy_os import artifact_report, one_engine
 from entropy_os.accounts import AccountStore, BadCredentials, UsernameTaken, WeakCredentials
 from entropy_os.quota import QuotaStore
 from entropy_os.visits import VisitLog
@@ -2242,6 +2242,51 @@ def create_app(
             # package — on a hosted box this page honestly doesn't exist.
             return JSONResponse({"detail": "not found"}, status_code=404)
         return FileResponse(about, headers={"Cache-Control": "no-store"})
+
+    @app.get("/report/one-engine/{objective_id}")
+    async def one_engine_report(objective_id: str) -> HTMLResponse:
+        """A composed run's research report, presented the way this house
+        presents reports: a document with its grounding intact.
+
+        The report carries the same verification model the Veritas reports do,
+        in a different shape — an Evidence Table of source, title, date,
+        authors and confidence, plus Source References. Rendering it as a
+        <pre> would destroy exactly the part that makes it a verified report
+        rather than an essay, so it is rendered properly instead.
+        """
+        arts = await one_engine.artifacts(objective_id)
+        if not arts.get("reachable"):
+            raise HTTPException(503, "one-engine is not answering")
+        report = next((a for a in arts.get("artifacts", [])
+                       if a.get("kind") == "report" and a.get("exists")), None)
+        if report is None:
+            raise HTTPException(404, "this run recorded no readable report")
+
+        got = await one_engine.artifact_file(objective_id, report["index"])
+        text = got.get("text") or ""
+        if not text:
+            raise HTTPException(404, "report artifact is empty")
+
+        # The report's own first line is its title; keep the rest as the body
+        # so the document does not repeat the heading.
+        lines = text.splitlines()
+        title = lines[0].lstrip("# ").strip() if lines else objective_id
+        body = "\n".join(lines[1:])
+        origin = report.get("origin", "")
+        return HTMLResponse(artifact_report.document_html(
+            _REPORT_CSS,
+            kicker="Entropy OS · one-engine · composition",
+            title=title,
+            meta=f"objective {objective_id} · {report['size_bytes']:,} bytes · "
+                 f"artifact path {origin}",
+            badge="✓ claims traced to pinned sources — see the Evidence Table",
+            body_md=body,
+            footer=(
+                "Produced by the research stage of a composed run across four "
+                "engines. Grounding is fidelity to the sources listed above, "
+                "not a guarantee of truth. · "
+                '<a href="/#wing-oneengine">← back to Composition</a>'),
+        ), headers={"Cache-Control": "no-store"})
 
     @app.get("/report/{run_id}")
     def report_document(run_id: str) -> HTMLResponse:

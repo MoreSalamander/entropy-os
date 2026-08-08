@@ -1974,9 +1974,13 @@ async function openOutputs(oid, btn) {
     <div style="margin:2px 0 10px 0;padding-left:12px;border-left:2px solid var(--line-soft,#2a2a2a)">
       ${arts.map(a => `
         <div style="padding:5px 0">
-          <button class="oe-art" data-oid="${esc(oid)}" data-idx="${a.index}"
+          ${a.kind === 'report' && a.exists
+            ? `<a href="/report/one-engine/${esc(oid)}" target="_blank" rel="noopener"
+                 class="oe-art" style="font-size:11.5px;padding:2px 9px;display:inline-block"
+                 >report ↗</a>`
+            : `<button class="oe-art" data-oid="${esc(oid)}" data-idx="${a.index}"
                   ${a.exists ? '' : 'disabled'}
-                  style="font-size:11.5px;padding:2px 9px">${esc(a.kind)}</button>
+                  style="font-size:11.5px;padding:2px 9px">${esc(a.kind)}</button>`}
           <span class="muted" style="font-size:11.5px">
             ${a.exists ? `${a.file_count} file${a.file_count === 1 ? '' : 's'} · ${(a.size_bytes/1024).toFixed(1)}KB`
                        : 'not present'}
