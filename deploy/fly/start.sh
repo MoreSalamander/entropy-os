@@ -34,5 +34,47 @@ docker image inspect python:3.12-slim >/dev/null 2>&1 || docker pull python:3.12
 # and lets the front door open anyway.
 python /opt/entropy-os/scripts/seed_shelf.py || echo "WARN: shelf seeding failed; the premade shelf may be empty" >&2
 
+# --- one-engine: the composed engine Entropy OS reads over the contract ------
+# Four adapter servers plus the composite, all on loopback. They are NOT
+# published by fly.toml's http_service, so nothing here is reachable from the
+# internet — only the front door in this same Machine can read them.
+#
+# Deliberately no Temporal: composed EXECUTION is closed on the hosted face,
+# and reading what already ran needs none of it. The composite reports itself
+# degraded rather than pretending otherwise.
+ONE_ENGINE_DATA="${ONE_ENGINE_DATA:-$DATA/one-engine}"
+mkdir -p "$ONE_ENGINE_DATA"
+
+# Seed the recorded run history once. Seed-if-missing, never overwrite: a live
+# machine's accumulated log outranks whatever shipped in the image.
+if [ ! -f "$ONE_ENGINE_DATA/events.jsonl" ] && [ -f /opt/one-engine-seed/events.jsonl ]; then
+  cp /opt/one-engine-seed/events.jsonl "$ONE_ENGINE_DATA/events.jsonl"
+  echo "one-engine: seeded run history ($(wc -l < "$ONE_ENGINE_DATA/events.jsonl") events)"
+fi
+
+start_member() {  # name port
+  python -m one_engine.adapters.serve "$1" --host 127.0.0.1 --port "$2" \
+    >"/var/log/one-engine-$1.log" 2>&1 &
+  echo "one-engine: $1 adapter -> 127.0.0.1:$2 (pid $!)"
+}
+start_member research   9101
+start_member software   9102
+start_member university 9103
+start_member web        9104
+
+python -m uvicorn one_engine.app:app --host 127.0.0.1 --port 9100 --log-level warning \
+  >/var/log/one-engine-unified.log 2>&1 &
+echo "one-engine: unified -> 127.0.0.1:9100 (pid $!)"
+
+# Best effort by design: the composition wing degrades honestly and names the
+# address it tried, so a slow or failed member must not stop the front door
+# from opening.
+for _ in $(seq 1 30); do
+  if python -c "import urllib.request,sys; urllib.request.urlopen('http://127.0.0.1:9100/health', timeout=2)" 2>/dev/null; then
+    echo "one-engine: unified answering"; break
+  fi
+  sleep 1
+done
+
 # Hand off to the app. Bind to all interfaces inside the microVM; Fly's proxy terminates TLS in front.
 exec uvicorn entropy_os.app:app --host 0.0.0.0 --port 8101

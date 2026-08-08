@@ -21,6 +21,8 @@ primary_region = "dfw"           # matches the veritas_data volume (created clos
   VERITAS_WEDGE_QUOTA_WINDOW = "86400"
   VERITAS_WEDGE_UNLIMITED = "owner,k0ne29r"  # comma-separated usernames exempt from the quota (your account)
   VERITAS_DATA = "/data"          # all state lives on the Volume below
+  ONE_ENGINE_URL = "http://127.0.0.1:9100"  # the composed engine, same Machine, loopback only
+  ONE_ENGINE_DATA = "/data/one-engine"      # its event log lives on the Volume, not the image
 
 [http_service]
   internal_port = 8101
@@ -44,4 +46,7 @@ primary_region = "dfw"           # matches the veritas_data volume (created clos
 
 [[vm]]
   size = "shared-cpu-1x"
-  memory = "1024"                  # room for dockerd + a 256m sandbox container
+  # dockerd + a 256m sandbox container + the front door, and now one-engine's
+  # five processes (four adapter servers and the composite) on loopback. Each
+  # is a small FastAPI app, but five of them do not fit in the old 1024.
+  memory = "4096"

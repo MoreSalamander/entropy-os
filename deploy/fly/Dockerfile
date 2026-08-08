@@ -31,6 +31,46 @@ RUN pip install --no-cache-dir . \
  && pip install --no-cache-dir anthropic playwright \
  && playwright install --with-deps chromium
 
+# The composed engine. Entropy OS reads it over the Universal Engine Contract,
+# so it has to actually be here — a snapshot of its output would not be the
+# same claim. All five repos are public and their dependencies are light
+# (fastapi, httpx, pydantic, networkx, qdrant-client); the three downstream
+# engines depend on research-engine, so most of the install is shared.
+#
+# Installed as packages rather than checkouts: in the image there is one
+# environment, so the adapters import their engine directly instead of each
+# running inside its own venv the way they do on the laptop.
+#
+# The install order and --no-deps are load-bearing, not style. The three
+# downstream engines declare `research-engine` as a dependency and it does NOT
+# exist on PyPI, so resolving them normally fails. They are therefore installed
+# with dependencies switched off, against a research-engine already present.
+#
+# The same flag closes a supply-chain hole: `code-engine` IS a real PyPI
+# package owned by someone else. Every engine here must stay pinned to its git
+# URL — never relax these into a bare `pip install code-engine`.
+#
+# `ruff` is the one dependency the --no-deps installs would otherwise miss
+# (code-engine runs it as part of its verification gate).
+ARG ONE_ENGINE_REF=main
+RUN pip install --no-cache-dir \
+      "research-engine @ git+https://github.com/MoreSalamander/research-engine@main" \
+ && pip install --no-cache-dir --no-deps \
+      "code-engine @ git+https://github.com/MoreSalamander/code-engine@main" \
+      "learn-engine @ git+https://github.com/MoreSalamander/learn-engine@main" \
+      "design-engine @ git+https://github.com/MoreSalamander/design-engine@main" \
+ && pip install --no-cache-dir ruff \
+ && git clone --depth 1 --branch "${ONE_ENGINE_REF}" \
+      https://github.com/MoreSalamander/one-engine.git /opt/one-engine \
+ && pip install --no-cache-dir -e /opt/one-engine
+
+# The laptop's config points at local repo paths and venvs; this one does not.
+COPY deploy/fly/one-engine.config.yaml /opt/one-engine/config.yaml
+# Real recorded runs, so the composition wing has history to serve on first
+# boot. Copied to the Volume by start.sh only when absent — a live machine's
+# accumulated log is never overwritten.
+COPY deploy/fly/seed/one_engine_events.jsonl /opt/one-engine-seed/events.jsonl
+
 # The hosting posture baked in. Secrets (ANTHROPIC_API_KEY) come from `fly secrets`, not the image.
 # fly.toml [env] can override any of these; they are sane defaults so the image is safe by itself.
 ENV ENTROPY_PUBLIC=os \
@@ -39,7 +79,9 @@ ENV ENTROPY_PUBLIC=os \
     VERITAS_MEMORY=sqlite \
     VERITAS_ACCOUNTS=1 \
     VERITAS_MODEL=sonnet \
-    VERITAS_DATA=/data
+    VERITAS_DATA=/data \
+    ONE_ENGINE_URL=http://127.0.0.1:9100 \
+    ONE_ENGINE_DATA=/data/one-engine
 
 EXPOSE 8101
 CMD ["bash", "/opt/entropy-os/deploy/fly/start.sh"]
