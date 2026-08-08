@@ -7,6 +7,8 @@ name = "one-engine"
 version = "0.1.0"
 description = "Composable intelligence: four autonomous engines converge into one engine that can itself be composed again."
 requires-python = ">=3.12"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 # Core stays deliberately small: these are the only packages an ENGINE's own
 # venv needs to serve the Universal Engine Contract (fastapi/pydantic/httpx
 # are already present in all four engine venvs at matching versions).

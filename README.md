@@ -210,6 +210,10 @@ and assert provenance resolves cleanly through every level.
 There is also `scripts/walkthrough.py`, which prints the architecture's claims
 by querying the **running** system rather than narrating a diagram.
 
+## License
+
+[Apache License 2.0](LICENSE) — Copyright 2026 MoreSalamander.
+
 ---
 
 *A [MoreSalamander StudioLabs](https://moresalamander.github.io) Production.*
