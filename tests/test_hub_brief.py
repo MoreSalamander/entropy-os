@@ -9,9 +9,9 @@ from __future__ import annotations
 
 import time
 
+from engine.model import SequencedProvider
 from fastapi.testclient import TestClient
 
-from engine.model import SequencedProvider
 from entropy_os.app import create_app
 
 
@@ -35,7 +35,8 @@ def test_brief_returns_confident_and_flagged_claims(tmp_path):
     })
     client = TestClient(create_app(data_dir=tmp_path, provider=provider))
 
-    token = client.post("/api/brief/start", json={"question": "tell me about the band"}).json()["token"]
+    token = client.post("/api/brief/start",
+                        json={"question": "tell me about the band"}).json()["token"]
     state = _poll(client, token)
     brief = state["brief"]
 
@@ -56,14 +57,16 @@ def test_brief_renders_as_a_viewable_document(tmp_path):
                       "a b", "c d", "e f", "g h", "a b"],
     })
     client = TestClient(create_app(data_dir=tmp_path, provider=provider))
-    token = client.post("/api/brief/start", json={"question": "tell me about the band"}).json()["token"]
+    token = client.post("/api/brief/start",
+                        json={"question": "tell me about the band"}).json()["token"]
     _poll(client, token)
 
     resp = client.get(f"/brief/{token}")
     assert resp.status_code == 200 and "text/html" in resp.headers["content-type"]
     page = resp.text
     assert "Where is the band from?" in page and "london" in page   # a claim + its answer
-    assert "NOT verified" in page and "Knowledge mode" in page       # the unverified framing is loud
+    # the unverified framing is loud
+    assert "NOT verified" in page and "Knowledge mode" in page
 
 
 def test_brief_document_404s_for_unknown_token(tmp_path):

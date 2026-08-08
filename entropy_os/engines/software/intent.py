@@ -61,7 +61,8 @@ _BASELINES = [
                 priority=Priority.MUST),
     Requirement(kind="security", text="Validate and constrain all API inputs",
                 priority=Priority.MUST),
-    Requirement(kind="nonfunctional", text="Architecture and API documentation generated from the system model",
+    Requirement(kind="nonfunctional", text="Architecture and API documentation generated from the "
+        "system model",
                 priority=Priority.SHOULD),
 ]
 

@@ -26,8 +26,7 @@ from pathlib import Path
 
 import networkx as nx
 
-from ..models import (Architecture, CheckResult, ResearchEvidence,
-                      SoftwareSpec, now_utc)
+from ..models import Architecture, CheckResult, ResearchEvidence, SoftwareSpec, now_utc
 
 # The sidecar directory inside a GENERATED project. This is an on-disk
 # format name, not a module path: every project this engine has already
@@ -192,7 +191,7 @@ class SoftwareContextGraph:
         return path
 
     @classmethod
-    def load_sidecar(cls, repo_root: Path) -> "SoftwareContextGraph":
+    def load_sidecar(cls, repo_root: Path) -> SoftwareContextGraph:
         data = json.loads((repo_root / SIDECAR_REL).read_text())
         cg = cls(data["project_id"])
         for n in data["nodes"]:

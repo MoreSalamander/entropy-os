@@ -9,7 +9,7 @@ rather than pretending.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from ..models import RawDoc, SourceCategory, SourceStatus
 from .base import SourceAdapter
@@ -18,7 +18,7 @@ from .base import SourceAdapter
 def _epoch(ts: float | int | None) -> datetime | None:
     if not ts:
         return None
-    return datetime.fromtimestamp(float(ts), tz=timezone.utc)
+    return datetime.fromtimestamp(float(ts), tz=UTC)
 
 
 class HackerNewsAdapter(SourceAdapter):

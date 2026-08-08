@@ -12,7 +12,6 @@ DataHub bridge); each generate() call is a fresh project.
 
 from __future__ import annotations
 
-import asyncio
 from pathlib import Path
 
 from entropy_os.engines.research.config import LLMConfig
@@ -20,6 +19,7 @@ from entropy_os.engines.research.graphs.store import NetworkXJSONStore
 from entropy_os.engines.research.graphs.vector_index import VectorIndex
 from entropy_os.engines.research.llm.client import LLMClient, OllamaClient
 
+from ...paths import engine_storage
 from .codegen.copywriter import Copywriter
 from .codegen.project_writer import _PAGE_HREFS, ProjectWriter
 from .graphs.context_graph import DesignContextGraph, new_project_id
@@ -31,7 +31,6 @@ from .research.orchestrator import DesignResearchOrchestrator
 from .review.agents import run_build_gate, run_review
 from .review.improver import AutoImprover
 from .synthesis.synthesizer import DesignSynthesizer
-from ...paths import engine_storage
 
 # This engine's own accumulated knowledge and artifacts, addressed by its
 # contract member key rather than by the repository it used to live in.
@@ -101,7 +100,7 @@ class DesignEngine:
         log(f"[synthesis] {ds.heading_font.value}/{ds.body_font.value}, "
             f"{'dark' if ds.dark_mode else 'light'}, motion={ds.motion.value}")
         log(f"[synthesis] novelty: {ds.novelty_note}")
-        log(f"[synthesis] inspirations: "
+        log("[synthesis] inspirations: "
             + "; ".join(f"{i['site']} ({i['trait']})" for i in ds.inspirations) or "none")
 
         # Phase 6 — copy + code generation
@@ -128,7 +127,7 @@ class DesignEngine:
             report.build_ok, report.build_log_tail = await run_build_gate(out)
         site.review = report
         site.improve_rounds = rounds
-        log(f"[review] scores: " + ", ".join(f"{k}={v}" for k, v in report.scores.items())
+        log("[review] scores: " + ", ".join(f"{k}={v}" for k, v in report.scores.items())
             + f" | blockers: {len(report.blockers)} | auto-fix rounds: {rounds}"
             + f" | build: {report.build_ok}")
 

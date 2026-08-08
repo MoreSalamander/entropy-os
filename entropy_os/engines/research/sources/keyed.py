@@ -12,8 +12,8 @@ its adapter exists only to state that honestly in the status table.
 from __future__ import annotations
 
 from ..models import RawDoc, SourceCategory, SourceStatus
-from .base import KeyedAdapter, SourceAdapter
 from .academic import _dt
+from .base import KeyedAdapter, SourceAdapter
 
 
 class BraveSearchAdapter(KeyedAdapter):

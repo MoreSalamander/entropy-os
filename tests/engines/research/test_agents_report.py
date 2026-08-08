@@ -2,13 +2,23 @@
 
 from __future__ import annotations
 
-from entropy_os.engines.research.agents import (AnalystAgent, ContradictionAgent,
-                                    DiscoveryAgent, QuestionAgent, TrendAgent,
-                                    VerificationAgent)
+from entropy_os.engines.research.agents import (
+    AnalystAgent,
+    ContradictionAgent,
+    DiscoveryAgent,
+    QuestionAgent,
+    TrendAgent,
+    VerificationAgent,
+)
 from entropy_os.engines.research.graphs.context_graph import ContextGraph
 from entropy_os.engines.research.llm.client import FakeLLM
-from entropy_os.engines.research.models import (Entity, EntityType, ExtractionResult,
-                                    Polarity, SourceCategory)
+from entropy_os.engines.research.models import (
+    Entity,
+    EntityType,
+    ExtractionResult,
+    Polarity,
+    SourceCategory,
+)
 from entropy_os.engines.research.report.builder import ReportBuilder
 
 from .conftest import make_claim, make_evidence

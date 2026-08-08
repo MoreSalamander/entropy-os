@@ -9,8 +9,14 @@ from entropy_os.engines.research.graphs.knowledge_graph import KnowledgeGraph
 from entropy_os.engines.research.graphs.store import NetworkXJSONStore
 from entropy_os.engines.research.graphs.vector_index import VectorIndex
 from entropy_os.engines.research.llm.client import FakeLLM
-from entropy_os.engines.research.models import (Entity, EntityType, ExtractionResult,
-                                    Polarity, Predicate, Relationship)
+from entropy_os.engines.research.models import (
+    Entity,
+    EntityType,
+    ExtractionResult,
+    Polarity,
+    Predicate,
+    Relationship,
+)
 
 from .conftest import make_claim, make_evidence
 

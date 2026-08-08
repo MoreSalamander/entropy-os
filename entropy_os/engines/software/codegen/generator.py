@@ -25,8 +25,12 @@ from __future__ import annotations
 from pathlib import Path
 
 from ..graphs.context_graph import SoftwareContextGraph
-from ..models import (ApiEndpoint, Architecture, Component, EntityModel,
-                      GeneratedProject, SoftwareSpec)
+from ..models import (
+    Architecture,
+    Component,
+    GeneratedProject,
+    SoftwareSpec,
+)
 
 _SQLA_TYPES = {"str": "String(255)", "text": "Text", "int": "Integer",
                "float": "Float", "bool": "Boolean", "datetime": "DateTime"}
@@ -263,7 +267,8 @@ def init_db() -> None:
             elif ep.action == "get" and ent:
                 rt += ["", "",
                        f'@router.get("{ep.path}", response_model=schemas.{ent.name}Read)',
-                       f"def {fn}(item_id: int, session: Annotated[Session, Depends(get_session)]):",
+                       f"def {fn}(item_id: int, session: Annotated[Session, "
+                           f"Depends(get_session)]):",
                        f'    """{ep.summary}"""',
                        f"    obj = service.get_{ent.snake}(session, item_id)",
                        "    if obj is None:",
@@ -271,7 +276,8 @@ def init_db() -> None:
                        "    return obj"]
             elif ep.action == "create" and ent:
                 rt += ["", "",
-                       f'@router.post("{ep.path}", response_model=schemas.{ent.name}Read, status_code=201)',
+                       f'@router.post("{ep.path}", response_model=schemas.{ent.name}Read, '
+                           f'status_code=201)',
                        f"def {fn}(payload: schemas.{ent.name}Create, "
                        "session: Annotated[Session, Depends(get_session)]):",
                        f'    """{ep.summary}"""',
@@ -279,7 +285,8 @@ def init_db() -> None:
             elif ep.action == "delete" and ent:
                 rt += ["", "",
                        f'@router.delete("{ep.path}", status_code=204)',
-                       f"def {fn}(item_id: int, session: Annotated[Session, Depends(get_session)]):",
+                       f"def {fn}(item_id: int, session: Annotated[Session, "
+                           f"Depends(get_session)]):",
                        f'    """{ep.summary}"""',
                        f"    if not service.delete_{ent.snake}(session, item_id):",
                        f'        raise HTTPException(404, "{ent.name} not found")']

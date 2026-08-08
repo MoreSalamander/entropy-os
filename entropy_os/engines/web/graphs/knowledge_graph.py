@@ -20,7 +20,6 @@ fabricated conversion data — human feedback joins via record_feedback().
 
 from __future__ import annotations
 
-import json
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -130,7 +129,7 @@ class DesignKnowledgeGraph:
                 node = self.store.get_node(src) or {}
                 trait_counts[node.get("name", src)] = int(props.get("count", 1))
         past: list[dict] = []
-        for node_id, props in self.store.all_nodes():
+        for _node_id, props in self.store.all_nodes():
             if props.get("kind") == "project" and \
                normalize_name(props.get("industry", "")) == normalize_name(industry):
                 past.append(props)

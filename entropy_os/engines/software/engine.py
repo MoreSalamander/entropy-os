@@ -15,6 +15,7 @@ from entropy_os.engines.research.graphs.store import NetworkXJSONStore
 from entropy_os.engines.research.graphs.vector_index import VectorIndex
 from entropy_os.engines.research.llm.client import LLMClient, OllamaClient
 
+from ...paths import engine_storage
 from .architecture import ArchitectAgent
 from .codegen.generator import PATTERNS_APPLIED, ProjectGenerator
 from .graphs.context_graph import SoftwareContextGraph
@@ -25,7 +26,6 @@ from .models import GeneratedProject, ProjectOutcome, new_id
 from .org import run_static_agents
 from .research import RESEARCH_AGENTS, SoftwareResearchOrchestrator
 from .verify import Verifier
-from ...paths import engine_storage
 
 # This engine's own accumulated knowledge and artifacts, addressed by its
 # contract member key rather than by the repository it used to live in.

@@ -38,7 +38,7 @@ async def _main() -> int:
     args = parser.parse_args()
 
     if args.cmd == "report":
-        from .models import LearnerProfile, Roadmap
+        from .models import LearnerProfile
         data = json.loads(args.learner_json.read_text())
         profile = LearnerProfile.model_validate(data)
         print(json.dumps({k: v.level.value for k, v in profile.mastery.items()},

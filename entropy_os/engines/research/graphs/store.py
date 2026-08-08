@@ -106,7 +106,7 @@ class NetworkXJSONStore(GraphStore):
             return []
         ug = self.g.to_undirected(as_view=True)
         try:
-            return [list(p) for _, p in zip(range(5),
+            return [list(p) for _, p in zip(range(5),  # noqa: B905 — deliberate truncation to 5
                     nx.all_simple_paths(ug, src, dst, cutoff=cutoff))]
         except nx.NetworkXError:
             return []

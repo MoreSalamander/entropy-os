@@ -17,7 +17,7 @@ from __future__ import annotations
 import json
 import os
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from threading import Lock
 
@@ -68,7 +68,7 @@ class VisitLog:
             data["pages"][page_key] = int(data["pages"].get(page_key, 0)) + 1
             cid = (client_id or "").strip()
             if cid:
-                now = datetime.now(timezone.utc).isoformat()
+                now = datetime.now(UTC).isoformat()
                 entry = data["uniques"].get(cid)
                 if entry is None:
                     data["uniques"][cid] = {"first_seen": now, "last_seen": now, "count": 1}

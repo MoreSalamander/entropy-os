@@ -8,8 +8,8 @@ key (see keyed.py note on the roadmap).
 from __future__ import annotations
 
 from ..models import RawDoc, SourceCategory
-from .base import SourceAdapter
 from .academic import _dt
+from .base import SourceAdapter
 
 
 class DataGovAdapter(SourceAdapter):

@@ -28,9 +28,18 @@ import re
 
 from entropy_os.engines.research.llm.client import LLMClient, LLMUnavailable
 
-from .models import (ApiEndpoint, Architecture, Component, Decision,
-                     EntityField, EntityModel, Feature, Priority,
-                     SoftwareSpec, slug)
+from .models import (
+    ApiEndpoint,
+    Architecture,
+    Component,
+    Decision,
+    EntityField,
+    EntityModel,
+    Feature,
+    Priority,
+    SoftwareSpec,
+    slug,
+)
 
 _FIELD_TYPES = ["str", "int", "float", "bool", "datetime", "text"]
 

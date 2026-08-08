@@ -15,14 +15,14 @@ analysis traverse it; evolution checks it against observed reality.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 
 from pydantic import BaseModel, Field
 
 
 def now_utc() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def new_id(prefix: str) -> str:
@@ -168,7 +168,8 @@ class CheckResult(BaseModel):
     check: str                        # ruff | pytest | security | performance | review | docs
     status: CheckStatus
     detail: str = ""
-    failures: list[dict] = Field(default_factory=list)  # structured, e.g. {file,test,message,component}
+    # structured, e.g. {file,test,message,component}
+    failures: list[dict] = Field(default_factory=list)
 
 
 class VerificationReport(BaseModel):

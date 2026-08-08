@@ -24,8 +24,7 @@ from __future__ import annotations
 
 from .graphs.knowledge_graph import EducationKnowledgeGraph
 from .learner import preferred_method
-from .models import (Activity, ActivityKind, LearnerProfile, Mastery,
-                     Roadmap, now_utc)
+from .models import Activity, ActivityKind, LearnerProfile, Mastery, Roadmap, now_utc
 
 
 def next_activity(profile: LearnerProfile, roadmap: Roadmap,

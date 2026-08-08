@@ -23,8 +23,15 @@ from pathlib import Path
 
 import networkx as nx
 
-from ..models import (Claim, Entity, ExtractionResult, Polarity, Relationship,
-                      ResearchPlan, new_id, normalize_name, now_utc)
+from ..models import (
+    Claim,
+    Entity,
+    ExtractionResult,
+    Relationship,
+    ResearchPlan,
+    new_id,
+    now_utc,
+)
 
 
 class ContextGraph:

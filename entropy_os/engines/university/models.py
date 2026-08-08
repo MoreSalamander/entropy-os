@@ -14,14 +14,14 @@ a graded interaction.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from enum import Enum
 
 from pydantic import BaseModel, Field
 
 
 def now_utc() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def new_id(prefix: str) -> str:
@@ -147,7 +147,8 @@ class Roadmap(BaseModel):
     concepts: list[Concept] = Field(default_factory=list)
     edges: list[tuple[str, str, str]] = Field(default_factory=list)  # (src, relation, dst) by name
     validation_notes: list[str] = Field(default_factory=list)
-    learning_order: list[str] = Field(default_factory=list)          # topological, prerequisites first
+    # topological, prerequisites first
+    learning_order: list[str] = Field(default_factory=list)
 
 
 # --------------------------------------------------------------------------

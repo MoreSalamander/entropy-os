@@ -12,8 +12,21 @@ import urllib.request
 import pytest
 
 from entropy_os.composition.contract import ArtifactRef, ExecuteResult
-from entropy_os.composition.scaffold import Determinism, EvidenceFloor, StageJudgment, VerificationPassed
-from entropy_os.composition.vending import VendingError, available, image_tag, package, packageable, stop, vend
+from entropy_os.composition.scaffold import (
+    Determinism,
+    EvidenceFloor,
+    StageJudgment,
+    VerificationPassed,
+)
+from entropy_os.composition.vending import (
+    VendingError,
+    available,
+    image_tag,
+    package,
+    packageable,
+    stop,
+    vend,
+)
 
 # --------------------------------------------------------------------------- #
 # admission — the gate decides what is stock

@@ -18,8 +18,16 @@ import json
 import shutil
 from pathlib import Path
 
-from ..models import (DesignSystem, FontClass, GeneratedSite, MotionLevel,
-                      PageKind, PagePlan, ProjectIntent, SectionKind)
+from ..models import (
+    DesignSystem,
+    FontClass,
+    GeneratedSite,
+    MotionLevel,
+    PageKind,
+    PagePlan,
+    ProjectIntent,
+    SectionKind,
+)
 
 # Templates ship inside the engine that writes from them (see the
 # package-data entry in pyproject), so this resolves within the package
@@ -96,7 +104,8 @@ class ProjectWriter:
             (dst / "Reveal.tsx").write_text(
                 'import type { ReactNode } from "react";\n\n'
                 "/** Motion level 'none': static passthrough, no observers, no CSS. */\n"
-                "export default function Reveal({ children }: { children: ReactNode; delay?: number }) {\n"
+                "export default function Reveal({ children }: "
+                    "{ children: ReactNode; delay?: number }) {\n"
                 "  return <div>{children}</div>;\n}\n")
         return len(list(dst.glob("*.tsx")))
 
@@ -437,21 +446,26 @@ export default function RootLayout({{
     _SECTION_RENDER: dict[SectionKind, tuple[str, str]] = {
         # SectionKind -> (component import name, JSX expression using `c`)
         SectionKind.HERO: ("Hero", "<Hero {...c.hero} highlights={[...c.hero.highlights]} />"),
-        SectionKind.LOGO_CLOUD: ("LogoCloud", "<LogoCloud {...c.logoCloud} names={[...c.logoCloud.names]} />"),
+        SectionKind.LOGO_CLOUD: ("LogoCloud", "<LogoCloud {...c.logoCloud} "
+            "names={[...c.logoCloud.names]} />"),
         SectionKind.FEATURE_GRID: ("FeatureGrid",
-                                   "<FeatureGrid {...c.featureGrid} features={[...c.featureGrid.features]} />"),
+                                   "<FeatureGrid {...c.featureGrid} "
+                                       "features={[...c.featureGrid.features]} />"),
         SectionKind.PRODUCT_SHOWCASE: ("ProductShowcase",
-                                       "<ProductShowcase {...c.showcase} panels={[...c.showcase.panels]} />"),
+                                       "<ProductShowcase {...c.showcase} "
+                                           "panels={[...c.showcase.panels]} />"),
         SectionKind.STATS_BAND: ("StatsBand", "<StatsBand stats={[...c.stats.stats]} />"),
         SectionKind.TESTIMONIALS: ("Testimonials",
-                                   "<Testimonials {...c.testimonials} quotes={[...c.testimonials.quotes]} />"),
+                                   "<Testimonials {...c.testimonials} "
+                                       "quotes={[...c.testimonials.quotes]} />"),
         SectionKind.PRICING: ("Pricing",
                               "<Pricing {...c.pricing} tiers={c.pricing.tiers.map((t) => ({ ...t, features: [...t.features] }))} />"),
         SectionKind.FAQ: ("Faq", "<Faq {...c.faq} items={[...c.faq.items]} />"),
         SectionKind.TEAM: ("Team", "<Team {...c.team} members={[...c.team.members]} />"),
         SectionKind.CONTACT_FORM: ("ContactForm", "<ContactForm {...c.contactForm} />"),
         SectionKind.TEXT_BLOCK: ("TextBlock",
-                                 "<TextBlock {...c.textBlock} paragraphs={[...c.textBlock.paragraphs]} />"),
+                                 "<TextBlock {...c.textBlock} "
+                                     "paragraphs={[...c.textBlock.paragraphs]} />"),
         SectionKind.DOCS_LAYOUT: ("DocsLayout",
                                   "<DocsLayout {...c.docs} topics={[...c.docs.topics]} />"),
         SectionKind.CTA: ("Cta", "<Cta {...c.cta} />"),

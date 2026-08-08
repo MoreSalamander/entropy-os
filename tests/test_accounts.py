@@ -12,10 +12,10 @@ import json
 from datetime import timedelta
 
 import pytest
-
 from engine.model import ScriptedProvider
-from entropy_os.accounts import AccountStore, BadCredentials, UsernameTaken, WeakCredentials
 from products.wedge import Unauthorized, Wedge
+
+from entropy_os.accounts import AccountStore, BadCredentials, UsernameTaken, WeakCredentials
 
 
 def _store(tmp_path, **kw) -> AccountStore:
@@ -109,20 +109,26 @@ def test_wedge_runs_under_account_auth(tmp_path):
     uid = s.signup("devuser", "password1")
     token = s.login("devuser", "password1")
 
-    provider = lambda: ScriptedProvider({"spec": spec, "developer": "def add(a, b):\n    return a + b\n"})
-    wedge = Wedge(tmp_path / "data", provider, s, sandbox_check=lambda: True)  # AccountStore as auth
+    def provider():
+        return ScriptedProvider({"spec": spec,
+                                 "developer": "def add(a, b):\n    return a + b\n"})
+    # AccountStore as auth
+    wedge = Wedge(tmp_path / "data", provider, s, sandbox_check=lambda: True)
     res = wedge.submit(authorization=f"Bearer {token}", goal="add two numbers")
     assert res.accepted and res.tenant == uid
     assert (tmp_path / "data" / "tenants" / uid).exists()  # isolated under the account's own id
 
 
 def test_unlimited_username_bypasses_the_quota(tmp_path):
-    from entropy_os.quota import QuotaPolicy, QuotaStore
     from products.wedge import QuotaExceeded
+
+    from entropy_os.quota import QuotaPolicy, QuotaStore
 
     spec = json.dumps({"function_name": "add", "description": "add two numbers",
                        "signature": "def add(a, b)", "cases": [{"args": [1, 2], "expected": 3}]})
-    provider = lambda: ScriptedProvider({"spec": spec, "developer": "def add(a, b):\n    return a + b\n"})
+    def provider():
+        return ScriptedProvider({"spec": spec,
+                                 "developer": "def add(a, b):\n    return a + b\n"})
 
     s = _store(tmp_path / "acct", unlimited={"owner"})
     owner = s.signup("owner", "password1")
@@ -161,11 +167,15 @@ def test_http_auth_flow(tmp_path, monkeypatch):
     client = TestClient(create_app(data_dir=tmp_path, provider=provider))
 
     assert client.get("/api/wedge/status").json()["accounts"] is True
-    assert client.post("/api/auth/signup", json={"username": "alice", "password": "password1"}).status_code == 200
-    assert client.post("/api/auth/signup", json={"username": "alice", "password": "password2"}).status_code == 409
-    assert client.post("/api/auth/login", json={"username": "alice", "password": "nope"}).status_code == 401
+    assert client.post("/api/auth/signup",
+                       json={"username": "alice", "password": "password1"}).status_code == 200
+    assert client.post("/api/auth/signup",
+                       json={"username": "alice", "password": "password2"}).status_code == 409
+    assert client.post("/api/auth/login",
+                       json={"username": "alice", "password": "nope"}).status_code == 401
 
-    token = client.post("/api/auth/login", json={"username": "alice", "password": "password1"}).json()["token"]
+    token = client.post("/api/auth/login",
+                        json={"username": "alice", "password": "password1"}).json()["token"]
     r = client.post("/api/wedge/submit", json={"goal": "add two numbers"},
                     headers={"Authorization": f"Bearer {token}"})
     assert r.status_code == 200 and r.json()["accepted"]

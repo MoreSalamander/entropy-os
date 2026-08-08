@@ -21,9 +21,17 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from .models import (DEMOTE_ON_WRONG_STREAK, PROMOTE_TO_MASTERED_KINDS,
-                     PROMOTE_TO_MASTERED_STREAK, EvidenceRow, LearnerProfile,
-                     Mastery, MasteryState, TeachingMethodStats, now_utc)
+from .models import (
+    DEMOTE_ON_WRONG_STREAK,
+    PROMOTE_TO_MASTERED_KINDS,
+    PROMOTE_TO_MASTERED_STREAK,
+    EvidenceRow,
+    LearnerProfile,
+    Mastery,
+    MasteryState,
+    TeachingMethodStats,
+    now_utc,
+)
 
 _ORDER = [Mastery.UNKNOWN, Mastery.INTRODUCED, Mastery.PRACTICING,
           Mastery.MASTERED]
@@ -39,9 +47,6 @@ def apply_evidence(state: MasteryState, row: EvidenceRow) -> Mastery:
     """Append evidence, recompute level. Returns the (possibly new) level."""
     state.evidence.append(row)
     state.last_activity = row.at
-    recent = state.evidence[-max(PROMOTE_TO_MASTERED_STREAK,
-                                 DEMOTE_ON_WRONG_STREAK):]
-
     # demotion first: two consecutive full-weight misses
     misses = 0.0
     for r in reversed(state.evidence):

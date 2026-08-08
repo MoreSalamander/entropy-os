@@ -22,7 +22,7 @@ from entropy_os.engines.research.graphs.store import GraphStore
 from entropy_os.engines.research.graphs.vector_index import VectorIndex
 from entropy_os.engines.research.models import normalize_name, now_utc
 
-from ..models import Concept, EduRelation, LearningResource, Roadmap
+from ..models import EduRelation, LearningResource, Roadmap
 
 
 class EducationKnowledgeGraph:
@@ -166,7 +166,7 @@ class EducationKnowledgeGraph:
     def resources_for(self, concept: str, kind: str | None = None,
                       limit: int = 6) -> list[dict]:
         rows = []
-        for _src, dst, ekind, props in self.store.edges_of(self._cid(concept)):
+        for _src, dst, ekind, _props in self.store.edges_of(self._cid(concept)):
             if ekind == "has_resource":
                 node = self.store.get_node(dst) or {}
                 if kind is None or node.get("res_kind") == kind:

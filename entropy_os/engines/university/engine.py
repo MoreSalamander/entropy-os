@@ -20,18 +20,25 @@ from entropy_os.engines.research.graphs.store import NetworkXJSONStore
 from entropy_os.engines.research.graphs.vector_index import VectorIndex
 from entropy_os.engines.research.llm.client import LLMClient, OllamaClient
 
+from ...paths import engine_storage
 from .adaptive import choose_method, next_activity
 from .goal import GoalAnalyzer
 from .graphs.context_graph import StudentContextGraph
 from .graphs.datahub_bridge import LearnDataHubBridge
 from .graphs.knowledge_graph import EducationKnowledgeGraph
-from .learner import (apply_evidence, mark_introduced, record_method_outcome,
-                      save_profile)
-from .models import (Activity, ActivityKind, EvidenceRow, Exercise,
-                     GradedAnswer, LearnerProfile, Mastery, Roadmap, new_id)
+from .learner import apply_evidence, mark_introduced, record_method_outcome, save_profile
+from .models import (
+    Activity,
+    ActivityKind,
+    EvidenceRow,
+    GradedAnswer,
+    LearnerProfile,
+    Mastery,
+    Roadmap,
+    new_id,
+)
 from .research import RESEARCH_AGENTS, EducationalResearch
 from .teaching import AssessmentAgent, LessonBuilder, PracticeAgent
-from ...paths import engine_storage
 
 # This engine's own accumulated knowledge and artifacts, addressed by its
 # contract member key rather than by the repository it used to live in.

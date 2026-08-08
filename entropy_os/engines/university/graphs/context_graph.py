@@ -13,8 +13,7 @@ from pathlib import Path
 
 import networkx as nx
 
-from ..models import (Activity, GradedAnswer, LearnerProfile, Roadmap,
-                      new_id, now_utc)
+from ..models import Activity, GradedAnswer, LearnerProfile, Roadmap, new_id, now_utc
 
 
 class StudentContextGraph:

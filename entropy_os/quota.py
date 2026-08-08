@@ -19,10 +19,11 @@ from __future__ import annotations
 
 import os
 import sqlite3
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from products.wedge import QuotaExceeded
 
@@ -30,7 +31,7 @@ _DEFAULT_WINDOW = timedelta(days=1)
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 @dataclass(frozen=True)
@@ -63,7 +64,7 @@ class QuotaStore:
             con.execute("CREATE INDEX IF NOT EXISTS usage_tenant_at ON usage (tenant, at)")
 
     @classmethod
-    def from_env(cls, db_path: Path | str) -> "QuotaStore | None":
+    def from_env(cls, db_path: Path | str) -> QuotaStore | None:
         """Build a store from VERITAS_WEDGE_QUOTA (max runs) + VERITAS_WEDGE_QUOTA_WINDOW (seconds,
         default a day). Returns None when no positive limit is set — i.e. the wedge runs unmetered."""
         try:

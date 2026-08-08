@@ -25,8 +25,15 @@ from __future__ import annotations
 from entropy_os.engines.research.llm.client import LLMClient, LLMUnavailable
 
 from ..graphs.context_graph import DesignContextGraph
-from ..models import (DesignSystem, FontClass, MotionLevel, PageKind,
-                      PagePlan, Palette, ProjectIntent, SectionKind, TraitKind)
+from ..models import (
+    DesignSystem,
+    FontClass,
+    MotionLevel,
+    PageKind,
+    PagePlan,
+    Palette,
+    SectionKind,
+)
 from .validators import fix_palette_contrast, novelty_check
 
 _HEX = {"type": "string", "pattern": "^#[0-9a-fA-F]{6}$"}

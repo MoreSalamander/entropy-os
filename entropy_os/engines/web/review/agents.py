@@ -16,8 +16,7 @@ import asyncio
 import re
 from pathlib import Path
 
-from ..models import (DesignSystem, ReviewFinding, ReviewReport,
-                      ReviewSeverity, SectionKind)
+from ..models import DesignSystem, ReviewFinding, ReviewReport, ReviewSeverity
 from ..synthesis.validators import contrast_ratio
 
 _PENALTY = {ReviewSeverity.BLOCKER: 25, ReviewSeverity.WARNING: 8,
@@ -79,7 +78,7 @@ class AccessibilityReviewAgent(_Agent):
                 findings.append(self._f(ReviewSeverity.BLOCKER, "img_no_alt",
                                         f"<img> without alt: {m.group(0)[:60]}",
                                         rel, auto_fixable=True))
-            for m in re.finditer(r"<svg\b(?![^>]*aria-hidden)(?![^>]*aria-label)[^>]*>", text):
+            for _m in re.finditer(r"<svg\b(?![^>]*aria-hidden)(?![^>]*aria-label)[^>]*>", text):
                 findings.append(self._f(ReviewSeverity.WARNING, "svg_unlabeled",
                                         "decorative <svg> lacks aria-hidden", rel,
                                         auto_fixable=True))
@@ -253,7 +252,7 @@ async def run_build_gate(root: Path, timeout_s: int = 480) -> tuple[bool | None,
             if proc.returncode != 0:
                 return False, out.decode(errors="replace")[-2000:]
         return True, out.decode(errors="replace")[-800:]
-    except (TimeoutError, asyncio.TimeoutError):
+    except TimeoutError:
         return False, f"build gate timed out after {timeout_s}s"
 
 

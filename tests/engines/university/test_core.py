@@ -5,12 +5,20 @@ from __future__ import annotations
 from datetime import timedelta
 
 from entropy_os.engines.research.llm.client import FakeLLM
-
 from entropy_os.engines.university.goal import GoalAnalyzer
-from entropy_os.engines.university.learner import (apply_evidence, mark_introduced,
-                                  preferred_method, record_method_outcome)
-from entropy_os.engines.university.models import (EvidenceRow, LearnerProfile, Mastery,
-                                 MasteryState, now_utc)
+from entropy_os.engines.university.learner import (
+    apply_evidence,
+    mark_introduced,
+    preferred_method,
+    record_method_outcome,
+)
+from entropy_os.engines.university.models import (
+    EvidenceRow,
+    LearnerProfile,
+    Mastery,
+    MasteryState,
+    now_utc,
+)
 
 from .conftest import ROADMAP_PROPOSAL
 

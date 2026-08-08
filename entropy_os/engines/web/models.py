@@ -10,14 +10,14 @@ site is a provenance chain, queryable end to end.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 
 from pydantic import BaseModel, Field
 
 
 def now_utc() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def new_id(prefix: str) -> str:
@@ -150,7 +150,8 @@ class DesignSystem(BaseModel):
     id: str = Field(default_factory=lambda: new_id("ds"))
     project_intent_id: str = ""
     direction: str = ""                       # one-paragraph design rationale
-    inspirations: list[dict] = Field(default_factory=list)  # [{site, trait, why}] — cited, never copied
+    # [{site, trait, why}] — cited, never copied
+    inspirations: list[dict] = Field(default_factory=list)
     heading_font: FontClass = FontClass.GEOMETRIC_SANS
     body_font: FontClass = FontClass.HUMANIST_SANS
     palette: Palette

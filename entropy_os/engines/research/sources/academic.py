@@ -7,7 +7,7 @@ partial coverage of paywalled venues without pretending to full text).
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import feedparser
 
@@ -20,7 +20,7 @@ def _dt(value: str | None, fmt: str | None = None) -> datetime | None:
         return None
     try:
         if fmt:
-            return datetime.strptime(value, fmt).replace(tzinfo=timezone.utc)
+            return datetime.strptime(value, fmt).replace(tzinfo=UTC)
         return datetime.fromisoformat(value.replace("Z", "+00:00"))
     except ValueError:
         return None
@@ -169,7 +169,7 @@ class CrossrefAdapter(SourceAdapter):
             if issued and issued[0]:
                 parts = (list(issued) + [1, 1])[:3]
                 try:
-                    pub = datetime(parts[0], parts[1] or 1, parts[2] or 1, tzinfo=timezone.utc)
+                    pub = datetime(parts[0], parts[1] or 1, parts[2] or 1, tzinfo=UTC)
                 except (TypeError, ValueError):
                     pub = None
             docs.append(RawDoc(

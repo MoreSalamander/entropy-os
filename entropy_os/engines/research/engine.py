@@ -14,10 +14,16 @@ report, DataHub emission).
 from __future__ import annotations
 
 import asyncio
-from typing import Awaitable, Callable
+from collections.abc import Awaitable, Callable
 
-from .agents import (AnalystAgent, ContradictionAgent, DiscoveryAgent,
-                     QuestionAgent, TrendAgent, VerificationAgent)
+from .agents import (
+    AnalystAgent,
+    ContradictionAgent,
+    DiscoveryAgent,
+    QuestionAgent,
+    TrendAgent,
+    VerificationAgent,
+)
 from .config import Config, load_config
 from .extraction.extractor import EvidenceExtractor
 from .graphs.context_graph import ContextGraph, new_session_id

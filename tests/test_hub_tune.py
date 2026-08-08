@@ -11,9 +11,9 @@ from __future__ import annotations
 import json
 import time
 
+from engine.model import ModelProvider
 from fastapi.testclient import TestClient
 
-from engine.model import ModelProvider
 from entropy_os.app import create_app
 
 MARKER = "GOLDEN"
@@ -52,7 +52,8 @@ def _poll(client: TestClient, token: str, timeout: float = 15.0) -> dict:
 def test_a_marked_candidate_beats_the_unmarked_live_prompt(tmp_path):
     client = TestClient(create_app(data_dir=tmp_path, provider=_SpecMarkerProvider()))
     candidate = f"You are a spec writer. {MARKER}. Return the schema."  # carries the marker
-    token = client.post("/api/tune/start", json={"candidate": candidate, "repeats": 1}).json()["token"]
+    token = client.post("/api/tune/start",
+                        json={"candidate": candidate, "repeats": 1}).json()["token"]
     state = _poll(client, token)
 
     v = state["verdict"]

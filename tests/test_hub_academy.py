@@ -6,13 +6,13 @@ same discipline as test_hub_tutorial.py.
 
 from __future__ import annotations
 
-from fastapi.testclient import TestClient
-
 from engine.memory import MemoryStore
 from engine.model import ScriptedProvider
+from fastapi.testclient import TestClient
 from products.academy.container import AcademyProject, academy_record, image_tag
-from entropy_os.app import create_app
 from products.tutorial.container import DispensedCopy
+
+from entropy_os.app import create_app
 
 
 def _seed_academy(tmp_path) -> str:

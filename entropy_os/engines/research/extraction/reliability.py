@@ -14,7 +14,7 @@ confidence must be reproducible. Formula:
 from __future__ import annotations
 
 import math
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from ..models import RawDoc
 
@@ -25,7 +25,7 @@ _RECENCY_HALFLIFE_DAYS = 3 * 365.0
 def _recency_factor(published: datetime | None) -> float:
     if published is None:
         return 0.85  # unknown date: mild penalty, not a death sentence
-    age_days = max((datetime.now(timezone.utc) - published).days, 0)
+    age_days = max((datetime.now(UTC) - published).days, 0)
     decay = 0.5 ** (age_days / _RECENCY_HALFLIFE_DAYS)
     return _RECENCY_FLOOR + (1.0 - _RECENCY_FLOOR) * decay
 

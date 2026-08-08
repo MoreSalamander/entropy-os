@@ -33,7 +33,7 @@ from entropy_os.engines.research.sources.keyed import BraveSearchAdapter, Serper
 from entropy_os.engines.research.sources.web import WikipediaAdapter
 
 from ..graphs.context_graph import DesignContextGraph
-from ..models import ProjectIntent, SiteAnalysis
+from ..models import ProjectIntent
 from .seeds import seeds_for
 from .site_analyzer import SiteAnalyzer
 
@@ -155,7 +155,7 @@ class DesignResearchOrchestrator:
             self._frontend_worker(intent, cg),
         )
         return {
-            "workers": dict(zip(RESEARCH_WORKERS, counts)),
+            "workers": dict(zip(RESEARCH_WORKERS, counts, strict=True)),
             "sites_analyzed": len(cg.analyses),
             "sites_failed": sum(1 for a in cg.analyses.values() if not a.ok),
             "traits_extracted": sum(len(a.traits) for a in cg.analyses.values()),

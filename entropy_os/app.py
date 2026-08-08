@@ -18,47 +18,47 @@ import subprocess
 import tempfile
 import threading
 import time
-from datetime import datetime, timezone
-from pathlib import Path
 from collections.abc import Awaitable, Callable
-from typing import Any, TypedDict
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
-from fastapi import FastAPI, Header, HTTPException, Request, Response
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
-from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
-
-from engine.artifact import Artifact
-from engine.executor import sandbox_active
-from engine.grounding import record_grounding
-from engine.memory import MemoryRecord, MemoryStore, default_memory_store, format_lessons
-from engine.memory_export import sync_vault, vault_status
-from entropy_os import artifact_report, engine_client
-from entropy_os.accounts import AccountStore, BadCredentials, UsernameTaken, WeakCredentials
-from entropy_os.quota import QuotaStore
-from entropy_os.visits import VisitLog
-from products.wedge import (
-    OrgNotVendable,
-    SourcesUnavailable,
-    Authenticator,
-    QuotaExceeded,
-    SandboxUnavailable,
-    Unauthorized,
-    Wedge,
-    WedgeAuth,
-)
 from collector.collect import run_collection
 from collector.explain import CHECK_EXPLANATIONS
 from collector.sources import load_sources
 from collector.store import CollectorStore
-from entropy_os.keytracker import KeyTrackerStore
-from entropy_os.background_session import BackgroundSession
-from entropy_os.expiring_store import ExpiringRegistry
-from commons.ingest import ArticleFetcher, ChainedFetcher, TranscriptFetcher, TranscriptUnavailable, YtDlpFetcher
-from engine.model import ClaudeProvider, ModelProvider, OllamaProvider
+from commons.ingest import (
+    ArticleFetcher,
+    ChainedFetcher,
+    TranscriptFetcher,
+    TranscriptUnavailable,
+    YtDlpFetcher,
+)
+from commons.parallel_client import ParallelClient, SearchClient
+from commons.search import search_and_ingest
+from engine.artifact import Artifact
+from engine.catalog import (
+    DEFAULT_MODEL,
+    MODEL_NOTES,
+    MODELS,
+    get_default_override,
+    provider_for,
+    set_default_override,
+    tutorial_provider_for,
+)
+from engine.executor import sandbox_active
+from engine.grounding import record_grounding
+from engine.memory import MemoryRecord, MemoryStore, default_memory_store, format_lessons
+from engine.memory_export import sync_vault, vault_status
+from engine.model import ModelProvider
 from engine.run import ActivityEntry, set_activity_listener
-from orgs.store import RunStore, summarize
+from fastapi import FastAPI, Header, HTTPException, Request, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from orgs.dispatch import WorkOrder, dispatch, propose_route
+from orgs.paths import repo_root
+from orgs.planning import StepResult, execute_plan, gate_plan, propose_plan
 from orgs.production_studio.pipeline import ProductionResult
 from orgs.production_studio.publishing import (
     FfmpegPublisher,
@@ -68,28 +68,24 @@ from orgs.production_studio.publishing import (
 )
 from orgs.production_studio.taste import (
     ProductionProfileStore,
-    Review as ProdReview,
     build_create_production,
 )
-from orgs.planning import StepResult, execute_plan, gate_plan, propose_plan
-from orgs.dispatch import WorkOrder, dispatch, propose_route
-from orgs.registry import REGISTRY, OrgRun, get_org, production_generator
-
-from entropy_os.groups import GROUPS, validate_groups
-from entropy_os.org_presentation import presentation_for
+from orgs.production_studio.taste import (
+    Review as ProdReview,
+)
+from orgs.registry import REGISTRY, OrgRun, production_generator
 from orgs.research_studio.knowledge import Brief, build_brief
 from orgs.research_studio.report import ReportParseError, parse_report
 from orgs.software_studio import agents as software_agents
 from orgs.software_studio.builder import build as build_software
 from orgs.software_studio.tuning import GoalRun, TuningVerdict, VariantRun, spec_system
+from orgs.store import RunStore, summarize
 from orgs.web_studio.aesthetics import aesthetic_gates
 from orgs.web_studio.browser import RenderResult
 from orgs.web_studio.create import Review, build_create_page
 from orgs.web_studio.gates import RenderGate, StructureGate
 from orgs.web_studio.interview import CreateSpec, interview
 from orgs.web_studio.profile import ProfileStore, apply_profile, profile_hint
-from commons.search import search_and_ingest
-from commons.parallel_client import ParallelClient, SearchClient
 from products.tutorial.container import (
     DispensedCopy,
     build_tutorial_image,
@@ -104,14 +100,28 @@ from products.tutorial.generate import (
 )
 from products.tutorial.publish import publish_tutorial
 from products.tutorial.spec import TutorialSpec
-
-from engine.catalog import (
-    DEFAULT_MODEL, MODEL_NOTES, MODELS, get_default_override, provider_for,
-    set_default_override, tutorial_provider_for,
+from products.wedge import (
+    Authenticator,
+    OrgNotVendable,
+    QuotaExceeded,
+    SandboxUnavailable,
+    SourcesUnavailable,
+    Unauthorized,
+    Wedge,
+    WedgeAuth,
 )
-from orgs.paths import repo_root
+from pydantic import BaseModel
 
+from entropy_os import artifact_report, engine_client
+from entropy_os.accounts import AccountStore, BadCredentials, UsernameTaken, WeakCredentials
+from entropy_os.background_session import BackgroundSession
 from entropy_os.config import default_data_dir, load_dotenv
+from entropy_os.expiring_store import ExpiringRegistry
+from entropy_os.groups import GROUPS, validate_groups
+from entropy_os.keytracker import KeyTrackerStore
+from entropy_os.org_presentation import presentation_for
+from entropy_os.quota import QuotaStore
+from entropy_os.visits import VisitLog
 
 # Veritas-anchored paths (its config/, its docs/) still resolve against the
 # engine checkout via the library's own repo_root(); the PROCESS concerns —
@@ -152,7 +162,8 @@ class RunRequest(BaseModel):
 class WedgeRequest(BaseModel):
     goal: str
     model: str = DEFAULT_MODEL
-    org: str = "software"           # which slot: software | web | research (wedge allowlist decides)
+    # which slot: software | web | research (wedge allowlist decides)
+    org: str = "software"
     sources: list[str] | None = None  # research's pasted corpus
 
 
@@ -260,10 +271,12 @@ def _commons_document_html(rec: MemoryRecord) -> str:
     if channel:
         meta.append(f'<div><span class="k">channel</span> {e(channel)}</div>')
     if url:
-        meta.append(f'<div><span class="k">source</span> <a href="{e(url)}" target="_blank" rel="noopener">{e(url)}</a></div>')
+        meta.append(f'<div><span class="k">source</span> <a href="{e(url)}" target="_blank" '
+            f'rel="noopener">{e(url)}</a></div>')
     if why:
         meta.append(f'<div><span class="k">why saved</span> {e(why)}</div>')
-    meta.append(f'<div><span class="k">trust</span> <span class="vouch">◆ {e(trust)}</span> <span class="note">— vouches for the source, not the truth of its claims</span></div>')
+    meta.append(f'<div><span class="k">trust</span> <span class="vouch">◆ {e(trust)}</span> <span '
+        f'class="note">— vouches for the source, not the truth of its claims</span></div>')
     return f"""<!doctype html><html><head><meta charset="utf-8">
 <title>{e(rec.title)} — Knowledge Graph</title>
 <style>
@@ -319,11 +332,15 @@ def _report_document_html(run: dict[str, Any]) -> str:
         f'<title>{topic}</title><style>{_REPORT_CSS}</style></head><body><div class="wrap">'
         f'<div class="kicker">Veritas · Research Studio</div>'
         f'<h1>{topic}</h1>'
-        f'<div class="meta">{n} claim{"s" if n != 1 else ""}, each grounded · {model} · {when}</div>'
-        f'<div class="verified">✓ every claim cited &amp; quoted verbatim from a pinned source</div>'
+        f'<div class="meta">{n} claim{"s" if n != 1 else ""}, each grounded · {model} · '
+            f'{when}</div>'
+        f'<div class="verified">✓ every claim cited &amp; quoted verbatim from a pinned '
+            f'source</div>'
         f'{"".join(claims_html)}'
-        f'<footer>Each claim above traces to a verbatim quote in a source you provided — that is what '
-        f'&ldquo;verified&rdquo; means here. Grounding is fidelity to the sources, not a guarantee of '
+        f'<footer>Each claim above traces to a verbatim quote in a source you provided — that is '
+            f'what '
+        f'&ldquo;verified&rdquo; means here. Grounding is fidelity to the sources, not a guarantee '
+            f'of '
         f'truth. · <a href="/">← back to the hub</a></footer>'
         f'</div></body></html>'
     )
@@ -377,13 +394,15 @@ def _brief_document_html(brief: dict[str, Any]) -> str:
         f'<title>{q}</title><style>{_REPORT_CSS}</style></head><body><div class="wrap">'
         f'<div class="kicker">Veritas · Research Studio · Knowledge mode</div>'
         f'<h1>{q}</h1>'
-        f'<div class="meta">{nconf} model-asserted · {nflag} flagged · from the model’s own knowledge</div>'
+        f'<div class="meta">{nconf} model-asserted · {nflag} flagged · from the model’s own '
+            f'knowledge</div>'
         f'<div class="verified" style="color:#fbbf24;border-color:#fbbf24">⚠ NOT verified — '
         f'model-asserted; about {rate} of confident answers are wrong</div>'
         f'<h2 style="{h2}">Model-asserted · unverified</h2>{conf_html}'
         f'<h2 style="{h2}">Flagged — needs grounding or a human</h2>{flag_html}'
         f'<footer>The inverse of grounding: answered from the model’s own knowledge, the uncertain '
-        f'claims flagged. Nothing here is verified — &ldquo;confident&rdquo; means the model was consistent '
+        f'claims flagged. Nothing here is verified — &ldquo;confident&rdquo; means the model was '
+            f'consistent '
         f'and didn’t hedge, not that it is true. · <a href="/">← back to the hub</a></footer>'
         f'</div></body></html>'
     )
@@ -514,7 +533,7 @@ class BenchSession(BackgroundSession):
             return
         try:
             by_model = {r["model"]: r for r in summary}
-            payload = {"at": datetime.now(timezone.utc).isoformat(), "models": by_model}
+            payload = {"at": datetime.now(UTC).isoformat(), "models": by_model}
             self.results_path.parent.mkdir(parents=True, exist_ok=True)
             self.results_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         except OSError:
@@ -538,7 +557,8 @@ class TuneSession(BackgroundSession):
         self.provider_for = provider_for
         self.model = model
         self.repeats = repeats
-        self.baseline_prompt = software_agents.SPEC_SYSTEM  # the prompt in use, captured before any swap
+        # the prompt in use, captured before any swap
+        self.baseline_prompt = software_agents.SPEC_SYSTEM
         self.state: dict[str, Any] = {
             "phase": "running", "total": 2 * len(_BENCH_GOALS) * repeats,
             "done": 0, "current": None, "cells": [], "verdict": None, "error": None,
@@ -565,7 +585,8 @@ class TuneSession(BackgroundSession):
 
     def _run(self) -> None:
         try:
-            for variant, prompt in (("baseline", self.baseline_prompt), ("candidate", self.candidate)):
+            for variant, prompt in (("baseline", self.baseline_prompt),
+                                    ("candidate", self.candidate)):
                 with spec_system(prompt):  # the swap IS the experiment; always restored
                     for label, goal in _BENCH_GOALS:
                         for _ in range(self.repeats):
@@ -586,7 +607,8 @@ class TuneSession(BackgroundSession):
 
     def _verdict(self, cells: list[dict[str, Any]]) -> dict[str, Any]:
         def variant_run(name: str) -> VariantRun:
-            runs = [GoalRun(c["goal"], c["accepted"], c["retries"]) for c in cells if c["variant"] == name]
+            runs = [GoalRun(c["goal"], c["accepted"],
+                            c["retries"]) for c in cells if c["variant"] == name]
             return VariantRun(name, runs)
 
         v = TuningVerdict(variant_run("baseline"), variant_run("candidate"))
@@ -608,7 +630,8 @@ def available_voices() -> list[dict[str, str]]:
     voices: list[dict[str, str]] = []
     if shutil.which("say"):
         try:
-            out = subprocess.run(["say", "-v", "?"], capture_output=True, text=True, timeout=10).stdout
+            out = subprocess.run(["say", "-v", "?"], capture_output=True, text=True,
+                                 timeout=10).stdout
             for line in out.splitlines():
                 if "#" not in line:
                     continue
@@ -875,7 +898,8 @@ class ProductionCreateSession(BackgroundSession):
     def _run(self) -> None:
         set_activity_listener(lambda e: self.state["events"].append(_event(e)))
         try:
-            generator = production_generator(self.voice)  # Kokoro > say > silent narration, LTX video when set
+            # Kokoro > say > silent narration, LTX video when set
+            generator = production_generator(self.voice)
             res = build_create_production(
                 self.brief, self.provider, self.memory, review=self._review_fn,
                 asset_generator=generator, publisher=self.publisher,
@@ -932,7 +956,8 @@ class PlanSession(BackgroundSession):
         self._review.set()
 
     def _on_step(self, _index: int, sr: StepResult) -> None:
-        run_dict = self.record_run(sr.run, self.model)  # summarize + save → shows in that studio too
+        # summarize + save → shows in that studio too
+        run_dict = self.record_run(sr.run, self.model)
         with self.lock:
             self.state["steps"].append(
                 {"org": sr.org, "goal": sr.goal, "accepted": sr.accepted, "run": run_dict}
@@ -1052,7 +1077,7 @@ def create_app(
 
     def _record_run(org_run: OrgRun, model: str) -> dict[str, Any]:
         # Persist a plan step's run like any other, so it also shows up in that studio's history.
-        summary = summarize(org_run, datetime.now(timezone.utc).isoformat(), model=model)
+        summary = summarize(org_run, datetime.now(UTC).isoformat(), model=model)
         runs.save(summary)
         return runs.get(summary.id) or {}
 
@@ -1105,7 +1130,8 @@ def create_app(
         )
 
         @app.middleware("http")
-        async def _os_face(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+        async def _os_face(request: Request,
+                           call_next: Callable[[Request], Awaitable[Response]]) -> Response:
             path = request.url.path
             if path.startswith(_METERED_PREFIXES):
                 return await call_next(request)
@@ -1122,7 +1148,8 @@ def create_app(
         _PUBLIC_EXACT = {"/wedge", "/try"}
 
         @app.middleware("http")
-        async def _wedge_only(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+        async def _wedge_only(request: Request,
+                              call_next: Callable[[Request], Awaitable[Response]]) -> Response:
             path = request.url.path
             if path == "/":
                 return RedirectResponse("/wedge")
@@ -1295,7 +1322,8 @@ def create_app(
         elif choice in ("haiku", "sonnet", "opus"):
             set_default_override(choice)
         else:
-            raise HTTPException(status_code=422, detail="cloud must be one of: off, haiku, sonnet, opus")
+            raise HTTPException(status_code=422,
+                                detail="cloud must be one of: off, haiku, sonnet, opus")
         values = _load_settings()
         values["cloud_override"] = None if choice == "off" else choice
         _save_settings(values)
@@ -1331,7 +1359,7 @@ def create_app(
                     "actor": "run",
                     "message": "run started — the cast is proposing…",
                     "duration_ms": 0.0,
-                    "at": datetime.now(timezone.utc).isoformat(),
+                    "at": datetime.now(UTC).isoformat(),
                 }
             ],
             "done": False,
@@ -1348,7 +1376,7 @@ def create_app(
                               model=req.model, sources=req.sources),
                     prov, org_memory(req.org),
                 )
-                summary = summarize(finished.run, datetime.now(timezone.utc).isoformat(), model=req.model)
+                summary = summarize(finished.run, datetime.now(UTC).isoformat(), model=req.model)
                 runs.save(summary)
                 progress[token]["run"] = runs.get(summary.id)
             except Exception as exc:  # missing key, unknown model/org, model API error
@@ -1378,7 +1406,7 @@ def create_app(
             )
         except Exception as exc:  # missing API key, DispatchError, model API error
             return {"error": f"{type(exc).__name__}: {exc}"}
-        summary = summarize(finished.run, datetime.now(timezone.utc).isoformat(), model=req.model)
+        summary = summarize(finished.run, datetime.now(UTC).isoformat(), model=req.model)
         runs.save(summary)
         return runs.get(summary.id) or {}
 
@@ -1463,7 +1491,7 @@ def create_app(
     def keytracker_keys() -> list[dict[str, Any]]:
         """Inventory + best-effort per-key spend. Never returns a secret value —
         KeyRecord has no field capable of holding one."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         out: list[dict[str, Any]] = []
         for r in keytracker_store.list_all():
             rotated = r.last_rotated_at or r.created_at
@@ -1502,9 +1530,9 @@ def create_app(
         try:
             tenant = accounts.signup(req.username, req.password)
         except WeakCredentials as exc:
-            raise HTTPException(status_code=400, detail=str(exc))
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
         except UsernameTaken as exc:
-            raise HTTPException(status_code=409, detail=str(exc))
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
         return {"tenant": tenant}
 
     @app.post("/api/auth/login")
@@ -1514,7 +1542,8 @@ def create_app(
         try:
             token = accounts.login(req.username, req.password)
         except BadCredentials as exc:
-            raise HTTPException(status_code=401, detail=str(exc))  # generic — no account enumeration
+            # generic — no account enumeration
+            raise HTTPException(status_code=401, detail=str(exc)) from exc
         # Lazy, idempotent refresh so the pending count a human sees at login is
         # fresh — cheap (a handful of mode=ro reads), never raises.
         run_collection(collector_sources, collector_store)
@@ -1546,27 +1575,33 @@ def create_app(
                       unlimited_check=accounts.is_unlimited if accounts is not None else None,
                       search_client=web_search)
         try:
-            res = wedge.submit(authorization=authorization, goal=req.goal, org=req.org, sources=req.sources)
+            res = wedge.submit(authorization=authorization, goal=req.goal, org=req.org,
+                               sources=req.sources)
         except Unauthorized as exc:
-            raise HTTPException(status_code=401, detail=str(exc))
+            raise HTTPException(status_code=401, detail=str(exc)) from exc
         except OrgNotVendable as exc:
-            raise HTTPException(status_code=422, detail=str(exc))  # not a slot on this machine
+            # not a slot on this machine
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
         except SourcesUnavailable as exc:
-            raise HTTPException(status_code=422, detail=str(exc))  # research needs a corpus, honestly
+            # research needs a corpus, honestly
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
         except SandboxUnavailable as exc:
-            raise HTTPException(status_code=503, detail=str(exc))  # fail closed, surfaced honestly
+            # fail closed, surfaced honestly
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
         except QuotaExceeded as exc:
-            raise HTTPException(status_code=429, detail=str(exc))  # metered out for this window
-        except Exception:
+            # metered out for this window
+            raise HTTPException(status_code=429, detail=str(exc)) from exc
+        except Exception as exc:
             # A model hiccup or an unbuildable request must not show a scary generic error. The gritty
             # detail is in the server logs (for the operator); the visitor gets an honest, actionable
             # message. The wedge builds single VERIFIABLE functions — not GUI/interactive apps.
             raise HTTPException(
                 status_code=502,
-                detail=("Couldn't complete that build. Veritas here builds single, testable functions "
-                        "— try something like 'reverse a string' or 'calculate compound interest'. "
-                        "GUI or interactive apps (e.g. a Tkinter window) aren't supported on this endpoint."),
-            )
+                detail=("Couldn't complete that build. Veritas here builds single, "
+                        "testable functions — try something like 'reverse a string' "
+                        "or 'calculate compound interest'. GUI or interactive apps "
+                        "(e.g. a Tkinter window) aren't supported on this endpoint."),
+            ) from exc
         return {"tenant": res.tenant, "goal": res.goal, "accepted": res.accepted,
                 "run_id": res.run_id, "isolated": res.isolated, "code": res.code,
                 "spec": res.spec, "evidence": res.evidence, "remaining": res.remaining,
@@ -1585,9 +1620,9 @@ def create_app(
         try:
             return wedge.grade_learn(authorization, body.run_id, body.answers)
         except Unauthorized as exc:
-            raise HTTPException(status_code=401, detail=str(exc))
+            raise HTTPException(status_code=401, detail=str(exc)) from exc
         except KeyError as exc:
-            raise HTTPException(status_code=404, detail=str(exc))
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
 
     @app.post("/api/wedge/submit/start")
     def wedge_submit_start(
@@ -1598,12 +1633,12 @@ def create_app(
         try:
             wedge_auth.tenant_for(authorization)  # fail fast on an anonymous caller (clean 401)
         except Unauthorized as exc:
-            raise HTTPException(status_code=401, detail=str(exc))
+            raise HTTPException(status_code=401, detail=str(exc)) from exc
         token = uuid4().hex
         wedge_progress[token] = {
             "events": [{"phase": "explain", "actor": "run",
                         "message": "received — turning your goal into a checkable contract…",
-                        "duration_ms": 0.0, "at": datetime.now(timezone.utc).isoformat()}],
+                        "duration_ms": 0.0, "at": datetime.now(UTC).isoformat()}],
             "done": False, "result": None, "error": None,
         }
         wedge = Wedge(base, lambda: injected_provider or provider_for(req.model),
@@ -1615,13 +1650,15 @@ def create_app(
             # The listener is a ContextVar, so this thread's events never bleed into another run's.
             set_activity_listener(lambda e: wedge_progress[token]["events"].append(_event(e)))
             try:
-                res = wedge.submit(authorization=authorization, goal=req.goal, org=req.org, sources=req.sources)
+                res = wedge.submit(authorization=authorization, goal=req.goal, org=req.org,
+                                   sources=req.sources)
                 wedge_progress[token]["result"] = {
                     "tenant": res.tenant, "goal": res.goal, "accepted": res.accepted,
                     "run_id": res.run_id, "isolated": res.isolated, "code": res.code,
                     "spec": res.spec, "evidence": res.evidence, "remaining": res.remaining,
                     "org": res.org, "artifacts": res.artifacts}
-            except (SandboxUnavailable, QuotaExceeded, Unauthorized, OrgNotVendable, SourcesUnavailable) as exc:
+            except (SandboxUnavailable, QuotaExceeded, Unauthorized, OrgNotVendable,
+                    SourcesUnavailable) as exc:
                 wedge_progress[token]["error"] = str(exc)
             except Exception as exc:  # noqa: BLE001 — surfaced honestly, never rewritten
                 import traceback
@@ -1651,13 +1688,13 @@ def create_app(
         try:
             tenant = wedge_auth.tenant_for(authorization)
         except Unauthorized as exc:
-            raise HTTPException(status_code=401, detail=str(exc))
+            raise HTTPException(status_code=401, detail=str(exc)) from exc
         exempt = accounts is not None and accounts.is_unlimited(tenant)
         if quota is not None and not exempt:
             try:
                 quota.check(tenant)
             except QuotaExceeded as exc:
-                raise HTTPException(status_code=429, detail=str(exc))
+                raise HTTPException(status_code=429, detail=str(exc)) from exc
         tenant_root = base / "tenants" / tenant
         session = WedgeCreateSession(
             uuid4().hex, req.goal, req.model,
@@ -1705,7 +1742,7 @@ def create_app(
         try:
             tenant = wedge_auth.tenant_for(authorization)
         except Unauthorized as exc:
-            raise HTTPException(status_code=401, detail=str(exc))
+            raise HTTPException(status_code=401, detail=str(exc)) from exc
         if accounts is not None and accounts.is_unlimited(tenant):
             return {"tenant": tenant, "metered": True, "unlimited": True}
         if quota is None:
@@ -1793,7 +1830,8 @@ def create_app(
                  f"Hi, I'm {voice}. Here's how your narration will sound."],
                 check=True, capture_output=True, timeout=30,
             )
-        return FileResponse(path, media_type="audio/wav", headers={"Cache-Control": "max-age=86400"})
+        return FileResponse(path, media_type="audio/wav",
+                            headers={"Cache-Control": "max-age=86400"})
 
     @app.get("/api/produce/{token}")
     def produce_state(token: str) -> dict[str, Any]:
@@ -1861,8 +1899,10 @@ def create_app(
         """The knowledge Brief as a viewable document page (ephemeral — served from the live session)."""
         prog = brief_progress.get(token)
         if not prog or not prog.get("brief"):
-            raise HTTPException(status_code=404, detail="no brief for this token (it may have expired)")
-        return HTMLResponse(_brief_document_html(prog["brief"]), headers={"Cache-Control": "no-store"})
+            raise HTTPException(status_code=404,
+                                detail="no brief for this token (it may have expired)")
+        return HTMLResponse(_brief_document_html(prog["brief"]),
+                            headers={"Cache-Control": "no-store"})
 
     bench_sessions: ExpiringRegistry[BenchSession] = ExpiringRegistry()
 
@@ -1996,7 +2036,8 @@ def create_app(
         url, transcript, channel, title = body.url.strip(), body.transcript, body.channel, None
         if not transcript.strip():
             if not url:
-                raise HTTPException(status_code=400, detail="a source needs a URL or a pasted transcript")
+                raise HTTPException(status_code=400,
+                                    detail="a source needs a URL or a pasted transcript")
             try:
                 fetched = transcript_fetcher.fetch(url)
             except TranscriptUnavailable as e:
@@ -2060,7 +2101,8 @@ def create_app(
             None,
         )
         if source is None:
-            raise HTTPException(status_code=404, detail=f"no Knowledge Graph source {req.source_id!r}")
+            raise HTTPException(status_code=404,
+                                detail=f"no Knowledge Graph source {req.source_id!r}")
         spec = TutorialSpec(
             depth=req.depth, reading_style=req.reading_style,
             include_typing_practice=req.include_typing_practice,
@@ -2073,7 +2115,7 @@ def create_app(
 
         def worker() -> None:
             try:
-                prov = injected_provider or _tutorialprovider_for(req.model, len(source.body))
+                prov = injected_provider or tutorial_provider_for(req.model, len(source.body))
                 artifact, result = None, None
                 for _attempt in range(3):
                     artifact, result = generate_tutorial(source, spec, prov)
@@ -2092,14 +2134,16 @@ def create_app(
                             record.id, source.title, content,
                             source.provenance.get("url"), source.provenance.get("channel"),
                         )
-                    except Exception as exc:  # no docker daemon, build failure — product still stands
+                    # no docker daemon, build failure — product still stands
+                    except Exception as exc:
                         record.provenance["container_build_error"] = str(exc)
                     org_memory("tutorials").persist(record)
                     tutorial_progress[token]["product_id"] = record.id
                     tutorial_progress[token]["container_image"] = record.provenance.get("container_image")
                     try:
                         tutorial_progress[token]["mirror"] = publish_tutorial(source, content, spec)
-                    except Exception as exc:  # myAIstro unreachable/changed shape — the product still stands
+                    # myAIstro unreachable/changed shape — the product still stands
+                    except Exception as exc:
                         tutorial_progress[token]["mirror"] = {"status": "mirror_failed", "detail": str(exc)}
             except Exception as exc:  # model down, gate raised, etc.
                 tutorial_progress[token]["error"] = f"{type(exc).__name__}: {exc}"
@@ -2296,8 +2340,9 @@ def create_app(
             raise HTTPException(status_code=404, detail="run not found")
         try:
             return HTMLResponse(_report_document_html(run), headers={"Cache-Control": "no-store"})
-        except (ReportParseError, KeyError):
-            raise HTTPException(status_code=404, detail="no readable report in this run")
+        except (ReportParseError, KeyError) as exc:
+            raise HTTPException(status_code=404,
+                                detail="no readable report in this run") from exc
 
     @app.get("/commons/{record_id}")
     def commons_document(record_id: str) -> HTMLResponse:

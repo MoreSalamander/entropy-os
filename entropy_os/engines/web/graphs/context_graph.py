@@ -20,8 +20,7 @@ from pathlib import Path
 
 import networkx as nx
 
-from ..models import (DesignTrait, ProjectIntent, SiteAnalysis, TraitKind,
-                      new_id, now_utc)
+from ..models import DesignTrait, ProjectIntent, SiteAnalysis, TraitKind, new_id, now_utc
 
 
 class DesignContextGraph:

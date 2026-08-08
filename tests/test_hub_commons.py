@@ -6,11 +6,11 @@ dropped — and a saved source comes back through the list endpoint carrying its
 
 from __future__ import annotations
 
+from commons.ingest import FetchedTranscript, ScriptedFetcher
+from engine.model import ScriptedProvider
 from fastapi.testclient import TestClient
 
-from engine.model import ScriptedProvider
 from entropy_os.app import create_app
-from commons.ingest import FetchedTranscript, ScriptedFetcher
 
 
 def _client(tmp_path, fetcher=None):

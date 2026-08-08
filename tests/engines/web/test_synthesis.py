@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 from entropy_os.engines.research.llm.client import FakeLLM
-
 from entropy_os.engines.web.graphs.context_graph import DesignContextGraph
 from entropy_os.engines.web.models import PageKind, Palette, SectionKind
 from entropy_os.engines.web.synthesis.synthesizer import DesignSynthesizer
-from entropy_os.engines.web.synthesis.validators import (contrast_ratio,
-                                                fix_palette_contrast,
-                                                novelty_check)
+from entropy_os.engines.web.synthesis.validators import (
+    contrast_ratio,
+    fix_palette_contrast,
+    novelty_check,
+)
 
 
 class TestContrast:

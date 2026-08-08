@@ -109,7 +109,7 @@ class SoftwareKnowledgeGraph:
     def pattern_priors(self) -> list[dict]:
         """Patterns ranked by observed success — the Phase 12 reuse surface."""
         rows = []
-        for node_id, props in self.store.all_nodes():
+        for _node_id, props in self.store.all_nodes():
             if props.get("kind") != "pattern":
                 continue
             applied = int(props.get("applied", 0))

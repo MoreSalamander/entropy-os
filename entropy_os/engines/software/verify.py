@@ -55,7 +55,7 @@ async def _run(cmd: list[str], cwd: Path, env_path: Path,
         stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT)
     try:
         out, _ = await asyncio.wait_for(proc.communicate(), timeout=timeout_s)
-    except (TimeoutError, asyncio.TimeoutError):
+    except TimeoutError:
         proc.kill()
         return 1, f"timed out after {timeout_s}s"
     return proc.returncode or 0, out.decode(errors="replace")

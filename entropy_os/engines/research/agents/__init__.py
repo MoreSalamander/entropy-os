@@ -1,6 +1,6 @@
 from .base import GraphAgent
-from .verify import ContradictionAgent, VerificationAgent
 from .insight import AnalystAgent, DiscoveryAgent, QuestionAgent, TrendAgent
+from .verify import ContradictionAgent, VerificationAgent
 
 ALL_AGENTS = [VerificationAgent, ContradictionAgent, AnalystAgent,
               DiscoveryAgent, TrendAgent, QuestionAgent]

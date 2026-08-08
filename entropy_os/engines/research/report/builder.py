@@ -24,8 +24,7 @@ from pathlib import Path
 
 from ..graphs.context_graph import ContextGraph
 from ..llm.client import LLMClient, LLMUnavailable
-from ..models import (Finding, Polarity, ReportSection, ResearchReport,
-                      TimelineEvent)
+from ..models import Finding, Polarity, ReportSection, ResearchReport, TimelineEvent
 
 
 def _empty(title: str, reason: str) -> ReportSection:
@@ -193,7 +192,8 @@ class ReportBuilder:
             date = ev.published.date().isoformat() if ev.published else "—"
             authors = (", ".join(a for a in ev.authors if a)[:40] or "—").replace("|", "/")
             title = (ev.title[:60] or ev.url[:60]).replace("|", "/")
-            lines.append(f"| {ev.source} | [{title}]({ev.url}) | {date} | {authors} | {ev.reliability} |")
+            lines.append(f"| {ev.source} | [{title}]({ev.url}) | {date} | {authors} | "
+                f"{ev.reliability} |")
         return ReportSection(title="Evidence Table", body_md="\n".join(lines),
                              item_count=len(rows))
 
@@ -225,7 +225,8 @@ class ReportBuilder:
             return _empty("Arguments For/Against",
                           "No disputed claims surfaced — the collected evidence points one way")
         lines = ["**Supporting positions**"]
-        lines += [f"- {c.statement} _(confidence {c.confidence})_" for c in asserts[:6]] or ["- (none verified)"]
+        lines += [f"- {c.statement} _(confidence {c.confidence})_" for c in asserts[:6]] or ["- "
+            "(none verified)"]
         lines += ["", "**Dissenting / disputing positions**"]
         lines += [f"- {c.statement} _(confidence {c.confidence})_" for c in disputes[:6]]
         if contras:
@@ -309,7 +310,8 @@ class ReportBuilder:
     @staticmethod
     def to_markdown(report: ResearchReport) -> str:
         head = [f"# Research Report: {report.topic}",
-                f"_Session `{report.session_id}` · generated {report.generated_at:%Y-%m-%d %H:%M UTC}_",
+                f"_Session `{report.session_id}` · generated "
+                    f"{report.generated_at:%Y-%m-%d %H:%M UTC}_",
                 "",
                 "**Run stats:** " + ", ".join(f"{k}={v}" for k, v in report.stats.items()
                                               if not isinstance(v, dict)),

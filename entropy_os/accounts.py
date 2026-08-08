@@ -27,7 +27,7 @@ import os
 import re
 import secrets
 import sqlite3
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from products.wedge import Unauthorized, parse_bearer
@@ -58,7 +58,7 @@ class BadCredentials(Exception):
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _hash_password(password: str, salt: bytes) -> bytes:
@@ -96,7 +96,8 @@ class AccountStore:
             )
             con.execute(
                 "CREATE TABLE IF NOT EXISTS sessions ("
-                " token_hash TEXT PRIMARY KEY,"   # sha256(token); the plaintext token is never stored
+                # sha256(token); the plaintext token is never stored
+                " token_hash TEXT PRIMARY KEY,"
                 " user_id TEXT NOT NULL,"
                 " created_at TEXT NOT NULL,"
                 " expires_at TEXT NOT NULL)"
@@ -115,7 +116,8 @@ class AccountStore:
         an internal legacy name kept so a deployed DB needs no migration; it just holds the username.)"""
         username = username.strip().lower()
         if not _USERNAME_RE.match(username):
-            raise WeakCredentials("a valid username is required (3–32 chars: letters, digits, . _ -)")
+            raise WeakCredentials("a valid username is required (3–32 chars: letters, digits, . _ "
+                "-)")
         if len(password) < _MIN_PASSWORD:
             raise WeakCredentials(f"password must be at least {_MIN_PASSWORD} characters")
         user_id = "u" + secrets.token_hex(8)  # path-safe, matches the tenant rule by construction
@@ -123,7 +125,8 @@ class AccountStore:
         try:
             with self._connect() as con:
                 con.execute(
-                    "INSERT INTO users (id, email, pw_hash, pw_salt, created_at) VALUES (?, ?, ?, ?, ?)",
+                    "INSERT INTO users (id, email, pw_hash, pw_salt, created_at) VALUES (?, ?, ?, "
+                        "?, ?)",
                     (user_id, username, _hash_password(password, salt), salt, _now().isoformat()),
                 )
         except sqlite3.IntegrityError as exc:  # the UNIQUE(username) constraint
@@ -147,7 +150,8 @@ class AccountStore:
         now = _now()
         with self._connect() as con:
             con.execute(
-                "INSERT INTO sessions (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)",
+                "INSERT INTO sessions (token_hash, user_id, created_at, expires_at) VALUES (?, ?, "
+                    "?, ?)",
                 (_hash_token(token), row["id"], now.isoformat(), (now + self.session_ttl).isoformat()),
             )
         return token

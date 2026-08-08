@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from entropy_os.engines.research.llm.client import FakeLLM
-
 from entropy_os.engines.web.models import PageKind, TraitKind
 from entropy_os.engines.web.research.intent import IntentAnalyzer
 from entropy_os.engines.web.research.seeds import SEED_SITES, seeds_for

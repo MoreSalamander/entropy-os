@@ -15,14 +15,14 @@ from __future__ import annotations
 import hashlib
 import re
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 
 from pydantic import BaseModel, Field
 
 
 def now_utc() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def new_id(prefix: str) -> str:
@@ -207,7 +207,8 @@ class ResearchPlan(BaseModel):
 class Finding(BaseModel):
     """Typed output of a graph-reasoning agent. Always cites evidence."""
     agent: str
-    kind: str                            # summary | verification | contradiction | discovery | trend | question
+    # summary | verification | contradiction | discovery | trend | question
+    kind: str
     text: str
     entity_ids: list[str] = Field(default_factory=list)
     evidence_ids: list[str] = Field(default_factory=list)

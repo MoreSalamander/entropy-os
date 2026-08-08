@@ -10,10 +10,11 @@ import sqlite3
 from pathlib import Path
 
 import pytest
-
 from collector.sources import SourceConfig
 
-def _hunter_engine_source(tmp_path: Path, name: str = "crypto_hunter", **kw: object) -> SourceConfig:
+
+def _hunter_engine_source(tmp_path: Path, name: str = "crypto_hunter",
+                          **kw: object) -> SourceConfig:
     repo = tmp_path / name
     (repo / "data").mkdir(parents=True, exist_ok=True)
     kwargs = {"name": name, "title": name, "repo": str(repo), "kind": "hunter_engine", "color": "fff"}

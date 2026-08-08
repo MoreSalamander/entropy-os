@@ -101,7 +101,7 @@ class SoftwareResearchOrchestrator:
                                   for p in packages]})
             r.raise_for_status()
             out: list[ResearchEvidence] = []
-            for pkg, res in zip(packages, r.json().get("results", [])):
+            for pkg, res in zip(packages, r.json().get("results", []), strict=True):
                 vulns = res.get("vulns") or []
                 out.append(ResearchEvidence(
                     agent="Security Research Agent", topic="security",
@@ -178,7 +178,7 @@ class SoftwareResearchOrchestrator:
             self._security(spec), self._ux(spec))
         evidence = [e for batch in batches for e in batch]
         stats = {
-            "workers": dict(zip(RESEARCH_AGENTS, (len(b) for b in batches))),
+            "workers": dict(zip(RESEARCH_AGENTS, (len(b) for b in batches), strict=True)),
             "evidence_total": len(evidence),
             "parallel_ai": (self.parallel.status.value
                             if self.parallel.status != SourceStatus.LIVE

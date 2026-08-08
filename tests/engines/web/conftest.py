@@ -5,9 +5,16 @@ from __future__ import annotations
 
 import pytest
 
-from entropy_os.engines.web.models import (DesignSystem, FontClass, MotionLevel,
-                                  PageKind, PagePlan, Palette, ProjectIntent,
-                                  SectionKind)
+from entropy_os.engines.web.models import (
+    DesignSystem,
+    FontClass,
+    MotionLevel,
+    PageKind,
+    PagePlan,
+    Palette,
+    ProjectIntent,
+    SectionKind,
+)
 from entropy_os.engines.web.research.site_analyzer import SiteAnalyzer
 
 FIXTURE_HTML = """<!doctype html><html><head>

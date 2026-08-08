@@ -6,13 +6,20 @@ network, no Ollama, no servers.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from entropy_os.engines.research.models import (Claim, Entity, EntityType, Evidence,
-                                    Polarity, RawDoc, ResearchPlan,
-                                    SourceCategory)
+from entropy_os.engines.research.models import (
+    Claim,
+    Entity,
+    EntityType,
+    Evidence,
+    Polarity,
+    RawDoc,
+    ResearchPlan,
+    SourceCategory,
+)
 
 
 def make_doc(url: str = "https://example.org/a", title: str = "Doc A",
@@ -20,7 +27,7 @@ def make_doc(url: str = "https://example.org/a", title: str = "Doc A",
              days_old: int = 10, **extra) -> RawDoc:
     return RawDoc(url=url, title=title, source=source,
                   category=SourceCategory.ACADEMIC, text=text,
-                  published=datetime.now(timezone.utc) - timedelta(days=days_old),
+                  published=datetime.now(UTC) - timedelta(days=days_old),
                   extra=extra)
 
 
@@ -28,7 +35,7 @@ def make_evidence(source: str = "arxiv", reliability: float = 0.8,
                   days_old: int = 10, url: str = "https://example.org/a") -> Evidence:
     return Evidence(source=source, category=SourceCategory.ACADEMIC, url=url,
                     title=f"paper via {source}", excerpt="…",
-                    published=datetime.now(timezone.utc) - timedelta(days=days_old),
+                    published=datetime.now(UTC) - timedelta(days=days_old),
                     reliability=reliability)
 
 

@@ -10,8 +10,8 @@ import os
 import subprocess
 import sys
 
-from entropy_os.engines.software.org import run_static_agents
 from entropy_os.engines.software.models import CheckStatus
+from entropy_os.engines.software.org import run_static_agents
 
 from .conftest import generate_project
 

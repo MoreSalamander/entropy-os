@@ -19,7 +19,7 @@ import re
 
 from entropy_os.engines.research.llm.client import LLMClient, LLMUnavailable
 
-from ..models import DesignSystem, PageKind, PagePlan, ProjectIntent, SectionKind
+from ..models import DesignSystem, PagePlan, ProjectIntent, SectionKind
 
 # Real brands/figures that must never appear as fake customers or quotes.
 _REAL_BRAND_RE = re.compile(
@@ -198,13 +198,13 @@ class Copywriter:
             page["testimonials"] = [
                 {"quote": "The first tool in this category our clinicians actually "
                           "kept using after the pilot.", **dict(zip(("name", "role"),
-                           _PLACEHOLDER_PEOPLE[0]))},
+                           _PLACEHOLDER_PEOPLE[0], strict=True))},
                 {"quote": "Setup took an afternoon. The audit trail alone justified "
                           "the switch.", **dict(zip(("name", "role"),
-                           _PLACEHOLDER_PEOPLE[1]))},
+                           _PLACEHOLDER_PEOPLE[1], strict=True))},
                 {"quote": "Our board asked harder questions than any vendor demo — "
                           "this held up.", **dict(zip(("name", "role"),
-                           _PLACEHOLDER_PEOPLE[2]))},
+                           _PLACEHOLDER_PEOPLE[2], strict=True))},
             ]
         if SectionKind.PRICING in sections and missing("pricing_tiers", 3):
             page["pricing_tiers"] = [
@@ -249,7 +249,8 @@ class Copywriter:
             page["docs_topics"] = [
                 {"title": "Quickstart", "body": "Install, authenticate, and run your "
                  "first request in under five minutes.",
-                 "code": "curl -X POST https://api.example.com/v1/run \\\n  -H 'Authorization: Bearer <token>'"},
+                 "code": "curl -X POST https://api.example.com/v1/run \\\n  -H 'Authorization: "
+                     "Bearer <token>'"},
                 {"title": "Core concepts", "body": "Projects, runs, and results — the "
                  "three objects everything else builds on."},
                 {"title": "API reference", "body": "Every endpoint, request shape, and "

@@ -13,7 +13,7 @@ Same law as the gate pair — deterministic structure first, LLM voices last:
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from ..graphs.context_graph import ContextGraph
 from ..graphs.knowledge_graph import KnowledgeGraph
@@ -127,7 +127,7 @@ class TrendAgent(GraphAgent):
 
     async def analyze(self, cg: ContextGraph,
                       kg: KnowledgeGraph | None = None) -> list[Finding]:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         recent_cut = now - timedelta(days=self.RECENT_DAYS)
         year_cut = now - timedelta(days=365)
 

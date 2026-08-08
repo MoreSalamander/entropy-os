@@ -1,3 +1,3 @@
-from .client import LLMClient, LLMUnavailable, OllamaClient, FakeLLM
+from .client import FakeLLM, LLMClient, LLMUnavailable, OllamaClient
 
 __all__ = ["LLMClient", "LLMUnavailable", "OllamaClient", "FakeLLM"]

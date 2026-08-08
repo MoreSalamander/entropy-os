@@ -5,13 +5,21 @@ from __future__ import annotations
 from datetime import timedelta
 
 from entropy_os.engines.research.llm.client import FakeLLM
-
 from entropy_os.engines.university.adaptive import choose_method, next_activity
-from entropy_os.engines.university.models import (ActivityKind, EvidenceRow, Exercise,
-                                 ExerciseKind, LearnerProfile, Mastery,
-                                 now_utc)
-from entropy_os.engines.university.teaching import (AssessmentAgent, PracticeAgent,
-                                   concept_map_mermaid, run_python_sandboxed)
+from entropy_os.engines.university.models import (
+    ActivityKind,
+    Exercise,
+    ExerciseKind,
+    LearnerProfile,
+    Mastery,
+    now_utc,
+)
+from entropy_os.engines.university.teaching import (
+    AssessmentAgent,
+    PracticeAgent,
+    concept_map_mermaid,
+    run_python_sandboxed,
+)
 
 
 class TestVisualizationAgent:

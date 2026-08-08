@@ -3,13 +3,19 @@
 from __future__ import annotations
 
 import pytest
-from entropy_os.engines.research.llm.client import FakeLLM
 
+from entropy_os.engines.research.llm.client import FakeLLM
 from entropy_os.engines.software.architecture import ArchitectAgent
 from entropy_os.engines.software.graphs.context_graph import SoftwareContextGraph
 from entropy_os.engines.software.intent import IntentAnalyzer
-from entropy_os.engines.software.models import (ApiEndpoint, Architecture, Component,
-                                EntityField, EntityModel, Feature)
+from entropy_os.engines.software.models import (
+    ApiEndpoint,
+    Architecture,
+    Component,
+    EntityField,
+    EntityModel,
+    Feature,
+)
 
 REQUEST = "Build an AI research platform that lets users investigate any topic."
 

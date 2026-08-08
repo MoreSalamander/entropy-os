@@ -5,15 +5,13 @@ from __future__ import annotations
 import json
 import re
 
-from entropy_os.engines.research.llm.client import FakeLLM
 from entropy_os.engines.research.graphs.store import NetworkXJSONStore
 from entropy_os.engines.research.graphs.vector_index import VectorIndex
-
+from entropy_os.engines.research.llm.client import FakeLLM
 from entropy_os.engines.web.codegen.copywriter import Copywriter
 from entropy_os.engines.web.codegen.project_writer import _PAGE_HREFS
 from entropy_os.engines.web.graphs.knowledge_graph import DesignKnowledgeGraph
-from entropy_os.engines.web.models import (PageKind, ProjectOutcome, ReviewSeverity,
-                                  SectionKind)
+from entropy_os.engines.web.models import PageKind, ProjectOutcome
 from entropy_os.engines.web.review.agents import run_review
 from entropy_os.engines.web.review.improver import AutoImprover
 

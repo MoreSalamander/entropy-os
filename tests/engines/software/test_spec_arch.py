@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from entropy_os.engines.research.llm.client import FakeLLM
-
 from entropy_os.engines.software.architecture import ArchitectAgent
 from entropy_os.engines.software.intent import IntentAnalyzer
 from entropy_os.engines.software.models import Priority

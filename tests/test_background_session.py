@@ -8,6 +8,8 @@ from __future__ import annotations
 import threading
 import time
 
+import pytest
+
 from entropy_os.background_session import BackgroundSession
 
 
@@ -55,11 +57,8 @@ def test_snapshot_returns_a_copy_not_the_live_state_dict() -> None:
 def test_subclass_must_implement_run() -> None:
     session = BackgroundSession("token-1")
 
-    try:
+    with pytest.raises(NotImplementedError):
         session._run()
-        assert False, "expected NotImplementedError"
-    except NotImplementedError:
-        pass
 
 
 def test_set_is_lock_guarded_against_concurrent_writers() -> None:

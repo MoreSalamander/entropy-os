@@ -29,8 +29,7 @@ import sys
 
 from entropy_os.engines.research.llm.client import LLMClient, LLMUnavailable
 
-from .models import (Exercise, ExerciseKind, GradedAnswer, Lesson,
-                     LearningResource, Roadmap)
+from .models import Exercise, ExerciseKind, GradedAnswer, LearningResource, Lesson, Roadmap
 
 # ---------------------------------------------------------------------- #
 # Visualization Agent — deterministic mermaid from the graph
@@ -106,7 +105,7 @@ async def run_python_sandboxed(code: str, timeout_s: int = 5) -> tuple[bool, str
         stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT)
     try:
         out, _ = await asyncio.wait_for(proc.communicate(), timeout=timeout_s)
-    except (TimeoutError, asyncio.TimeoutError):
+    except TimeoutError:
         proc.kill()
         return False, f"timed out after {timeout_s}s"
     return (proc.returncode or 0) == 0, out.decode(errors="replace")

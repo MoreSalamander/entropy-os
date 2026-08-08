@@ -22,7 +22,7 @@ session is skipped — the engine does not relearn what it already learned.
 from __future__ import annotations
 
 import asyncio
-from typing import Awaitable, Callable
+from collections.abc import Awaitable, Callable
 
 from ..extraction.extractor import EvidenceExtractor
 from ..graphs.context_graph import ContextGraph

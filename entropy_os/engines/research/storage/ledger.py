@@ -14,8 +14,7 @@ from __future__ import annotations
 
 import json
 
-from sqlalchemy import (Column, DateTime, Integer, MetaData, String, Table,
-                        Text, func, select)
+from sqlalchemy import Column, DateTime, MetaData, String, Table, Text, func, select
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from ..models import RawDoc

@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from entropy_os.engines.research.llm.client import FakeLLM
 from entropy_os.engines.research.graphs.store import NetworkXJSONStore
 from entropy_os.engines.research.graphs.vector_index import VectorIndex
-
+from entropy_os.engines.research.llm.client import FakeLLM
 from entropy_os.engines.software.graphs.codebase_model import CodebaseAnalyzer
 from entropy_os.engines.software.graphs.knowledge_graph import SoftwareKnowledgeGraph
 from entropy_os.engines.software.impact import analyze_impact, impact_markdown

@@ -8,10 +8,8 @@ from __future__ import annotations
 
 import json
 
-import pytest
-
 from engine.model import ScriptedProvider
-from products.wedge import SandboxUnavailable, Unauthorized, Wedge, WedgeAuth
+from products.wedge import Wedge, WedgeAuth
 
 GOOD_SPEC = json.dumps({
     "function_name": "add", "description": "add two numbers", "signature": "def add(a, b)",
@@ -63,7 +61,8 @@ def test_wedge_page_is_served(tmp_path):
     for path in ("/wedge", "/try"):
         r = client.get(path)
         assert r.status_code == 200
-        assert "/api/wedge/submit" in r.text and "/api/auth/login" in r.text  # the storefront wiring
+        # the storefront wiring
+        assert "/api/wedge/submit" in r.text and "/api/auth/login" in r.text
 
 
 def test_public_mode_exposes_only_the_wedge(tmp_path, monkeypatch):
@@ -98,8 +97,10 @@ def test_streaming_submit_emits_trace_then_result(tmp_path, monkeypatch):
     client = TestClient(create_app(data_dir=tmp_path, provider=_provider()))
     hdr = {"Authorization": "Bearer tok_alice"}
 
-    assert client.post("/api/wedge/submit/start", json={"goal": "x"}).status_code == 401  # anon refused
-    token = client.post("/api/wedge/submit/start", json={"goal": "add two numbers"}, headers=hdr).json()["token"]
+    # anon refused
+    assert client.post("/api/wedge/submit/start", json={"goal": "x"}).status_code == 401
+    token = client.post("/api/wedge/submit/start", json={"goal": "add two numbers"},
+                        headers=hdr).json()["token"]
 
     state = {}
     for _ in range(100):  # poll the live trace until the background build finishes

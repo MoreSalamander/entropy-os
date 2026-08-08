@@ -21,9 +21,12 @@ import asyncio
 
 import httpx
 
-from entropy_os.engines.research.sources.academic import (ArxivAdapter, CrossrefAdapter,
-                                              OpenAlexAdapter,
-                                              SemanticScholarAdapter)
+from entropy_os.engines.research.sources.academic import (
+    ArxivAdapter,
+    CrossrefAdapter,
+    OpenAlexAdapter,
+    SemanticScholarAdapter,
+)
 from entropy_os.engines.research.sources.base import USER_AGENT
 from entropy_os.engines.research.sources.code import GitHubAdapter
 from entropy_os.engines.research.sources.community import HackerNewsAdapter

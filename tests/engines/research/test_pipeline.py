@@ -66,8 +66,10 @@ GOOD_EXTRACTION = {
     ],
     "relationships": [
         {"subject": "Transformer", "predicate": "optimized_by", "object": "GPU Acceleration"},
-        {"subject": "Transformer", "predicate": "bogus_pred", "object": "GPU Acceleration"},  # rejected
-        {"subject": "Ghost", "predicate": "uses", "object": "Transformer"},                    # rejected
+        # rejected
+        {"subject": "Transformer", "predicate": "bogus_pred", "object": "GPU Acceleration"},
+        # rejected
+        {"subject": "Ghost", "predicate": "uses", "object": "Transformer"},
     ],
 }
 

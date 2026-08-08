@@ -10,8 +10,8 @@ from __future__ import annotations
 import os
 
 from ..models import RawDoc, SourceCategory
-from .base import SourceAdapter
 from .academic import _dt
+from .base import SourceAdapter
 
 
 class GitHubAdapter(SourceAdapter):

@@ -86,10 +86,10 @@ async def impact(dir: str, component: str) -> dict:
     try:
         cg = SoftwareContextGraph.load_sidecar(root)
         return json.loads(analyze_impact(cg, component).model_dump_json())
-    except FileNotFoundError:
-        raise HTTPException(404, f"no sidecar model under {dir}")
+    except FileNotFoundError as exc:
+        raise HTTPException(404, f"no sidecar model under {dir}") from exc
     except KeyError as e:
-        raise HTTPException(404, str(e))
+        raise HTTPException(404, str(e)) from e
 
 
 @app.post("/projects/evolve")

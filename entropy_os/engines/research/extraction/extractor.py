@@ -20,8 +20,17 @@ are fabricated, and the run report marks extraction as degraded.
 from __future__ import annotations
 
 from ..llm.client import LLMClient, LLMUnavailable
-from ..models import (Claim, Entity, EntityType, Evidence, ExtractionResult,
-                      Polarity, Predicate, RawDoc, Relationship)
+from ..models import (
+    Claim,
+    Entity,
+    EntityType,
+    Evidence,
+    ExtractionResult,
+    Polarity,
+    Predicate,
+    RawDoc,
+    Relationship,
+)
 from .reliability import score_reliability
 
 _EXTRACT_SCHEMA = {

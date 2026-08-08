@@ -72,7 +72,7 @@ async def evolve(root: Path, llm: LLMClient, log=print) -> list[EvolutionFinding
                     json={"queries": [{"package": {"name": p, "ecosystem": "PyPI"}}
                                       for p in packages]})
                 r.raise_for_status()
-                for pkg, res in zip(packages, r.json().get("results", [])):
+                for pkg, res in zip(packages, r.json().get("results", []), strict=True):
                     vulns = res.get("vulns") or []
                     if vulns:
                         findings.append(EvolutionFinding(

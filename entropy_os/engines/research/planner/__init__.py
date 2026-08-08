@@ -1,3 +1,3 @@
-from .planner import ResearchPlanner, AGENT_ARCHETYPES
+from .planner import AGENT_ARCHETYPES, ResearchPlanner
 
 __all__ = ["ResearchPlanner", "AGENT_ARCHETYPES"]

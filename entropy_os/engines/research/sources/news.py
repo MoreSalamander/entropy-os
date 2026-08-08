@@ -6,7 +6,7 @@ no signup. NewsAPI lives in keyed.py for headline coverage once a key exists.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from ..models import RawDoc, SourceCategory
 from .base import SourceAdapter
@@ -35,7 +35,7 @@ class GDELTAdapter(SourceAdapter):
             pub = None
             if len(seen) >= 8:
                 try:
-                    pub = datetime.strptime(seen[:8], "%Y%m%d").replace(tzinfo=timezone.utc)
+                    pub = datetime.strptime(seen[:8], "%Y%m%d").replace(tzinfo=UTC)
                 except ValueError:
                     pub = None
             docs.append(RawDoc(

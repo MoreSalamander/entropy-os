@@ -10,13 +10,26 @@ from __future__ import annotations
 import httpx
 
 from ..config import Config
+from .academic import (
+    ArxivAdapter,
+    CrossrefAdapter,
+    OpenAlexAdapter,
+    PubMedAdapter,
+    SemanticScholarAdapter,
+)
 from .base import USER_AGENT, SourceAdapter
-from .academic import ArxivAdapter, CrossrefAdapter, OpenAlexAdapter, PubMedAdapter, SemanticScholarAdapter
 from .code import GitHubAdapter, GitLabAdapter, HuggingFaceAdapter
 from .community import HackerNewsAdapter, RedditAdapter, StackExchangeAdapter
 from .government import DataGovAdapter
-from .keyed import (BraveSearchAdapter, IEEEAdapter, KaggleAdapter,
-                    NewsAPIAdapter, PatentsViewAdapter, SerperAdapter, WIPOAdapter)
+from .keyed import (
+    BraveSearchAdapter,
+    IEEEAdapter,
+    KaggleAdapter,
+    NewsAPIAdapter,
+    PatentsViewAdapter,
+    SerperAdapter,
+    WIPOAdapter,
+)
 from .news import GDELTAdapter
 from .web import WikipediaAdapter
 
