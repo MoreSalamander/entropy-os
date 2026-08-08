@@ -241,7 +241,33 @@ $('topic').addEventListener('keydown', e => {
   if (e.key === 'Enter') $('go').click();
 });
 
+// Objectives outlive the browser session — they run for many minutes under a
+// durable orchestrator. Opening this page mid-run should show the run, not
+// "nothing running", so adopt the most recent objective on load and follow it
+// if it is still going.
+async function adoptExisting() {
+  try {
+    const {objectives} = await j('/objectives');
+    if (!objectives || !objectives.length) return;
+    const latest = objectives[objectives.length - 1];
+    following = latest.objective_id;
+    if (latest.status === 'running') {
+      $('go').disabled = true;
+      poll();
+    } else {
+      // Finished: render it once as the last thing the system did.
+      const o = await j('/objectives/' + following);
+      $('obj-sub').textContent =
+        `${o.subject} — ${o.status} · via ${o.orchestrator}`;
+      renderStages(o.plan, o.stages_completed, null);
+      renderFeed(o.events);
+      following = null;
+    }
+  } catch (e) { /* nothing to adopt */ }
+}
+
 loadIdentity();
+adoptExisting();
 </script>
 </body>
 </html>

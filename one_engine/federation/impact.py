@@ -23,7 +23,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from ..events.bus import EventBus
-from .semantics import slugify
+from .semantics import identifying, slugify
 
 # Ceiling on how much history one analysis reads. The log is append-only and
 # a long-lived system accumulates; this keeps analysis bounded and fast while
@@ -72,12 +72,31 @@ def analyze(subject: str, bus: EventBus,
         report.unaffected = sorted(engines)
         return report
 
+    # Identifying outputs seen since the last StageCompleted, per objective.
+    # They are the fallback for history recorded before StageCompleted began
+    # carrying `produced`: an append-only log is a durable record, so a
+    # consumer that can only read the newest format would quietly lose the
+    # system's own past. Harvesting is by CONVENTION (identifying key names),
+    # never by a per-engine table, so it stays composable for engines that
+    # join later.
+    pending: dict[str, dict] = {}
+
     for event in history:
-        if (event.kind != "StageCompleted"
-                or event.objective_id not in objectives
-                or event.payload.get("status") != "completed"):
+        if event.objective_id not in objectives:
             continue
-        produced = event.payload.get("produced") or {}
+        if event.kind != "StageCompleted":
+            found = identifying(event.payload)
+            if found:
+                pending[event.objective_id] = {
+                    **pending.get(event.objective_id, {}), **found}
+            continue
+        if event.payload.get("status") != "completed":
+            pending.pop(event.objective_id, None)
+            continue
+
+        produced = (event.payload.get("produced")
+                    or pending.pop(event.objective_id, {}))
+        pending.pop(event.objective_id, None)
         if not produced:
             continue           # a stage that made nothing identifiable
         engine = event.payload.get("engine", "")

@@ -119,3 +119,58 @@ async def test_a_skipped_stage_records_why(unified):
     assert any("no existing curriculum" in n
                for c in skipped for n in c.notes)
     assert any("no existing software" in n for c in skipped for n in c.notes)
+
+
+async def test_impact_reads_history_written_before_produced_existed(bus):
+    """An append-only log is a durable record: history recorded by an older
+    version of the system must stay readable, or the system quietly loses its
+    own past whenever the output convention changes.
+
+    Older StageCompleted events carry no `produced` field, so the identifiers
+    are recovered from the member events that preceded them — by key-name
+    convention, never a per-engine table."""
+    from one_engine.contract import SemanticEvent
+
+    async def old_style(kind: str, payload: dict, engine: str = "e"):
+        await bus.publish(SemanticEvent(kind=kind, engine=engine,
+                                        subject="WebGPU", objective_id="obj-old",
+                                        payload=payload))
+
+    await old_style("ObjectiveStarted", {"capability": "compose.learning_platform"})
+    await old_style("CurriculumCreated", {"session_id": "study-old",
+                                          "learning_order": ["a", "b"]})
+    # No "produced" key — exactly how the field looked before it existed.
+    await old_style("StageCompleted", {"seq": 2, "engine": "university",
+                                       "status": "completed"})
+    await old_style("SoftwareBuilt", {"project_id": "proj-old",
+                                      "product_name": "OldAcademy"})
+    await old_style("StageCompleted", {"seq": 3, "engine": "software",
+                                       "status": "completed"})
+
+    report = impact.analyze("WebGPU", bus)
+    assert report.prior_objectives == ["obj-old"]
+    assert report.affected["university"]["session_id"] == "study-old"
+    assert report.affected["university"]["learning_order"] == ["a", "b"]
+    assert report.affected["software"]["product_name"] == "OldAcademy"
+    # Attribution is per stage: software's identifiers must not leak onto
+    # the university stage that completed before them.
+    assert "project_id" not in report.affected["university"]
+
+
+async def test_a_failed_stage_claims_no_artifact(bus):
+    """A stage that failed produced nothing to update, even if events fired
+    before it failed."""
+    from one_engine.contract import SemanticEvent
+
+    for kind, payload in (
+            ("ObjectiveStarted", {"capability": "compose.learning_platform"}),
+            ("SoftwareBuildProgress", {"project_id": "half-written"}),
+            ("StageCompleted", {"seq": 3, "engine": "software",
+                                "status": "failed"})):
+        await bus.publish(SemanticEvent(kind=kind, engine="e", subject="Zig",
+                                        objective_id="obj-failed",
+                                        payload=payload))
+
+    report = impact.analyze("Zig", bus)
+    assert report.prior_objectives == ["obj-failed"]
+    assert "software" not in report.affected
