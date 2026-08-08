@@ -76,6 +76,11 @@ COPY deploy/fly/one-engine.config.yaml /opt/one-engine/config.yaml
 # boot. Copied to the Volume by start.sh only when absent — a live machine's
 # accumulated log is never overwritten.
 COPY deploy/fly/seed/one_engine_events.jsonl /opt/one-engine-seed/events.jsonl
+# The outputs those runs actually produced — the research reports, the
+# generated projects, the generated sites (~950K, 197 files). Without these a
+# visitor can see THAT the composition ran and not WHAT it made. Build caches
+# are excluded at staging time; nothing else is trimmed.
+COPY deploy/fly/seed/artifacts /opt/one-engine-artifacts
 
 # The hosting posture baked in. Secrets (ANTHROPIC_API_KEY) come from `fly secrets`, not the image.
 # fly.toml [env] can override any of these; they are sane defaults so the image is safe by itself.
@@ -87,7 +92,14 @@ ENV ENTROPY_PUBLIC=os \
     VERITAS_MODEL=sonnet \
     VERITAS_DATA=/data \
     ONE_ENGINE_URL=http://127.0.0.1:9100 \
-    ONE_ENGINE_DATA=/data/one-engine
+    ONE_ENGINE_DATA=/data/one-engine \
+    # The engines' storage lives beside each engine on a laptop and nowhere
+    # near it in a container, so the artifact roots are repointed rather than
+    # inferred. Same conventions, different ground.
+    ONE_ENGINE_ARTIFACTS_RESEARCH=/opt/one-engine-artifacts/research/storage_data/reports \
+    ONE_ENGINE_ARTIFACTS_SOFTWARE=/opt/one-engine-artifacts/software/storage_data/projects \
+    ONE_ENGINE_ARTIFACTS_WEB=/opt/one-engine-artifacts/web/storage_data/sites \
+    ONE_ENGINE_ARTIFACTS_UNIVERSITY=/opt/one-engine-artifacts/university/storage_data/lessons
 
 EXPOSE 8101
 CMD ["bash", "/opt/entropy-os/deploy/fly/start.sh"]

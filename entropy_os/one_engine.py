@@ -97,3 +97,47 @@ async def objective(objective_id: str) -> dict[str, Any]:
     except (httpx.HTTPError, ValueError) as e:
         return _down(f"{type(e).__name__}: {e}")
     return {"reachable": True, "url": base_url(), "objective": detail}
+
+
+# --- the vending path -------------------------------------------------------
+# What a run produced, and its contents. Seeing that a composition ran is a
+# weaker claim than reading what it made, so these exist to let a visitor open
+# the report and browse the generated code rather than take the run on trust.
+#
+# Every one of these is a READ. one-engine performs the containment check on
+# the file route; nothing here widens it, and no path from this side is ever
+# handed to the filesystem — it is forwarded to a service that resolves it
+# against the artifact root it owns.
+
+
+async def artifacts(objective_id: str) -> dict[str, Any]:
+    try:
+        async with httpx.AsyncClient() as client:
+            data = await _get(client, f"/objectives/{objective_id}/artifacts")
+    except (httpx.HTTPError, ValueError) as e:
+        return _down(f"{type(e).__name__}: {e}")
+    return {"reachable": True, **data}
+
+
+async def artifact_tree(objective_id: str, index: int) -> dict[str, Any]:
+    try:
+        async with httpx.AsyncClient() as client:
+            data = await _get(
+                client, f"/objectives/{objective_id}/artifacts/{index}/tree")
+    except (httpx.HTTPError, ValueError) as e:
+        return _down(f"{type(e).__name__}: {e}")
+    return {"reachable": True, **data}
+
+
+async def artifact_file(objective_id: str, index: int,
+                        path: str = "") -> dict[str, Any]:
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(
+                f"{base_url()}/objectives/{objective_id}/artifacts/{index}/file",
+                params={"path": path}, timeout=TIMEOUT_S)
+            r.raise_for_status()
+            data = r.json()
+    except (httpx.HTTPError, ValueError) as e:
+        return _down(f"{type(e).__name__}: {e}")
+    return {"reachable": True, **data}

@@ -1262,6 +1262,22 @@ def create_app(
     async def one_engine_objective(objective_id: str) -> dict[str, Any]:
         return await one_engine.objective(objective_id)
 
+    # The vending path: what a run produced, and its contents. Reading an
+    # artifact is a read; one-engine owns the containment check that keeps a
+    # caller-supplied path inside the artifact root, and nothing here widens it.
+    @app.get("/api/one-engine/objectives/{objective_id}/artifacts")
+    async def one_engine_artifacts(objective_id: str) -> dict[str, Any]:
+        return await one_engine.artifacts(objective_id)
+
+    @app.get("/api/one-engine/objectives/{objective_id}/artifacts/{index}/tree")
+    async def one_engine_artifact_tree(objective_id: str, index: int) -> dict[str, Any]:
+        return await one_engine.artifact_tree(objective_id, index)
+
+    @app.get("/api/one-engine/objectives/{objective_id}/artifacts/{index}/file")
+    async def one_engine_artifact_file(objective_id: str, index: int,
+                                       path: str = "") -> dict[str, Any]:
+        return await one_engine.artifact_file(objective_id, index, path)
+
     @app.get("/api/models/dev-toggle")
     def get_dev_toggle() -> dict[str, Any]:
         return {"cloud": get_default_override() or "off", "default": DEFAULT_MODEL}

@@ -1,0 +1,1818 @@
+{
+ "project_id": "proj_956343c128",
+ "saved_at": "2026-08-08T09:17:27.592596+00:00",
+ "nodes": [
+  {
+   "id": "project",
+   "props": {
+    "kind": "project",
+    "label": "GPUcademy 2.0",
+    "purpose": "A comprehensive online platform for learning WebGPU compute shaders, providing an updated curriculum with a focus on recent changes and advancements in the field.",
+    "request": "An updated release of 'GPUcademy', an educational platform teaching WebGPU compute shaders. The curriculum has been revised to: Compute Shaders Fundamentals, Debugging and Profiling Compute Shaders, GPU Architecture, Graphics Pipelines, Memory Management in Shaders, Recent Changes in WebGPU Compute "
+   }
+  },
+  {
+   "id": "req_df7ddb5170",
+   "props": {
+    "kind": "requirement",
+    "label": "Users can access a revised curriculum with updated lesson pages on recent changes in WebGPU compute shaders.",
+    "req_kind": "functional",
+    "priority": "must"
+   }
+  },
+  {
+   "id": "req_f2a1a0f918",
+   "props": {
+    "kind": "requirement",
+    "label": "The platform retains existing features, including graded quizzes and per-concept mastery tracking.",
+    "req_kind": "functional",
+    "priority": "must"
+   }
+  },
+  {
+   "id": "req_1a0ed7895a",
+   "props": {
+    "kind": "requirement",
+    "label": "Store user progress and quiz results in a database for analytics and reporting.",
+    "req_kind": "data",
+    "priority": "should"
+   }
+  },
+  {
+   "id": "req_70ee5ab64c",
+   "props": {
+    "kind": "requirement",
+    "label": "Implement authentication and authorization to restrict access to premium content and features.",
+    "req_kind": "security",
+    "priority": "should"
+   }
+  },
+  {
+   "id": "req_73605f2aec",
+   "props": {
+    "kind": "requirement",
+    "label": "Ensure the platform is accessible on a variety of devices, including desktops, laptops, and mobile devices.",
+    "req_kind": "nonfunctional",
+    "priority": "could"
+   }
+  },
+  {
+   "id": "req_a9797a5528",
+   "props": {
+    "kind": "requirement",
+    "label": "Provide a public API for educators to integrate GPUcademy content into their own platforms.",
+    "req_kind": "data",
+    "priority": "could"
+   }
+  },
+  {
+   "id": "req_cc5f630abc",
+   "props": {
+    "kind": "requirement",
+    "label": "Develop interactive examples and code snippets to illustrate key concepts in WebGPU compute shaders.",
+    "req_kind": "functional",
+    "priority": "should"
+   }
+  },
+  {
+   "id": "req_c82c877418",
+   "props": {
+    "kind": "requirement",
+    "label": "Automated test suite covering every feature",
+    "req_kind": "nonfunctional",
+    "priority": "must"
+   }
+  },
+  {
+   "id": "feat_0783a9afa5",
+   "props": {
+    "kind": "feature",
+    "label": "revised_curriculum",
+    "description": "Users can access a revised curriculum with updated lesson pages on recent changes in WebGPU compute shaders."
+   }
+  },
+  {
+   "id": "feat_c30e3ca137",
+   "props": {
+    "kind": "feature",
+    "label": "graded_quizzes",
+    "description": "The platform retains existing features, including graded quizzes and per-concept mastery tracking."
+   }
+  },
+  {
+   "id": "feat_35abc3f3cd",
+   "props": {
+    "kind": "feature",
+    "label": "user_progress_tracking",
+    "description": "Store user progress and quiz results in a database for analytics and reporting."
+   }
+  },
+  {
+   "id": "feat_3c7712c24b",
+   "props": {
+    "kind": "feature",
+    "label": "authentication_authorization",
+    "description": "Implement authentication and authorization to restrict access to premium content and features."
+   }
+  },
+  {
+   "id": "feat_c82914fc86",
+   "props": {
+    "kind": "feature",
+    "label": "interactive_examples",
+    "description": "Develop interactive examples and code snippets to illustrate key concepts in WebGPU compute shaders."
+   }
+  },
+  {
+   "id": "feat_48904767b9",
+   "props": {
+    "kind": "feature",
+    "label": "Cover: Users can access a revised curriculum with updated",
+    "description": "Auto-created to satisfy uncovered MUST requirement: Users can access a revised curriculum with updated lesson pages on recent changes in WebGPU compute shaders."
+   }
+  },
+  {
+   "id": "feat_57d97bece4",
+   "props": {
+    "kind": "feature",
+    "label": "Cover: The platform retains existing features, including ",
+    "description": "Auto-created to satisfy uncovered MUST requirement: The platform retains existing features, including graded quizzes and per-concept mastery tracking."
+   }
+  },
+  {
+   "id": "entity:User",
+   "props": {
+    "kind": "entity",
+    "label": "User",
+    "fields": [
+     "username",
+     "email"
+    ]
+   }
+  },
+  {
+   "id": "entity:Lesson",
+   "props": {
+    "kind": "entity",
+    "label": "Lesson",
+    "fields": [
+     "title",
+     "content",
+     "updated_at"
+    ]
+   }
+  },
+  {
+   "id": "entity:QuizResult",
+   "props": {
+    "kind": "entity",
+    "label": "QuizResult",
+    "fields": [
+     "user_id",
+     "lesson_id",
+     "score"
+    ]
+   }
+  },
+  {
+   "id": "component:curriculum_service",
+   "props": {
+    "kind": "component",
+    "label": "curriculum_service",
+    "purpose": "Provides access to the revised curriculum.",
+    "cmp_kind": "service"
+   }
+  },
+  {
+   "id": "component:database",
+   "props": {
+    "purpose": "SQLite persistence via SQLAlchemy; session-per-request",
+    "cmp_kind": "store"
+   }
+  },
+  {
+   "id": "api:GET /lessons/{item_id}",
+   "props": {
+    "kind": "api",
+    "label": "GET /lessons/{item_id}",
+    "summary": "",
+    "action": "get"
+   }
+  },
+  {
+   "id": "component:quiz_service",
+   "props": {
+    "kind": "component",
+    "label": "quiz_service",
+    "purpose": "Manages graded quizzes and user progress.",
+    "cmp_kind": "service"
+   }
+  },
+  {
+   "id": "api:POST /quizzes/{lesson_id}",
+   "props": {
+    "kind": "api",
+    "label": "POST /quizzes/{lesson_id}",
+    "summary": "",
+    "action": "create"
+   }
+  },
+  {
+   "id": "api:GET /user_progress",
+   "props": {
+    "kind": "api",
+    "label": "GET /user_progress",
+    "summary": "",
+    "action": "list"
+   }
+  },
+  {
+   "id": "api:GET /quiz_results",
+   "props": {
+    "kind": "api",
+    "label": "GET /quiz_results",
+    "summary": "List QuizResult records",
+    "action": "list"
+   }
+  },
+  {
+   "id": "api:POST /quiz_results",
+   "props": {
+    "kind": "api",
+    "label": "POST /quiz_results",
+    "summary": "Create a QuizResult",
+    "action": "create"
+   }
+  },
+  {
+   "id": "api:GET /quiz_results/{item_id}",
+   "props": {
+    "kind": "api",
+    "label": "GET /quiz_results/{item_id}",
+    "summary": "Fetch one QuizResult",
+    "action": "get"
+   }
+  },
+  {
+   "id": "api:DELETE /quiz_results/{item_id}",
+   "props": {
+    "kind": "api",
+    "label": "DELETE /quiz_results/{item_id}",
+    "summary": "Delete a QuizResult",
+    "action": "delete"
+   }
+  },
+  {
+   "id": "component:auth_service",
+   "props": {
+    "kind": "component",
+    "label": "auth_service",
+    "purpose": "Handles user authentication and authorization.",
+    "cmp_kind": "service"
+   }
+  },
+  {
+   "id": "api:POST /login",
+   "props": {
+    "kind": "api",
+    "label": "POST /login",
+    "summary": "",
+    "action": "create"
+   }
+  },
+  {
+   "id": "api:GET /user_info",
+   "props": {
+    "kind": "api",
+    "label": "GET /user_info",
+    "summary": "",
+    "action": "list"
+   }
+  },
+  {
+   "id": "component:example_service",
+   "props": {
+    "kind": "component",
+    "label": "example_service",
+    "purpose": "Provides interactive examples and code snippets.",
+    "cmp_kind": "service"
+   }
+  },
+  {
+   "id": "api:GET /examples/{concept}",
+   "props": {
+    "kind": "api",
+    "label": "GET /examples/{concept}",
+    "summary": "",
+    "action": "get"
+   }
+  },
+  {
+   "id": "component:public_api",
+   "props": {
+    "kind": "component",
+    "label": "public_api",
+    "purpose": "Exposes a public API for educators to integrate GPUcademy content.",
+    "cmp_kind": "service"
+   }
+  },
+  {
+   "id": "api:GET /content/{lesson_id}",
+   "props": {
+    "kind": "api",
+    "label": "GET /content/{lesson_id}",
+    "summary": "",
+    "action": "get"
+   }
+  },
+  {
+   "id": "component:database_service",
+   "props": {
+    "kind": "component",
+    "label": "database_service",
+    "purpose": "Manages database operations for user progress and quiz results.",
+    "cmp_kind": "service"
+   }
+  },
+  {
+   "id": "component:web_ui",
+   "props": {
+    "kind": "component",
+    "label": "web_ui",
+    "purpose": "dependency-free static frontend over the API",
+    "cmp_kind": "ui"
+   }
+  },
+  {
+   "id": "adr_8509c6fb46",
+   "props": {
+    "kind": "decision",
+    "label": "Stack: FastAPI + SQLAlchemy/SQLite + pytest + static JS",
+    "decision": "Generate a modular FastAPI service with SQLite persistence, pytest verification, and a dependency-free static frontend.",
+    "rationale": "Local-first constraint; single proven deep stack over shallow multi-stack pretense; every layer verifiable offline. Pattern priors considered: router_service_split, session_per_request, schema_in_schema_out, tests_per_feature"
+   }
+  },
+  {
+   "id": "ev_95e8ef05eb",
+   "props": {
+    "kind": "evidence",
+    "label": "fastapi 0.141.1",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/fastapi/"
+   }
+  },
+  {
+   "id": "ev_31dd292e63",
+   "props": {
+    "kind": "evidence",
+    "label": "sqlalchemy 2.0.51",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/SQLAlchemy/"
+   }
+  },
+  {
+   "id": "ev_52076716db",
+   "props": {
+    "kind": "evidence",
+    "label": "pydantic 2.13.4",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/pydantic/"
+   }
+  },
+  {
+   "id": "ev_30e2028791",
+   "props": {
+    "kind": "evidence",
+    "label": "uvicorn 0.52.1",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/uvicorn/"
+   }
+  },
+  {
+   "id": "ev_2e773c5682",
+   "props": {
+    "kind": "evidence",
+    "label": "httpx 0.28.1",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/httpx/"
+   }
+  },
+  {
+   "id": "ev_22300081e8",
+   "props": {
+    "kind": "evidence",
+    "label": "pytest 9.1.1",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/pytest/"
+   }
+  },
+  {
+   "id": "ev_05479f5650",
+   "props": {
+    "kind": "evidence",
+    "label": "fastapi official documentation",
+    "agent": "Documentation Research Agent",
+    "topic": "docs",
+    "url": "https://fastapi.tiangolo.com/"
+   }
+  },
+  {
+   "id": "ev_cbba78daec",
+   "props": {
+    "kind": "evidence",
+    "label": "sqlalchemy official documentation",
+    "agent": "Documentation Research Agent",
+    "topic": "docs",
+    "url": "https://docs.sqlalchemy.org/en/20/"
+   }
+  },
+  {
+   "id": "ev_75f8ae83e6",
+   "props": {
+    "kind": "evidence",
+    "label": "pydantic official documentation",
+    "agent": "Documentation Research Agent",
+    "topic": "docs",
+    "url": "https://docs.pydantic.dev/latest/"
+   }
+  },
+  {
+   "id": "ev_9b28e8481a",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: fastapi \u2014 3 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=fastapi"
+   }
+  },
+  {
+   "id": "ev_7e2e888510",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: sqlalchemy \u2014 6 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=sqlalchemy"
+   }
+  },
+  {
+   "id": "ev_e785ab82f0",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: pydantic \u2014 4 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=pydantic"
+   }
+  },
+  {
+   "id": "ev_850af7b386",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: uvicorn \u2014 4 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=uvicorn"
+   }
+  },
+  {
+   "id": "ev_3cfdb3f29c",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: httpx \u2014 2 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=httpx"
+   }
+  },
+  {
+   "id": "ev_05820654d1",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: pytest \u2014 2 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=pytest"
+   }
+  },
+  {
+   "id": "ev_2b59f09c9b",
+   "props": {
+    "kind": "evidence",
+    "label": "Ask HN: Exploring FastAPI depths \u2013 would you tune into advanced screencasts?",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://news.ycombinator.com/item?id=38793677"
+   }
+  },
+  {
+   "id": "ev_7cb4c5e9ab",
+   "props": {
+    "kind": "evidence",
+    "label": "Show HN: Secure.py \u2013 Simplify HTTP Security Headers for Python Web Apps",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://github.com/TypeError/secure"
+   }
+  },
+  {
+   "id": "file:requirements.txt",
+   "props": {
+    "kind": "file",
+    "label": "requirements.txt",
+    "role": "config"
+   }
+  },
+  {
+   "id": "file:requirements-dev.txt",
+   "props": {
+    "kind": "file",
+    "label": "requirements-dev.txt",
+    "role": "config"
+   }
+  },
+  {
+   "id": "file:Dockerfile",
+   "props": {
+    "kind": "file",
+    "label": "Dockerfile",
+    "role": "infra"
+   }
+  },
+  {
+   "id": "file:.gitignore",
+   "props": {
+    "kind": "file",
+    "label": ".gitignore",
+    "role": "config"
+   }
+  },
+  {
+   "id": "file:ruff.toml",
+   "props": {
+    "kind": "file",
+    "label": "ruff.toml",
+    "role": "config"
+   }
+  },
+  {
+   "id": "file:app/__init__.py",
+   "props": {
+    "kind": "file",
+    "label": "app/__init__.py",
+    "role": "package"
+   }
+  },
+  {
+   "id": "file:app/db.py",
+   "props": {
+    "kind": "file",
+    "label": "app/db.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/models.py",
+   "props": {
+    "kind": "file",
+    "label": "app/models.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/schemas.py",
+   "props": {
+    "kind": "file",
+    "label": "app/schemas.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/services/curriculum_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/curriculum_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/routers/curriculum_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/curriculum_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/services/quiz_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/quiz_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "problem:4383181461",
+   "props": {
+    "kind": "problem",
+    "label": "custom endpoint stub: POST /quizzes/{lesson_id}",
+    "source": "codegen",
+    "recorded_at": "2026-08-08T09:17:26.865784+00:00"
+   }
+  },
+  {
+   "id": "file:app/routers/quiz_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/quiz_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/services/auth_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/auth_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "problem:142351809",
+   "props": {
+    "kind": "problem",
+    "label": "custom endpoint stub: POST /login",
+    "source": "codegen",
+    "recorded_at": "2026-08-08T09:17:26.866089+00:00"
+   }
+  },
+  {
+   "id": "file:app/routers/auth_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/auth_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/services/example_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/example_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "problem:1447870902",
+   "props": {
+    "kind": "problem",
+    "label": "custom endpoint stub: GET /examples/{concept}",
+    "source": "codegen",
+    "recorded_at": "2026-08-08T09:17:26.866345+00:00"
+   }
+  },
+  {
+   "id": "file:app/routers/example_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/example_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/services/public_api.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/public_api.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "problem:3735908900",
+   "props": {
+    "kind": "problem",
+    "label": "custom endpoint stub: GET /content/{lesson_id}",
+    "source": "codegen",
+    "recorded_at": "2026-08-08T09:17:26.866569+00:00"
+   }
+  },
+  {
+   "id": "file:app/routers/public_api.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/public_api.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/services/database_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/database_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/routers/database_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/database_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/main.py",
+   "props": {
+    "kind": "file",
+    "label": "app/main.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/routers/__init__.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/__init__.py",
+    "role": "package"
+   }
+  },
+  {
+   "id": "file:app/services/__init__.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/__init__.py",
+    "role": "package"
+   }
+  },
+  {
+   "id": "file:static/index.html",
+   "props": {
+    "kind": "file",
+    "label": "static/index.html",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:static/app.js",
+   "props": {
+    "kind": "file",
+    "label": "static/app.js",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:tests/conftest.py",
+   "props": {
+    "kind": "file",
+    "label": "tests/conftest.py",
+    "role": "test"
+   }
+  },
+  {
+   "id": "file:tests/test_quiz_service.py",
+   "props": {
+    "kind": "file",
+    "label": "tests/test_quiz_service.py",
+    "role": "test"
+   }
+  },
+  {
+   "id": "test:tests/test_quiz_service.py::test_quiz_result_create_and_list",
+   "props": {
+    "kind": "test",
+    "label": "test_quiz_result_create_and_list",
+    "path": "tests/test_quiz_service.py"
+   }
+  },
+  {
+   "id": "test:tests/test_quiz_service.py::test_quiz_result_missing_returns_404",
+   "props": {
+    "kind": "test",
+    "label": "test_quiz_result_missing_returns_404",
+    "path": "tests/test_quiz_service.py"
+   }
+  },
+  {
+   "id": "file:tests/test_smoke.py",
+   "props": {
+    "kind": "file",
+    "label": "tests/test_smoke.py",
+    "role": "test"
+   }
+  },
+  {
+   "id": "file:docs/architecture.md",
+   "props": {
+    "kind": "file",
+    "label": "docs/architecture.md",
+    "role": "doc"
+   }
+  },
+  {
+   "id": "doc:docs/architecture.md",
+   "props": {
+    "kind": "doc",
+    "label": "docs/architecture.md"
+   }
+  },
+  {
+   "id": "file:docs/api.md",
+   "props": {
+    "kind": "file",
+    "label": "docs/api.md",
+    "role": "doc"
+   }
+  },
+  {
+   "id": "doc:docs/api.md",
+   "props": {
+    "kind": "doc",
+    "label": "docs/api.md"
+   }
+  },
+  {
+   "id": "file:README.md",
+   "props": {
+    "kind": "file",
+    "label": "README.md",
+    "role": "doc"
+   }
+  }
+ ],
+ "edges": [
+  {
+   "src": "project",
+   "dst": "req_df7ddb5170",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_f2a1a0f918",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_1a0ed7895a",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_70ee5ab64c",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_73605f2aec",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_a9797a5528",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_cc5f630abc",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_c82c877418",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "req_df7ddb5170",
+   "dst": "feat_48904767b9",
+   "kind": "satisfied_by",
+   "props": {
+    "kind": "satisfied_by"
+   }
+  },
+  {
+   "src": "req_f2a1a0f918",
+   "dst": "feat_57d97bece4",
+   "kind": "satisfied_by",
+   "props": {
+    "kind": "satisfied_by"
+   }
+  },
+  {
+   "src": "feat_0783a9afa5",
+   "dst": "component:curriculum_service",
+   "kind": "implemented_by",
+   "props": {
+    "kind": "implemented_by"
+   }
+  },
+  {
+   "src": "feat_c30e3ca137",
+   "dst": "component:quiz_service",
+   "kind": "implemented_by",
+   "props": {
+    "kind": "implemented_by"
+   }
+  },
+  {
+   "src": "feat_35abc3f3cd",
+   "dst": "component:database_service",
+   "kind": "implemented_by",
+   "props": {
+    "kind": "implemented_by"
+   }
+  },
+  {
+   "src": "feat_3c7712c24b",
+   "dst": "component:auth_service",
+   "kind": "implemented_by",
+   "props": {
+    "kind": "implemented_by"
+   }
+  },
+  {
+   "src": "feat_c82914fc86",
+   "dst": "component:example_service",
+   "kind": "implemented_by",
+   "props": {
+    "kind": "implemented_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "component:database",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "entity:Lesson",
+   "kind": "owns",
+   "props": {
+    "kind": "owns"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "api:GET /lessons/{item_id}",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "adr_8509c6fb46",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_95e8ef05eb",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_31dd292e63",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_52076716db",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_30e2028791",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_2e773c5682",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_22300081e8",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_05479f5650",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_cbba78daec",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_75f8ae83e6",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_9b28e8481a",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_7e2e888510",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_e785ab82f0",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_850af7b386",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_3cfdb3f29c",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_05820654d1",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_2b59f09c9b",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_7cb4c5e9ab",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "file:app/services/curriculum_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "file:app/routers/curriculum_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "file:app/main.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "file:docs/architecture.md",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "file:docs/api.md",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "file:README.md",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "adr_8509c6fb46",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:requirements.txt",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:requirements-dev.txt",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:Dockerfile",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:.gitignore",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:ruff.toml",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/__init__.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/db.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/models.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/schemas.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/routers/__init__.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/services/__init__.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:tests/conftest.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:tests/test_smoke.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "api:GET /lessons/{item_id}",
+   "dst": "entity:Lesson",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "component:quiz_service",
+   "dst": "component:database",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:quiz_service",
+   "dst": "entity:QuizResult",
+   "kind": "owns",
+   "props": {
+    "kind": "owns"
+   }
+  },
+  {
+   "src": "component:quiz_service",
+   "dst": "entity:User",
+   "kind": "owns",
+   "props": {
+    "kind": "owns"
+   }
+  },
+  {
+   "src": "component:quiz_service",
+   "dst": "api:POST /quizzes/{lesson_id}",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:quiz_service",
+   "dst": "api:GET /user_progress",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:quiz_service",
+   "dst": "api:GET /quiz_results",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:quiz_service",
+   "dst": "api:POST /quiz_results",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:quiz_service",
+   "dst": "api:GET /quiz_results/{item_id}",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:quiz_service",
+   "dst": "api:DELETE /quiz_results/{item_id}",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:quiz_service",
+   "dst": "adr_8509c6fb46",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:quiz_service",
+   "dst": "file:app/services/quiz_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:quiz_service",
+   "dst": "file:app/routers/quiz_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:quiz_service",
+   "dst": "file:tests/test_quiz_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:quiz_service",
+   "dst": "test:tests/test_quiz_service.py::test_quiz_result_create_and_list",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:quiz_service",
+   "dst": "test:tests/test_quiz_service.py::test_quiz_result_missing_returns_404",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "api:GET /user_progress",
+   "dst": "entity:User",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:GET /quiz_results",
+   "dst": "entity:QuizResult",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:POST /quiz_results",
+   "dst": "entity:QuizResult",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:GET /quiz_results/{item_id}",
+   "dst": "entity:QuizResult",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:DELETE /quiz_results/{item_id}",
+   "dst": "entity:QuizResult",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "component:auth_service",
+   "dst": "api:POST /login",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:auth_service",
+   "dst": "api:GET /user_info",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:auth_service",
+   "dst": "adr_8509c6fb46",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:auth_service",
+   "dst": "file:app/services/auth_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:auth_service",
+   "dst": "file:app/routers/auth_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "api:GET /user_info",
+   "dst": "entity:User",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "component:example_service",
+   "dst": "api:GET /examples/{concept}",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:example_service",
+   "dst": "adr_8509c6fb46",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:example_service",
+   "dst": "file:app/services/example_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:example_service",
+   "dst": "file:app/routers/example_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:public_api",
+   "dst": "api:GET /content/{lesson_id}",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:public_api",
+   "dst": "adr_8509c6fb46",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:public_api",
+   "dst": "file:app/services/public_api.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:public_api",
+   "dst": "file:app/routers/public_api.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database_service",
+   "dst": "adr_8509c6fb46",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:database_service",
+   "dst": "file:app/services/database_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database_service",
+   "dst": "file:app/routers/database_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "component:curriculum_service",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "component:quiz_service",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "component:auth_service",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "component:example_service",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "component:public_api",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "adr_8509c6fb46",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "file:static/index.html",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "file:static/app.js",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "problem:4383181461",
+   "dst": "api:POST /quizzes/{lesson_id}",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "problem:142351809",
+   "dst": "api:POST /login",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "problem:1447870902",
+   "dst": "api:GET /examples/{concept}",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "problem:3735908900",
+   "dst": "api:GET /content/{lesson_id}",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "test:tests/test_quiz_service.py::test_quiz_result_create_and_list",
+   "dst": "feat_c30e3ca137",
+   "kind": "verifies",
+   "props": {
+    "kind": "verifies"
+   }
+  },
+  {
+   "src": "test:tests/test_quiz_service.py::test_quiz_result_missing_returns_404",
+   "dst": "feat_c30e3ca137",
+   "kind": "verifies",
+   "props": {
+    "kind": "verifies"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:curriculum_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:quiz_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:auth_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:example_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:public_api",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:database_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:database",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:web_ui",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/api.md",
+   "dst": "component:curriculum_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/api.md",
+   "dst": "component:quiz_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/api.md",
+   "dst": "component:auth_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/api.md",
+   "dst": "component:example_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/api.md",
+   "dst": "component:public_api",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  }
+ ]
+}

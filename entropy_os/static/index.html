@@ -1942,13 +1942,98 @@ async function loadOneEngine() {
           <b style="font-size:12.5px">${esc(o.subject || o.objective_id || '')}</b>
           <span class="muted" style="font-size:11.5px">${esc(o.capability || '')}</span>
           <span class="muted" style="font-size:11.5px;font-family:var(--mono,monospace)">${esc(o.objective_id || '')}</span>
-        </div>`).join('')
+          ${o.status === 'completed'
+            ? `<button class="oe-open" data-oid="${esc(o.objective_id)}"
+                 style="font-size:11.5px;padding:2px 9px">open outputs</button>` : ''}
+        </div>
+        <div id="oe-arts-${esc(o.objective_id)}"></div>`).join('')
         : '<div class="muted" style="font-size:12.5px">No runs recorded yet.</div>'}
       <div class="muted" style="font-size:11.5px;margin-top:10px;line-height:1.55">
         Failed runs are listed because fail-closed systems have failures — a wing that showed only
         the clean ones would be a brochure.
       </div>
     </div>`;
+
+  el.querySelectorAll('.oe-open').forEach(b =>
+    b.addEventListener('click', () => openOutputs(b.dataset.oid, b)));
+}
+
+// The vending path. Seeing that a composition ran is a weaker claim than
+// reading what it made, so these open the real files: the research report, the
+// generated project, the generated site.
+async function openOutputs(oid, btn) {
+  const host = document.getElementById(`oe-arts-${oid}`);
+  if (!host) return;
+  if (host.dataset.open === '1') {           // toggle closed
+    host.innerHTML = ''; host.dataset.open = '0';
+    btn.textContent = 'open outputs'; return;
+  }
+  host.dataset.open = '1';
+  btn.textContent = 'hide outputs';
+  host.innerHTML = '<div class="muted" style="font-size:12px;padding:6px 0">reading…</div>';
+
+  let d;
+  try { d = await api(`/api/one-engine/objectives/${oid}/artifacts`); }
+  catch (e) { host.innerHTML = `<div class="muted">could not read outputs: ${esc(String(e))}</div>`; return; }
+
+  const arts = (d.artifacts || []);
+  if (!arts.length) { host.innerHTML = '<div class="muted" style="font-size:12px">No outputs resolved for this run.</div>'; return; }
+
+  host.innerHTML = `
+    <div style="margin:2px 0 10px 0;padding-left:12px;border-left:2px solid var(--line-soft,#2a2a2a)">
+      ${arts.map(a => `
+        <div style="padding:5px 0">
+          <button class="oe-art" data-oid="${esc(oid)}" data-idx="${a.index}"
+                  ${a.exists ? '' : 'disabled'}
+                  style="font-size:11.5px;padding:2px 9px">${esc(a.kind)}</button>
+          <span class="muted" style="font-size:11.5px">
+            ${a.exists ? `${a.file_count} file${a.file_count === 1 ? '' : 's'} · ${(a.size_bytes/1024).toFixed(1)}KB`
+                       : 'not present'}
+            · path <b>${esc(a.origin)}</b>${a.origin === 'convention'
+              ? ' (derived from an id the run recorded, not written down by it)' : ''}
+          </span>
+        </div>`).join('')}
+      <div id="oe-view-${esc(oid)}" style="margin-top:8px"></div>
+    </div>`;
+
+  host.querySelectorAll('.oe-art').forEach(b =>
+    b.addEventListener('click', () => showArtifact(oid, b.dataset.idx)));
+}
+
+async function showArtifact(oid, idx) {
+  const view = document.getElementById(`oe-view-${oid}`);
+  view.innerHTML = '<div class="muted" style="font-size:12px">reading…</div>';
+  let tree;
+  try { tree = await api(`/api/one-engine/objectives/${oid}/artifacts/${idx}/tree`); }
+  catch (e) { view.innerHTML = `<div class="muted">${esc(String(e))}</div>`; return; }
+
+  const files = tree.files || [];
+  // One file is the artifact itself (a report); many means a generated
+  // project or site, so offer the list and open the first readable thing.
+  view.innerHTML = `
+    <div class="eg-panel" style="padding:10px">
+      <div class="muted" style="font-size:11px;font-family:var(--mono,monospace);margin-bottom:6px">
+        ${esc(tree.root || '')}
+      </div>
+      <select id="oe-file-${oid}" style="width:100%;font-size:12px;font-family:var(--mono,monospace)">
+        ${files.map(f => `<option value="${esc(f.path)}">${esc(f.path)} · ${f.size}B</option>`).join('')}
+      </select>
+      <pre id="oe-text-${oid}" style="max-height:340px;overflow:auto;font-size:11.5px;
+           white-space:pre-wrap;margin-top:8px"></pre>
+    </div>`;
+
+  const sel = document.getElementById(`oe-file-${oid}`);
+  const load = async () => {
+    const pre = document.getElementById(`oe-text-${oid}`);
+    pre.textContent = 'reading…';
+    try {
+      const f = await api(`/api/one-engine/objectives/${oid}/artifacts/${idx}/file`
+                          + `?path=${encodeURIComponent(sel.value)}`);
+      pre.textContent = f.text ?? `(${esc(f.reason || 'unreadable')})`;
+    } catch (e) { pre.textContent = String(e); }
+  };
+  sel.addEventListener('change', load);
+  load();
 }
 
 async function loadKeytracker() {
