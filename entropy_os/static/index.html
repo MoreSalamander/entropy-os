@@ -393,6 +393,7 @@
     <a data-view="studio" data-org="hackathon_hunter">Hackathon Hunter</a>
     <a data-view="commons">Knowledge Graph</a>
     <a data-view="vending" id="navVending" class="nav-demo">Vending Machine <span class="demostar">✳ demo</span></a>
+    <a data-view="home" data-scroll="wing-oneengine">Composition</a>
     <div class="navlabel">In-house era</div>
     <a data-view="studio" data-org="software">Software</a>
     <a data-view="studio" data-org="web">Web</a>
@@ -511,6 +512,18 @@
       <a href="https://moresalamander.github.io/entropy-datahub-demo/" target="_blank" rel="noopener">Walk the frozen metadata graph ↗</a>
     </div>
     <div id="enginedir" class="grid2"></div>
+
+    <h2 id="wing-oneengine">Composition — four engines run as one</h2>
+    <div class="muted" style="font-size:13px;margin:-6px 0 12px;line-height:1.6">
+      Research, university, software and web execute a single objective together — each still its
+      own codebase, its own environment, its own DataHub platform. Nothing was merged. The composite
+      exposes the <i>same</i> contract it consumes, so Entropy OS reads it exactly the way it reads
+      a single engine and never learns there are four inside — which is also why this can nest again
+      without a special case. Read live from the contract below; when the service is down this says
+      so rather than showing you a snapshot.
+    </div>
+    <div id="oneEngineWing"></div>
+
     <h2 id="wing-inhouse">The in-house era — the early engines</h2>
     <div class="muted" style="font-size:13px;margin:-6px 0 12px;line-height:1.6">
       The five verification models Veritas grew up on, with their original in-house data stores —
@@ -1844,6 +1857,98 @@ async function loadHome() {
   $('#labsdir').innerHTML = ORGS.filter(o => !HOME_ENGINES.includes(o.name) && !grouped.has(o.name)).map(orgCard).join('');
   loadCollector();
   loadKeytracker();
+  loadOneEngine();
+}
+
+// The composition wing. Everything rendered here comes from the Universal
+// Engine Contract over HTTP — identity, the composition tree, the capability
+// list, and real completed runs. Entropy OS is just another consumer of that
+// contract, so this function knows nothing about what is inside one-engine.
+async function loadOneEngine() {
+  const el = $('#oneEngineWing');
+  if (!el) return;
+  let ov, runs;
+  try {
+    [ov, runs] = await Promise.all([
+      api('/api/one-engine/overview'), api('/api/one-engine/objectives')]);
+  } catch (e) { ov = { reachable: false, reason: String(e) }; runs = {}; }
+
+  if (!ov || !ov.reachable) {
+    // Down is a state, not an error to paper over. Naming the address makes it
+    // actionable instead of mysterious.
+    el.innerHTML = `
+      <div class="panel" style="border-left:3px solid #7a6a3a">
+        <div style="font-weight:600;font-size:14px;margin-bottom:4px">one-engine is not answering</div>
+        <div class="muted" style="font-size:12.5px;line-height:1.6">
+          Tried <code>${esc(ov?.url || 'unset')}</code> — ${esc(ov?.reason || 'unreachable')}.<br>
+          It runs as its own service; start it and this wing fills itself in. Nothing is cached
+          here on purpose: a snapshot shown while the system is down would be worse than this.
+        </div>
+      </div>`;
+    return;
+  }
+
+  // The composition tree, exactly as the contract reports it — the recursion
+  // is the point, so it is rendered rather than summarized.
+  const tree = (node, depth = 0) => {
+    if (!node) return '';
+    const kids = node.members || [];
+    return `
+      <div style="margin-left:${depth * 18}px;padding:3px 0">
+        <span style="font-weight:${depth ? 500 : 650};font-size:${depth ? 12.5 : 13.5}px">${esc(node.name || '?')}</span>
+        <span class="muted" style="font-size:11.5px"> · ${esc(node.kind || '')}</span>
+      </div>` + kids.map(k => tree(k, depth + 1)).join('');
+  };
+
+  const h = ov.health || {};
+  const list = (runs && runs.objectives) || [];
+  const done = list.filter(o => o.status === 'completed').length;
+  const failed = list.filter(o => o.status === 'failed').length;
+
+  el.innerHTML = `
+    <div class="grid2">
+      <div class="panel" style="margin:0">
+        <div style="font-weight:600;font-size:14px;margin-bottom:6px">
+          ${esc(ov.identity?.name || 'one-engine')}
+          <span class="muted" style="font-size:11.5px">· contract v${esc(ov.contract_version || '?')}</span>
+        </div>
+        <div class="muted" style="font-size:12px;margin-bottom:8px">
+          live at <code>${esc(ov.url)}</code> · health:
+          <b style="color:${h.status === 'ok' ? 'var(--ok,#8fbf7f)' : '#d9a441'}">${esc(h.status || 'unknown')}</b>
+        </div>
+        ${tree(ov.composition)}
+      </div>
+      <div class="panel" style="margin:0">
+        <div style="font-weight:600;font-size:14px;margin-bottom:6px">What it offers</div>
+        <div class="muted" style="font-size:12px;line-height:1.7">
+          ${(ov.capabilities || []).map(c =>
+            `<div><code>${esc(c.name || '')}</code></div>`).join('') || 'none reported'}
+        </div>
+        <div class="muted" style="font-size:11.5px;margin-top:8px;line-height:1.55">
+          Composed pipelines run every engine in order; the rest run one engine alone. Same door,
+          same gates — asking for one is not a lesser path.
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:12px">
+      <div style="font-weight:600;font-size:14px;margin-bottom:6px">
+        Real composed runs · ${list.length} recorded
+        <span class="muted" style="font-size:11.5px">· ${done} completed, ${failed} failed</span>
+      </div>
+      ${list.length ? list.map(o => `
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:baseline;padding:7px 0;border-top:1px dashed var(--line-soft,#2a2a2a)">
+          <span class="eg-badge ${o.status === 'completed' ? 'verified' : 'rejected'}">${esc(o.status || '?')}</span>
+          <b style="font-size:12.5px">${esc(o.subject || o.objective_id || '')}</b>
+          <span class="muted" style="font-size:11.5px">${esc(o.capability || '')}</span>
+          <span class="muted" style="font-size:11.5px;font-family:var(--mono,monospace)">${esc(o.objective_id || '')}</span>
+        </div>`).join('')
+        : '<div class="muted" style="font-size:12.5px">No runs recorded yet.</div>'}
+      <div class="muted" style="font-size:11.5px;margin-top:10px;line-height:1.55">
+        Failed runs are listed because fail-closed systems have failures — a wing that showed only
+        the clean ones would be a brochure.
+      </div>
+    </div>`;
 }
 
 async function loadKeytracker() {

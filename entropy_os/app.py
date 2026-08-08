@@ -34,6 +34,7 @@ from engine.executor import sandbox_active
 from engine.grounding import record_grounding
 from engine.memory import MemoryRecord, MemoryStore, default_memory_store, format_lessons
 from engine.memory_export import sync_vault, vault_status
+from entropy_os import one_engine
 from entropy_os.accounts import AccountStore, BadCredentials, UsernameTaken, WeakCredentials
 from entropy_os.quota import QuotaStore
 from entropy_os.visits import VisitLog
@@ -1098,6 +1099,9 @@ def create_app(
             "/static/", "/shared/", "/productions/", "/report/", "/commons/",
             "/api/orgs/",   # per-org roster
             "/api/runs/",   # run detail (POST /api/runs itself is blocked by the GET-only rule)
+            # Reads of the composed engine: its identity, composition tree and
+            # completed runs. Starting one is a POST and stays closed here.
+            "/api/one-engine/",
         )
 
         @app.middleware("http")
@@ -1240,6 +1244,23 @@ def create_app(
     def get_run(run_id: str) -> dict[str, Any]:
         found = runs.get(run_id)
         return found or {"error": "not found"}
+
+    # --- one-engine: Entropy OS as a consumer of the Universal Engine Contract.
+    # GET-only on purpose. These read a composite that already gated its own
+    # work; triggering a run is a write and stays closed on the hosted face,
+    # where the posture middleware allows reads under /api/one-engine/ and
+    # nothing else. ---
+    @app.get("/api/one-engine/overview")
+    async def one_engine_overview() -> dict[str, Any]:
+        return await one_engine.overview()
+
+    @app.get("/api/one-engine/objectives")
+    async def one_engine_objectives() -> dict[str, Any]:
+        return await one_engine.objectives()
+
+    @app.get("/api/one-engine/objectives/{objective_id}")
+    async def one_engine_objective(objective_id: str) -> dict[str, Any]:
+        return await one_engine.objective(objective_id)
 
     @app.get("/api/models/dev-toggle")
     def get_dev_toggle() -> dict[str, Any]:
