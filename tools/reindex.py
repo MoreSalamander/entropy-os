@@ -152,8 +152,8 @@ def main() -> int:
             print("  ", u)
         return 0
 
-    from datetime import datetime, timezone
-    stamp = datetime.now(timezone.utc).isoformat()
+    from datetime import UTC, datetime
+    stamp = datetime.now(UTC).isoformat()
     touched = missing = failed = 0
     for urn in urns:
         entity = fetch(args.gms, urn)
