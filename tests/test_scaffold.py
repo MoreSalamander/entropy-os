@@ -217,8 +217,9 @@ def test_gates_need_nothing_but_a_contract_result():
     checked = 0
     for pipeline in COMPOSED_PIPELINES.values():
         for stage in pipeline.stages:
-            assert stage.gates, f"stage {stage.seq} of {pipeline.name} ungated"
-            for gate in stage.gates:
+            gates = stage.resolved_gates()
+            assert gates, f"stage {stage.seq} of {pipeline.name} ungated"
+            for gate in gates:
                 verdict = gate.evaluate(bare, stage.seq, stage.engine)
                 # A verdict is always reachable, always attributed, and always
                 # carries its reasoning.
@@ -243,7 +244,7 @@ def test_determinism_is_declared_honestly():
     from one_engine.orchestration.stages import COMPOSED_PIPELINES
     used = {g.determinism
             for p in COMPOSED_PIPELINES.values()
-            for s in p.stages for g in s.gates}
+            for s in p.stages for g in s.resolved_gates()}
     assert Determinism.SOFT not in used
 
 
@@ -278,3 +279,73 @@ def test_the_workflow_import_graph_stays_free_of_io():
         f"the workflow's import graph pulls in I/O modules: {pulled}. "
         "Anything a gate imports must be free of I/O, or the Temporal "
         "sandbox will refuse it at runtime.")
+
+
+# --------------------------------------------------------------------------- #
+# one engine or all four — the same bar
+# --------------------------------------------------------------------------- #
+
+async def test_one_engine_alone_faces_the_same_gates_as_a_stage(unified):
+    """one-engine runs ONE engine or ALL of them depending on what is asked.
+    A capability is judged by what it produced, not by how it was invoked, so
+    a direct call must not ship what a composed run would hold."""
+    from .conftest import FakeSoftware
+
+    class RedSuite(FakeSoftware):
+        async def _run(self, req, emit):
+            outputs, artifacts, urns, notes = await super()._run(req, emit)
+            outputs["verification_passed"] = False
+            emit("SoftwareVerificationFailed", known_problems=["pytest: boom"])
+            return outputs, artifacts, urns, notes
+
+    unified.members["software"] = in_process_remote(RedSuite(),
+                                                    "http://red.test")
+
+    # Asked for on its own — a single-engine vend.
+    direct = await unified.execute(ExecuteRequest(
+        capability="software.build", inputs={"request": "a thing"}))
+    assert direct.status == "failed"
+    assert "verification_passed" in direct.error
+
+    # The same engine, the same failure, reached as stage 3 of a composition.
+    composed = await unified.execute(ExecuteRequest(
+        capability="compose.learning_platform", inputs={"topic": "WebGPU"}))
+    assert composed.status == "failed"
+    assert "verification_passed" in composed.error
+
+
+async def test_a_single_engine_vend_still_passes_when_it_is_good(unified):
+    """The gate is a bar, not a blockade: a healthy single-engine run goes
+    through untouched, which is what keeps a one-capability vend fast."""
+    result = await unified.execute(ExecuteRequest(
+        capability="web.generate_site", inputs={"request": "a site"}))
+    assert result.status == "completed"
+    assert result.outputs["project_id"] == "w1"
+
+
+async def test_a_direct_call_publishes_its_verdict_too(unified, bus):
+    """Governance does not depend on which door the work came through."""
+    await unified.execute(ExecuteRequest(
+        capability="research.investigate", inputs={"topic": "Zig"}))
+    judged = [e for e in bus.recent() if e.kind == "GatesEvaluated"]
+    assert len(judged) == 1
+    gates = {v["gate"] for v in judged[0].payload["verdicts"]}
+    assert gates == {"stage_succeeded", "produced_something", "evidence_floor"}
+    assert judged[0].payload["decision"] == "proceed"
+
+
+def test_one_table_governs_both_paths():
+    """Stages resolve their gates from the capability policy rather than
+    re-declaring them, so a composed pipeline and a direct call cannot drift
+    apart — the drift being the whole bug this guards against."""
+    from one_engine.orchestration.stages import COMPOSED_PIPELINES
+    from one_engine.scaffold import gates_for
+
+    for pipeline in COMPOSED_PIPELINES.values():
+        for stage in pipeline.stages:
+            assert stage.gates is None, (
+                f"{pipeline.name} stage {stage.seq} overrides its capability's "
+                "gates; that is allowed but should be deliberate")
+            resolved = {g.name for g in stage.resolved_gates()}
+            policy = {g.name for g in gates_for(stage.capability)}
+            assert resolved == policy

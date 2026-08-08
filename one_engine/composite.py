@@ -45,6 +45,7 @@ from .orchestration.runtime import (
     start_objective,
 )
 from .orchestration.stages import COMPOSED_PIPELINES, Registry, new_objective_id
+from .scaffold import StageJudgment, gates_for
 
 # Temporal path, injected by the app when the cluster is reachable:
 # (capability, inputs, objective_id) → ExecuteResult.
@@ -159,7 +160,7 @@ class CompositeEngine:
                 error=f"no member offers capability {req.capability!r}",
                 provenance=Provenance(engine=self.name,
                                       capability=req.capability, ref=req.ref))
-        _, member = found
+        member_key, member = found
         started = now_iso()
         child_req = ExecuteRequest(
             capability=req.capability, inputs=req.inputs,
@@ -170,10 +171,34 @@ class CompositeEngine:
         result = await member.execute(child_req)
         # The unified system narrates everything its members did.
         await self.bus.publish_all(result.events)
+
+        # A capability is judged by what it produced, not by how it was asked
+        # for. Running one engine through this composite faces the same gates
+        # it would face as a stage of a composed objective — otherwise a
+        # direct call would ship silently what a composed run holds.
+        judgment = StageJudgment(
+            stage_seq=0, engine=member_key,
+            verdicts=[g.evaluate(result, 0, member_key)
+                      for g in gates_for(req.capability)])
+        status, error = result.status, result.error
+        if judgment.verdicts:
+            await record_judgment(req.ref.objective_id or req.ref.execution_id,
+                                  judgment, self.name, self.bus,
+                                  self.federation)
+            if judgment.action in ("block", "hold"):
+                # No pipeline to stop and no workflow to pause: the honest
+                # outcome is to hand back the rejection with its reasoning.
+                status = "failed"
+                error = (f"held by gate(s) "
+                         f"{', '.join(v.gate for v in judgment.failed)}: "
+                         f"{judgment.failed[0].evidence}"
+                         + ("" if judgment.action == "block" else
+                            " (needs a human decision)"))
+
         return ExecuteResult(
-            status=result.status, outputs=result.outputs,
+            status=status, outputs=result.outputs,
             artifacts=result.artifacts, events=result.events,
-            error=result.error,
+            error=error,
             provenance=Provenance(
                 engine=self.name, capability=req.capability, ref=req.ref,
                 started_at=started, finished_at=now_iso(),

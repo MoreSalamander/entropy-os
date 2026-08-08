@@ -39,7 +39,11 @@ unified:
 # which is exactly the point.
 system_b:
   name: meta-studio
-  port: 9200
+  # NOT 9200: that is OpenSearch's port, and DataHub's search backend binds
+  # it. Squatting there silently breaks GraphQL search — which is what the
+  # demo's export tooling reads — while REST ingest keeps working, so the
+  # damage hides.
+  port: 9110
 
 datahub:
   gms_url: http://localhost:8080

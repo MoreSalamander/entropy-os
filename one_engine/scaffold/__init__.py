@@ -17,8 +17,10 @@ from .gates import (
                     StageSucceeded,
                     VerificationPassed,
 )
+from .policy import CAPABILITY_GATES, gates_for
 from .verdict import Action, Determinism, GateVerdict, StageJudgment
 
-__all__ = ["Action", "CompositionGate", "CurriculumIsOrdered", "Determinism",
-           "EvidenceFloor", "GateVerdict", "ProducedSomething", "ReviewFloor",
-           "StageJudgment", "StageSucceeded", "VerificationPassed"]
+__all__ = ["Action", "CAPABILITY_GATES", "CompositionGate",
+           "CurriculumIsOrdered", "Determinism", "EvidenceFloor",
+           "GateVerdict", "ProducedSomething", "ReviewFloor", "StageJudgment",
+           "StageSucceeded", "VerificationPassed", "gates_for"]

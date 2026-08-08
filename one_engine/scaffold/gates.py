@@ -163,6 +163,7 @@ class VerificationPassed(CompositionGate):
 class ReviewFloor(CompositionGate):
     """Generated sites must clear their own review agents' floor."""
 
+
     name = "review_floor"
     determinism = Determinism.HARD
 
