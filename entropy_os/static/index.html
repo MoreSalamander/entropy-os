@@ -1936,7 +1936,10 @@ async function loadOneEngine() {
           ${o.status === 'completed'
             ? `<button class="oe-open" data-oid="${esc(o.objective_id)}"
                  style="font-size:11.5px;padding:2px 9px">open outputs</button>` : ''}
+          <button class="oe-checked" data-oid="${esc(o.objective_id)}"
+             style="font-size:11.5px;padding:2px 9px">what was checked</button>
         </div>
+        <div id="oe-checked-${esc(o.objective_id)}"></div>
         <div id="oe-arts-${esc(o.objective_id)}"></div>`).join('')
         : '<div class="muted" style="font-size:12.5px">No runs recorded yet.</div>'}
       <div class="muted" style="font-size:11.5px;margin-top:10px;line-height:1.55">
@@ -1947,6 +1950,8 @@ async function loadOneEngine() {
 
   el.querySelectorAll('.oe-open').forEach(b =>
     b.addEventListener('click', () => openOutputs(b.dataset.oid, b)));
+  el.querySelectorAll('.oe-checked').forEach(b =>
+    b.addEventListener('click', () => openChecked(b.dataset.oid, b)));
 }
 
 // The vending path. Seeing that a composition ran is a weaker claim than
@@ -1993,6 +1998,67 @@ async function openOutputs(oid, btn) {
 
   host.querySelectorAll('.oe-art').forEach(b =>
     b.addEventListener('click', () => showArtifact(oid, b.dataset.idx)));
+}
+
+// The verdict wall, in the front door. A run's engine-level checks now
+// survive in the event log, so this works for a run made long before the
+// page was opened — not only for one still sitting in a process's memory.
+const OE_KIND_NOTE = {hard: 'measured', soft: 'judged', human: 'decided'};
+
+async function openChecked(oid, btn) {
+  const host = document.getElementById(`oe-checked-${oid}`);
+  if (!host) return;
+  if (host.dataset.open === '1') {
+    host.innerHTML = ''; host.dataset.open = '0';
+    btn.textContent = 'what was checked'; return;
+  }
+  host.dataset.open = '1';
+  btn.textContent = 'hide checks';
+  host.innerHTML = '<div class="muted" style="font-size:12px;padding:6px 0">reading…</div>';
+
+  let d;
+  try { d = await api(`/api/one-engine/objectives/${oid}`); }
+  catch (e) { host.innerHTML = `<div class="muted">could not read: ${esc(String(e))}</div>`; return; }
+
+  const vs = (d.objective && d.objective.verdicts) || d.verdicts || [];
+  if (!vs.length) {
+    // Not the same as passing. A run that reported no checks proved nothing,
+    // and saying so is the whole point of the distinction.
+    host.innerHTML = `<div class="muted" style="font-size:12px;padding:4px 0 8px 12px;
+      border-left:2px solid var(--line-soft,#2a2a2a)">
+      This run reported no engine checks. That is not the same as passing —
+      nothing was proven, so nothing can be accepted. Runs recorded before
+      verdicts existed will always read this way.</div>`;
+    return;
+  }
+  const hard = vs.filter(v => (v.determinism || '') === 'hard');
+  const failed = hard.filter(v => !v.passed);
+  const accepted = hard.length > 0 && failed.length === 0;
+
+  host.innerHTML = `
+    <div style="margin:2px 0 10px 0;padding-left:12px;border-left:2px solid var(--line-soft,#2a2a2a)">
+      ${vs.map(v => {
+        const k = (v.determinism || 'hard');
+        const col = k === 'hard' ? 'var(--ok,#9ece6a)'
+                  : k === 'soft' ? 'var(--warn,#e0af68)' : 'var(--accent,#bb9af7)';
+        return `<div style="padding:5px 0;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">
+          <span style="font-family:var(--mono,monospace);font-size:10px;letter-spacing:.1em;
+            text-transform:uppercase;color:${col};border-left:3px ${k === 'soft' ? 'dashed' : 'solid'} ${col};
+            padding-left:6px">${esc(k)}</span>
+          <b style="font-size:12px;font-family:var(--mono,monospace)">${esc(v.gate)}</b>
+          <span class="muted" style="font-size:11.5px">${esc(v.evidence || '')}</span>
+          <span style="font-size:11px;font-family:var(--mono,monospace);
+            color:${v.passed ? 'var(--ok,#9ece6a)' : 'var(--bad,#f7768e)'}"
+            >${v.passed ? 'PASS' : 'FAIL'}</span>
+        </div>`;
+      }).join('')}
+      <div style="margin-top:8px;font-size:12px;font-family:var(--mono,monospace);
+        color:${accepted ? 'var(--ok,#9ece6a)' : 'var(--bad,#f7768e)'}">
+        ${accepted ? 'ACCEPTED' : 'NOT ACCEPTED'}
+        <span class="muted">· ${hard.length ? `${hard.length - failed.length}/${hard.length} hard gates passed`
+          : 'no hard gate ran'}${failed.length ? ` · failed: ${esc(failed.map(v => v.gate).join(', '))}` : ''}</span>
+      </div>
+    </div>`;
 }
 
 async function showArtifact(oid, idx) {

@@ -152,6 +152,11 @@ def build_unified_app() -> FastAPI:
             "orchestrator": (started.payload.get("orchestrator")
                              if started else ""),
             "stages_completed": [e.payload for e in stages],
+            # Every engine verdict this objective accumulated, rebuilt from
+            # the log so a run inspected after a restart shows what it
+            # checked rather than an empty panel.
+            "verdicts": [v for e in stages
+                         for v in (e.payload.get("verdicts") or [])],
             "workflow_progress": progress,
             "result": result,
             "events": [e.model_dump() for e in events],

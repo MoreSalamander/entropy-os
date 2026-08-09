@@ -374,3 +374,33 @@ async def test_a_single_file_artifact_is_readable_by_its_own_name(tmp_path):
     assert got["text"] == "# Findings\n"
     # …and without the redundant rel, which must behave identically.
     assert (await remote.artifact_file(str(report)))["text"] == "# Findings\n"
+
+
+async def test_an_objectives_verdicts_survive_the_process_that_made_them(tmp_path):
+    """An objective is rebuilt from the event log, so anything living only in
+    the returned result dies with the process. Artifact paths learned that
+    lesson already; verdicts had the same hole — a run inspected after a
+    restart showed an empty panel and looked unchecked."""
+    from entropy_os.composition.events.bus import EventBus
+    from entropy_os.composition.federation.datahub import FederationBridge
+    from entropy_os.composition.orchestration.runtime import run_and_record_stage
+    from entropy_os.composition.orchestration.stages import PlannedStage
+
+    bus = EventBus(tmp_path / "events.jsonl")
+    member = in_process_remote(Checker(), "http://checker.test")
+    stage = PlannedStage(seq=1, engine="checker", capability="check.run",
+                         make_inputs=lambda inputs, acc: {"subject": "x"})
+
+    await run_and_record_stage(
+        member, stage, "obj-test", "", {"subject": "x"}, {},
+        bus, FederationBridge(gms_url="http://127.0.0.1:9", platform="t"),
+        "", "inline", "unified")
+
+    # Read them back the way the front door does: off the log, not memory.
+    replayed = [e for e in bus.recent(limit=100)
+                if e.kind == "StageCompleted" and e.objective_id == "obj-test"]
+    assert replayed, "the stage was not recorded at all"
+    verdicts = [v for e in replayed for v in (e.payload.get("verdicts") or [])]
+    gates = {v["gate"] for v in verdicts}
+    assert gates == {"tests", "reviewer", "build"}
+    assert {v["determinism"] for v in verdicts} == {"hard", "soft"}

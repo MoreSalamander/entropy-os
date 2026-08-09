@@ -99,6 +99,18 @@ async def artifact_text(path: str, rel: str = "") -> dict[str, Any]:
         raise EngineUnreachable(f"{type(e).__name__}: {e}") from e
 
 
+async def artifact_tree_at(path: str) -> dict[str, Any]:
+    """The files inside an artifact, addressed by path."""
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(f"{base_url()}/artifacts/tree",
+                                 params={"path": path}, timeout=30.0)
+            r.raise_for_status()
+            return dict(r.json())
+    except (httpx.HTTPError, ValueError) as e:
+        raise EngineUnreachable(f"{type(e).__name__}: {e}") from e
+
+
 async def execute(capability: str, inputs: dict[str, Any],
                   timeout_s: float = EXECUTE_TIMEOUT_S) -> dict[str, Any]:
     """Run one capability and return the contract's ExecuteResult as a dict.

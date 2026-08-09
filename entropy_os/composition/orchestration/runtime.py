@@ -158,7 +158,15 @@ async def run_and_record_stage(member: ComposableEngine, stage: PlannedStage,
                  # machine can package later without guessing.
                  "artifacts": [{"kind": a.kind, "path": a.path,
                                 "description": a.description}
-                               for a in result.artifacts]}))
+                               for a in result.artifacts],
+                 # What the ENGINE checked about its own work. Recorded here
+                 # for the same reason the artifact paths are: an objective is
+                 # rebuilt from this log, and anything living only in the
+                 # returned result dies with the process that produced it.
+                 # Composition gate verdicts are already published separately
+                 # by record_judgment; these are the engine's own.
+                 "verdicts": [v.model_dump(mode="json")
+                              for v in result.verdicts]}))
     return result, stage_urn
 
 

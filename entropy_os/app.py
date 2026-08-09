@@ -1298,6 +1298,22 @@ def create_app(
     # The vending path: what a run produced, and its contents. Reading an
     # artifact is a read; one-engine owns the containment check that keeps a
     # caller-supplied path inside the artifact root, and nothing here widens it.
+    @app.get("/api/one-engine/artifact-tree")
+    async def one_engine_artifact_tree_at(path: str) -> dict[str, Any]:
+        """Browse an artifact by PATH rather than by its place in an objective.
+
+        The objective-scoped routes only reach composed runs. A vend or a
+        direct capability call has a result in hand and no objective record,
+        and its output was just as real — so the front door can open those
+        too. Containment is enforced by the engine that owns the artifact;
+        nothing here widens it.
+        """
+        return await engine_client.artifact_tree_at(path)
+
+    @app.get("/api/one-engine/artifact-text")
+    async def one_engine_artifact_text(path: str, rel: str = "") -> dict[str, Any]:
+        return await engine_client.artifact_text(path, rel)
+
     @app.get("/api/one-engine/objectives/{objective_id}/artifacts")
     async def one_engine_artifacts(objective_id: str) -> dict[str, Any]:
         return await engine_client.artifacts(objective_id)
