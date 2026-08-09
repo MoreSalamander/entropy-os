@@ -214,6 +214,12 @@
     border-bottom: 0;
   }
   .art-tab.on { background: var(--panel); color: var(--accent); border-color: var(--line); }
+  .open-bar {
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    padding: 10px 16px; border-bottom: 1px solid var(--line); font-size: 12.5px;
+  }
+  .open-bar .why { color: var(--dim); font-family: var(--mono); }
+  .open-bar a { color: var(--hard); font-family: var(--mono); font-weight: 600; }
 
   /* --- history ------------------------------------------------------ */
   .runs { display: grid; gap: 8px; }
@@ -292,6 +298,7 @@
           <div class="note" id="art-note"></div>
         </div>
         <div class="art-tabs" id="art-tabs"></div>
+        <div class="open-bar" id="open-bar"></div>
         <div class="browser">
           <div class="files" id="files"></div>
           <div class="viewer"><pre id="viewer">select a file</pre></div>
@@ -550,7 +557,49 @@ function drawArtifacts() {
   openArtifact(artifacts[0]);
 }
 
+/* Reading generated code tells you what was written. Running it tells you
+   whether it works, which is the question a reader actually has. */
+function drawOpenBar(a) {
+  const bar = $("open-bar");
+  const runnable = a.kind === "project" || a.kind === "site";
+  if (!runnable) {
+    bar.innerHTML = `<span class="why">a ${esc(a.kind)} is a document — it is shown, not run</span>`;
+    return;
+  }
+  bar.innerHTML =
+    `<button id="open-real">open it for real</button>
+     <span class="why">builds a disposable container from this ${esc(a.kind)} and serves it</span>`;
+  $("open-real").onclick = async () => {
+    const btn = $("open-real");
+    btn.disabled = true; btn.textContent = "building…";
+    try {
+      const r = await api("/artifacts/run", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ path: a.path, kind: a.kind,
+                               description: a.description || "" }),
+      });
+      bar.innerHTML =
+        `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.url)} ↗</a>
+         <span class="why">running · port ${esc(r.container_port)} · ${esc(r.image)}</span>
+         <button class="ghost" id="stop-real">throw it away</button>`;
+      $("stop-real").onclick = async () => {
+        await api("/artifacts/stop", {
+          method: "POST", headers: { "content-type": "application/json" },
+          body: JSON.stringify({ container_id: r.container_id }),
+        });
+        drawOpenBar(a);
+      };
+    } catch (e) {
+      /* A refusal is an answer. Show the machine's reason, not a generic
+         failure — "no Dockerfile" and "Docker is down" need different fixes. */
+      bar.innerHTML = `<span class="why">could not open it: ${esc(e.message)}</span>`;
+      btn.disabled = false; btn.textContent = "open it for real";
+    }
+  };
+}
+
 async function openArtifact(a) {
+  drawOpenBar(a);
   $("files").innerHTML = `<div class="empty">reading…</div>`;
   $("viewer").textContent = "";
   try {

@@ -111,6 +111,40 @@ async def artifact_tree_at(path: str) -> dict[str, Any]:
         raise EngineUnreachable(f"{type(e).__name__}: {e}") from e
 
 
+async def run_artifact(path: str, kind: str, description: str = "",
+                       objective_id: str = "") -> dict[str, Any]:
+    """Build and dispense a disposable copy of one artifact.
+
+    Generous timeout: this builds a container image, which is minutes on a
+    cold cache and is exactly the wait a person accepts to see the thing run.
+    """
+    payload = {"path": path, "kind": kind, "description": description,
+               "objective_id": objective_id}
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.post(f"{base_url()}/artifacts/run", json=payload,
+                                  timeout=900.0)
+            if r.status_code == 422:
+                # A refusal carries a reason worth showing verbatim.
+                return {"error": r.json().get("detail", "refused")}
+            r.raise_for_status()
+            return dict(r.json())
+    except (httpx.HTTPError, ValueError) as e:
+        raise EngineUnreachable(f"{type(e).__name__}: {e}") from e
+
+
+async def stop_artifact(container_id: str) -> dict[str, Any]:
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.post(f"{base_url()}/artifacts/stop",
+                                  json={"container_id": container_id},
+                                  timeout=60.0)
+            r.raise_for_status()
+            return dict(r.json())
+    except (httpx.HTTPError, ValueError) as e:
+        raise EngineUnreachable(f"{type(e).__name__}: {e}") from e
+
+
 async def execute(capability: str, inputs: dict[str, Any],
                   timeout_s: float = EXECUTE_TIMEOUT_S) -> dict[str, Any]:
     """Run one capability and return the contract's ExecuteResult as a dict.

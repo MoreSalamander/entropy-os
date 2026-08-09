@@ -132,6 +132,17 @@ _DATA = default_data_dir()
 _STATIC = Path(__file__).parent / "static"
 
 
+class ArtifactRunRequest(BaseModel):
+    path: str
+    kind: str
+    description: str = ""
+    objective_id: str = ""
+
+
+class ArtifactStopRequest(BaseModel):
+    container_id: str
+
+
 class GradeBody(BaseModel):
     """The assessment door: which vended lesson, which answers."""
     run_id: str
@@ -1298,6 +1309,16 @@ def create_app(
     # The vending path: what a run produced, and its contents. Reading an
     # artifact is a read; one-engine owns the containment check that keeps a
     # caller-supplied path inside the artifact root, and nothing here widens it.
+    @app.post("/api/one-engine/artifact-run")
+    async def one_engine_artifact_run(req: ArtifactRunRequest) -> dict[str, Any]:
+        """Open a generated product, rather than reading its source."""
+        return await engine_client.run_artifact(
+            req.path, req.kind, req.description, req.objective_id)
+
+    @app.post("/api/one-engine/artifact-stop")
+    async def one_engine_artifact_stop(req: ArtifactStopRequest) -> dict[str, Any]:
+        return await engine_client.stop_artifact(req.container_id)
+
     @app.get("/api/one-engine/artifact-tree")
     async def one_engine_artifact_tree_at(path: str) -> dict[str, Any]:
         """Browse an artifact by PATH rather than by its place in an objective.

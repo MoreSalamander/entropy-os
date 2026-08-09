@@ -37,12 +37,36 @@ from .docker import DispensedCopy, VendingError, available, build, dispense
 # Artifact kinds this machine can package, and how.
 STATIC_KINDS = ("report", "lesson")
 NATIVE_DOCKERFILE_KINDS = ("project",)
+# A generated site is source, not a bundle — but the build it needs is a
+# node toolchain, and a container is exactly where a toolchain you do not
+# have locally belongs. The refusal was honest when there was no strategy;
+# writing one is better than keeping the apology.
+NODE_BUILD_KINDS = ("site",)
+
 UNSUPPORTED_KINDS = {
-    "site": "a generated Next.js site is source, not a served bundle; "
-            "packaging it needs a node build stage this machine does not "
-            "have yet",
     "sidecar": "a sidecar is a model of another artifact, not a product",
 }
+
+# What each kind serves on, inside its container. A generated FastAPI project
+# declares 8000 in its own Dockerfile; Next.js serves 3000; a static page is
+# nginx on 80. Guessing one number for all of them dispenses a container that
+# is running perfectly and answering nothing.
+CONTAINER_PORTS = {"project": 8000, "site": 3000}
+DEFAULT_CONTAINER_PORT = 80
+
+# Written for a generated Next.js tree that has package.json and a build
+# script. `npm install` rather than `ci`: these trees are generated, and a
+# lockfile is not guaranteed to be there.
+NEXT_DOCKERFILE = """FROM node:20-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install --no-audit --no-fund
+COPY . .
+RUN npm run build
+EXPOSE 3000
+ENV HOSTNAME=0.0.0.0 PORT=3000
+CMD ["npm", "start"]
+"""
 
 
 @dataclass(frozen=True)
@@ -52,6 +76,8 @@ class StockItem:
     kind: str
     title: str
     source_path: str
+    # The port the product listens on inside its container.
+    container_port: int = DEFAULT_CONTAINER_PORT
 
 
 def image_tag(objective_id: str, kind: str, name: str) -> str:
@@ -64,7 +90,7 @@ def packageable(artifact: ArtifactRef) -> tuple[bool, str]:
     """Whether this kind can be packaged, and why not when it cannot."""
     if artifact.kind in UNSUPPORTED_KINDS:
         return False, UNSUPPORTED_KINDS[artifact.kind]
-    if artifact.kind not in STATIC_KINDS + NATIVE_DOCKERFILE_KINDS:
+    if artifact.kind not in STATIC_KINDS + NATIVE_DOCKERFILE_KINDS + NODE_BUILD_KINDS:
         return False, f"no packaging strategy for kind {artifact.kind!r}"
     if not artifact.path or not Path(artifact.path).exists():
         return False, f"artifact path does not exist: {artifact.path!r}"
@@ -161,7 +187,26 @@ def package(artifact: ArtifactRef, objective_id: str,
         # the artifact's self-description authoritative.
         build(path, tag, dockerfile=str(dockerfile))
         return StockItem(image=tag, kind=artifact.kind, title=name,
-                         source_path=str(path))
+                         source_path=str(path),
+                         container_port=CONTAINER_PORTS.get(artifact.kind,
+                                                            DEFAULT_CONTAINER_PORT))
+
+    if artifact.kind in NODE_BUILD_KINDS:
+        if not (path / "package.json").exists():
+            raise VendingError(
+                f"{artifact.kind} at {path} has no package.json; design-engine "
+                "normally writes one, so its absence is the real problem")
+        # The Dockerfile is written beside the source rather than into it: a
+        # generated site is a record of what was generated, and packaging it
+        # must not edit that record.
+        with tempfile.TemporaryDirectory() as tmp:
+            df = Path(tmp) / "Dockerfile"
+            df.write_text(NEXT_DOCKERFILE, encoding="utf-8")
+            build(path, tag, dockerfile=str(df))
+        return StockItem(image=tag, kind=artifact.kind, title=name,
+                         source_path=str(path),
+                         container_port=CONTAINER_PORTS.get(artifact.kind,
+                                                            DEFAULT_CONTAINER_PORT))
 
     page = _static_page(artifact, provenance)
     with tempfile.TemporaryDirectory() as tmp:
@@ -176,6 +221,12 @@ def package(artifact: ArtifactRef, objective_id: str,
                      source_path=str(path))
 
 
-def vend(item: StockItem, container_port: int = 80) -> DispensedCopy:
-    """Hand out a fresh disposable copy of already-built stock."""
-    return dispense(item.image, container_port=container_port)
+def vend(item: StockItem, container_port: int | None = None) -> DispensedCopy:
+    """Hand out a fresh disposable copy of already-built stock.
+
+    The port comes from the item unless a caller overrides it, so a product
+    is reached on the port it actually serves rather than the one that
+    happened to be the default.
+    """
+    return dispense(item.image,
+                    container_port=container_port or item.container_port)

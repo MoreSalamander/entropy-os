@@ -27,7 +27,7 @@ from pydantic import BaseModel
 
 from .composite import CompositeEngine
 from .config import load_config
-from .contract import ExecuteRequest, ExecutionRef
+from .contract import ArtifactRef, ExecuteRequest, ExecutionRef
 from .contract.http import build_engine_app
 from .events.bus import EventBus
 from .federation.datahub import FederationBridge
@@ -41,6 +41,19 @@ UI_PATH = Path(__file__).resolve().parent / "ui" / "index.html"
 class ObjectiveRequest(BaseModel):
     capability: str = "compose.learning_platform"
     inputs: dict = {}
+
+
+class RunArtifactRequest(BaseModel):
+    """Open an artifact for real. `path` is the artifact's own recorded path;
+    the engine that owns it still decides whether that path is servable."""
+    path: str
+    kind: str
+    description: str = ""
+    objective_id: str = ""
+
+
+class StopArtifactRequest(BaseModel):
+    container_id: str
 
 
 class SignalRequest(BaseModel):
@@ -79,6 +92,8 @@ def build_unified_app() -> FastAPI:
     # objective_id → asyncio.Task, so a submitted objective keeps running
     # after the HTTP response returns.
     app.state.running: dict[str, asyncio.Task] = {}
+    # Copies handed out and still alive, so they can be thrown away.
+    app.state.dispensed: dict = {}
 
     # ------------------------------------------------------------------ #
     # product layer
@@ -250,6 +265,47 @@ def build_unified_app() -> FastAPI:
                      "this system is running inline")
         await app.state.launcher.signal(objective_id, "reject", req.note)
         return {"objective_id": objective_id, "signal": "reject"}
+
+    # --- opening a product, not its source ---------------------------------
+    # Reading generated code tells you what was written. Running it tells you
+    # whether it works, which is the question a reader actually has. The
+    # machinery already existed for packaging gated artifacts; these routes
+    # are what let a person reach it.
+
+    @app.post("/artifacts/run")
+    async def run_artifact(req: RunArtifactRequest):
+        """Build a disposable container for one artifact and hand back its URL."""
+        from .vending.docker import VendingError
+        from .vending.machine import package, vend
+
+        art = ArtifactRef(kind=req.kind, path=req.path,
+                          description=req.description)
+        try:
+            # Deliberately blocking: a build takes a while and the caller is
+            # a person waiting to see the thing, not a pipeline.
+            item = await asyncio.to_thread(package, art, req.objective_id or "adhoc")
+            copy = await asyncio.to_thread(vend, item)
+        except VendingError as e:
+            # A refusal is an answer, not a fault — an unpackageable kind and
+            # a broken daemon read very differently to whoever asked.
+            raise HTTPException(422, str(e)) from None
+        app.state.dispensed[copy.container_id] = copy
+        return {"url": copy.url, "container_id": copy.container_id,
+                "image": item.image, "kind": item.kind,
+                "container_port": item.container_port}
+
+    @app.post("/artifacts/stop")
+    async def stop_artifact(req: StopArtifactRequest):
+        """Throw the copy away. Disposable means someone has to dispose."""
+        from .vending.docker import stop
+        await asyncio.to_thread(stop, req.container_id)
+        app.state.dispensed.pop(req.container_id, None)
+        return {"stopped": req.container_id}
+
+    @app.get("/artifacts/running")
+    async def running_artifacts():
+        return {"running": [{"container_id": c.container_id, "url": c.url}
+                            for c in app.state.dispensed.values()]}
 
     @app.get("/composition")
     async def composition():
