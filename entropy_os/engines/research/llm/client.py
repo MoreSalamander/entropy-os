@@ -65,6 +65,23 @@ class OllamaClient:
         payload: dict[str, Any] = {
             "model": model,
             "stream": False,
+            # THINKING OFF, always, and stated rather than left to the model's
+            # default. Every role this client serves — extraction, planning,
+            # judging, summarising — wants the artifact, not the reasoning
+            # that produced it, and the gates never read a chain of thought.
+            #
+            # Omitting the field is not neutral: Ollama then uses whatever the
+            # model prefers, and a reasoning model prefers to think. Measured
+            # here on qwen3.5-64k: an extraction call sat with an established
+            # connection and no output while the runner idled and its
+            # keep-alive expired — a request that never returns rather than
+            # one that returns slowly. The empty Executive Summary in every
+            # existing report is the same fault arriving quietly: thinking
+            # consumed the budget and `content` came back blank.
+            #
+            # veritas's own provider has sent think=False since it met this;
+            # this client is a second implementation that never learned it.
+            "think": False,
             "options": {"temperature": self.cfg.temperature},
             "messages": [
                 {"role": "system", "content": system},
