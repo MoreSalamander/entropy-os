@@ -18,6 +18,7 @@ from __future__ import annotations
 import httpx
 
 from .contract.schema import (
+    ArtifactNotServed,
     ContextDescriptor,
     EngineManifest,
     ExecuteRequest,
@@ -85,6 +86,16 @@ class RemoteEngine:
         r = await self._client.post("/events", json=event.model_dump(),
                                     timeout=self._timeout(15))
         r.raise_for_status()
+
+    async def artifact_file(self, path: str, rel: str = "") -> dict:
+        """Ask the engine that owns the artifact. Containment is enforced on
+        ITS side, by the only party that knows what it owns."""
+        r = await self._client.get(f"{self.base_url}/artifacts/file",
+                                   params={"path": path, "rel": rel},
+                                   timeout=self._timeout(30.0))
+        if r.status_code != 200:
+            raise ArtifactNotServed(f"{self.base_url} refused: {r.status_code}")
+        return dict(r.json())
 
     async def aclose(self) -> None:
         await self._client.aclose()

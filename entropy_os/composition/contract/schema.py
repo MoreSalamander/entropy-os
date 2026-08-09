@@ -165,6 +165,16 @@ class Provenance(BaseModel):
     children: list[Provenance] = Field(default_factory=list)
 
 
+class ArtifactNotServed(Exception):
+    """No engine will serve that file.
+
+    Deliberately one error for every reason — outside the root, not a file,
+    gone, or simply not this engine's — because distinguishing them to the
+    caller would turn a read surface into a probe for what exists on the
+    host's disk.
+    """
+
+
 class Determinism(StrEnum):
     """How a verdict was reached — the honest label, not the flattering one."""
 

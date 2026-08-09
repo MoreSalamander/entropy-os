@@ -77,6 +77,28 @@ class EngineUnreachable(RuntimeError):
     """
 
 
+async def artifact_text(path: str, rel: str = "") -> dict[str, Any]:
+    """Read one file the composition produced, addressed by PATH.
+
+    Distinct from `artifact_file` below, which addresses a file by its place
+    in a recorded objective. Both exist because a vend and an objective are
+    different things: a vend has a result in hand and no objective record.
+
+    The front door never touches the engines' disk itself. It asks, and the
+    engine that owns the artifact decides — which is what keeps this correct
+    when the composite stops sharing a filesystem with its members.
+    """
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(f"{base_url()}/artifacts/file",
+                                 params={"path": path, "rel": rel},
+                                 timeout=30.0)
+            r.raise_for_status()
+            return dict(r.json())
+    except (httpx.HTTPError, ValueError) as e:
+        raise EngineUnreachable(f"{type(e).__name__}: {e}") from e
+
+
 async def execute(capability: str, inputs: dict[str, Any],
                   timeout_s: float = EXECUTE_TIMEOUT_S) -> dict[str, Any]:
     """Run one capability and return the contract's ExecuteResult as a dict.

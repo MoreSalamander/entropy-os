@@ -6,6 +6,7 @@ from .protocol import ComposableEngine
 from .schema import (
     CONTRACT_VERSION,
     IDENTIFYING_OUTPUTS,
+    ArtifactNotServed,
     ArtifactRef,
     CapabilitySpec,
     CompositionNode,
@@ -30,7 +31,7 @@ from .schema import (
 
 __all__ = [
     "IDENTIFYING_OUTPUTS", "identifying",
-    "CONTRACT_VERSION", "ComposableEngine", "ArtifactRef", "CapabilitySpec",
+    "CONTRACT_VERSION", "ComposableEngine", "ArtifactNotServed", "ArtifactRef", "CapabilitySpec",
     "CompositionNode", "ContextDescriptor", "EngineIdentity", "EngineManifest",
     "ExecuteRequest", "ExecuteResult", "ExecutionRef", "FieldSpec",
     "HealthReport", "KnowledgeDescriptor", "Provenance", "SemanticEvent",

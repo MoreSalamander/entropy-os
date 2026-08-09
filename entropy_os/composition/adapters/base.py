@@ -20,6 +20,7 @@ from pathlib import Path
 
 from ...paths import engine_storage
 from ..contract import (
+    ArtifactNotServed,
     ArtifactRef,
     CapabilitySpec,
     CompositionNode,
@@ -47,6 +48,11 @@ Emit = Callable[..., SemanticEvent]
 # actually has. Engines have always run these checks; before this seam their
 # results collapsed into a single output boolean on the way out.
 Vouch = Callable[..., Verdict]
+
+# A read surface, not a download service: enough for a report, a lesson or
+# a source file, small enough that no single request can be used to haul
+# the host's disk through it.
+MAX_INLINE_BYTES = 2_000_000
 
 
 class LeafAdapter:
@@ -174,6 +180,34 @@ class LeafAdapter:
         if not self.member_key:
             return None
         return engine_storage(self.member_key)
+
+    async def artifact_file(self, path: str, rel: str = "") -> dict:
+        """One file this engine produced, or a refusal.
+
+        `path` arrives from the caller, so it is resolved FIRST — following
+        symlinks and `..` — and only then required to sit under this engine's
+        root. Doing it the other way round tests a string rather than a
+        location, which is how a read surface becomes an arbitrary-file read.
+        """
+        root = self.artifact_root()
+        if root is None:
+            raise ArtifactNotServed("this engine serves no artifact files")
+        target = Path(path)
+        if rel:
+            target = target / rel
+        try:
+            resolved = target.resolve(strict=True)
+            base = Path(root).resolve(strict=True)
+            resolved.relative_to(base)
+        except (OSError, ValueError) as exc:
+            raise ArtifactNotServed("no such file inside this engine") from exc
+        if not resolved.is_file():
+            raise ArtifactNotServed("not a file")
+        if resolved.stat().st_size > MAX_INLINE_BYTES:
+            raise ArtifactNotServed("file too large to serve inline")
+        return {"path": str(resolved), "engine": self.name,
+                "size": resolved.stat().st_size,
+                "text": resolved.read_text(encoding="utf-8", errors="replace")}
 
     async def health(self) -> HealthReport:
         checks = {"adapter": "up"}

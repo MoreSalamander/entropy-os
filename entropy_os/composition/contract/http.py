@@ -22,13 +22,12 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 
 from .protocol import ComposableEngine
-from .schema import CONTRACT_VERSION, ExecuteRequest, SemanticEvent
+from .schema import CONTRACT_VERSION, ArtifactNotServed, ExecuteRequest, SemanticEvent
 
 Startup = Callable[[FastAPI], Awaitable[None]]
 
@@ -90,36 +89,19 @@ def build_engine_app(engine: ComposableEngine, title: str = "engine",
     async def artifact_file(path: str, rel: str = ""):
         """One file from an artifact this engine produced.
 
-        An ExecuteResult hands back artifact PATHS, which are useless to any
-        caller that does not share the disk — and dangerous to serve naively,
-        since `path` arrives from the caller. Both problems have the same
-        answer: the engine that made the artifact is the one that serves it,
-        and it serves nothing outside its own storage root.
-
-        The containment check is the whole security of this route. Resolve
-        first (following symlinks and `..`), then require the result to sit
-        under the root; doing it in the other order checks a string rather
-        than a location.
+        The engine decides — a leaf by checking the path against its own
+        storage root, a composite by asking the members that have roots. The
+        route only translates the single refusal, which carries no detail on
+        purpose: telling a caller WHY a path was rejected turns a read
+        surface into a probe for what exists on the host.
         """
-        root = getattr(engine, "artifact_root", lambda: None)()
-        if root is None:
+        reader = getattr(engine, "artifact_file", None)
+        if reader is None:
             raise HTTPException(404, "this engine does not serve artifact files")
-        target = Path(path)
-        if rel:
-            target = target / rel
         try:
-            resolved = target.resolve(strict=True)
-            base = Path(root).resolve(strict=True)
-            resolved.relative_to(base)
-        except (OSError, ValueError):
-            raise HTTPException(404, "no such file inside this engine's artifacts") from None
-        if not resolved.is_file():
-            raise HTTPException(404, "not a file")
-        if resolved.stat().st_size > 2_000_000:
-            raise HTTPException(413, "file too large to serve inline")
-        return {"path": str(resolved),
-                "size": resolved.stat().st_size,
-                "text": resolved.read_text(encoding="utf-8", errors="replace")}
+            return await reader(path, rel)
+        except ArtifactNotServed:
+            raise HTTPException(404, "no such artifact file") from None
 
     @app.post("/events", status_code=204)
     async def ingest(event: SemanticEvent):

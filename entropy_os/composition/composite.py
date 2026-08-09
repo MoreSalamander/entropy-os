@@ -20,6 +20,7 @@ import asyncio
 from collections.abc import Awaitable, Callable
 
 from .contract import (
+    ArtifactNotServed,
     CapabilitySpec,
     ComposableEngine,
     CompositionNode,
@@ -380,6 +381,35 @@ class CompositeEngine:
     async def ingest_event(self, event: SemanticEvent) -> None:
         # External facts join the unified narration; nothing dispatches.
         await self.bus.publish(event)
+
+    async def artifact_file(self, path: str, rel: str = "") -> dict:
+        """Serve a member's artifact without owning any disk.
+
+        A composite has no storage root of its own, so it cannot check
+        containment — and must not try. It asks its members instead, and each
+        one answers only for what lives under ITS root. That is why asking
+        all of them is safe rather than sloppy: the refusals are enforced by
+        the parties that know what they own, not by this one guessing.
+
+        The first member that answers wins. A path no member claims is simply
+        not served, with no hint about why, so this cannot be used to map the
+        host's filesystem.
+        """
+        for member in self.members.values():
+            reader = getattr(member, "artifact_file", None)
+            if reader is None:
+                continue
+            try:
+                return await reader(path, rel)
+            except Exception:
+                # Both a refusal and an unreachable member lead to the same
+                # next step — ask the others — so they are handled together
+                # here. They are NOT the same fact, and the difference is
+                # preserved where it matters: /health reports a member that
+                # is down, so an operator never has to infer an outage from
+                # a missing file.
+                continue
+        raise ArtifactNotServed("no member serves that artifact")
 
     async def aclose(self) -> None:
         await asyncio.gather(*(m.aclose() for m in self.members.values()),

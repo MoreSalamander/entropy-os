@@ -224,3 +224,54 @@ async def test_an_engine_without_storage_says_so_rather_than_guessing(tmp_path):
     remote = in_process_remote(Checker(), "http://checker.test")
     r = await remote._client.get("/artifacts/file", params={"path": str(tmp_path)})
     assert r.status_code == 404
+
+
+async def test_a_composite_serves_a_members_artifact_without_owning_a_disk(tmp_path):
+    """The composite has no storage root, so it cannot check containment and
+    must not try. It asks the members, and the one that owns the file
+    answers."""
+    from entropy_os.composition.composite import CompositeEngine
+    from entropy_os.composition.events.bus import EventBus
+    from entropy_os.composition.federation.datahub import FederationBridge
+
+    root = tmp_path / "web"
+    (root / "site").mkdir(parents=True)
+    (root / "site" / "page.tsx").write_text("export default Page\n")
+
+    unified = CompositeEngine(
+        name="unified",
+        members={"web": in_process_remote(Producer(root), "http://web.test"),
+                 "silent": in_process_remote(Silent(), "http://silent.test")},
+        bus=EventBus(tmp_path / "events.jsonl"),
+        federation=FederationBridge(gms_url="http://127.0.0.1:9", platform="t"))
+
+    got = await unified.artifact_file(str(root / "site"), "page.tsx")
+    assert got["text"] == "export default Page\n"
+    # Provenance of the read: which engine actually answered.
+    assert got["engine"] == "producer"
+
+
+async def test_a_composite_cannot_reach_outside_every_members_root(tmp_path):
+    """Asking all members is only safe because each refuses for its own root.
+    If the composite ever started resolving paths itself, this is the test
+    that would stop being true."""
+    from entropy_os.composition.composite import CompositeEngine
+    from entropy_os.composition.contract import ArtifactNotServed
+    from entropy_os.composition.events.bus import EventBus
+    from entropy_os.composition.federation.datahub import FederationBridge
+
+    root = tmp_path / "web"
+    root.mkdir(parents=True)
+    secret = tmp_path / "secret.txt"
+    secret.write_text("not yours")
+
+    unified = CompositeEngine(
+        name="unified",
+        members={"web": in_process_remote(Producer(root), "http://web.test")},
+        bus=EventBus(tmp_path / "events.jsonl"),
+        federation=FederationBridge(gms_url="http://127.0.0.1:9", platform="t"))
+
+    with pytest.raises(ArtifactNotServed):
+        await unified.artifact_file(str(secret))
+    with pytest.raises(ArtifactNotServed):
+        await unified.artifact_file(str(root), "../secret.txt")
