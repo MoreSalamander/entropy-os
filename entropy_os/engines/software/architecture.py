@@ -28,6 +28,7 @@ import re
 
 from entropy_os.engines.research.llm.client import LLMClient, LLMUnavailable
 
+from . import catalog_entity
 from .models import (
     ApiEndpoint,
     Architecture,
@@ -121,6 +122,21 @@ class ArchitectAgent:
             notes.append("LLM unavailable — deterministic fallback architecture")
 
         arch = self._validate(spec, proposal, notes)
+
+        # The catalog is not a suggestion. The model was given these field
+        # names and, measured, adopted one of seven — so the scaffold puts
+        # them in rather than asking again. The model still designs the
+        # service; it does not get to rename a column that already exists.
+        if spec.catalog_schema:
+            catalog_entities = catalog_entity.parse(spec.catalog_schema)
+            if catalog_entities:
+                arch.entities = catalog_entity.merge(arch.entities, catalog_entities)
+                notes.append(
+                    f"catalog schema enforced: "
+                    f"{sum(len(e.fields) for e in catalog_entities)} field(s) "
+                    f"across {len(catalog_entities)} entity(ies) taken from the "
+                    f"metadata catalog verbatim")
+
         arch.decisions.append(Decision(
             title="Stack: FastAPI + SQLAlchemy/SQLite + pytest + static JS",
             decision="Generate a modular FastAPI service with SQLite persistence, "
