@@ -275,3 +275,53 @@ async def test_a_composite_cannot_reach_outside_every_members_root(tmp_path):
         await unified.artifact_file(str(secret))
     with pytest.raises(ArtifactNotServed):
         await unified.artifact_file(str(root), "../secret.txt")
+
+
+async def test_verdicts_survive_composition(tmp_path):
+    """The gap that shipped: every earlier test here exercised a LEAF, so
+    nothing noticed that the composite rebuilt the result and left the
+    verdicts behind. A real run through the composite is where it showed up —
+    an engine's checks stopped existing the moment it was composed."""
+    from entropy_os.composition.composite import CompositeEngine
+    from entropy_os.composition.events.bus import EventBus
+    from entropy_os.composition.federation.datahub import FederationBridge
+
+    unified = CompositeEngine(
+        name="unified",
+        members={"checker": in_process_remote(Checker(), "http://checker.test")},
+        bus=EventBus(tmp_path / "events.jsonl"),
+        federation=FederationBridge(gms_url="http://127.0.0.1:9", platform="t"))
+
+    result = await unified.execute(ExecuteRequest(
+        capability="check.run", inputs={"subject": "x"}))
+
+    by_gate = {v.gate: v for v in result.verdicts}
+    assert set(by_gate) == {"tests", "reviewer", "build"}, (
+        "the composite must carry its member's verdicts, not just its own")
+    assert by_gate["tests"].determinism is Determinism.HARD
+    assert by_gate["reviewer"].determinism is Determinism.SOFT
+
+
+async def test_the_acceptance_rule_reads_a_composed_result(tmp_path):
+    """End to end in the shape the wedge actually uses it: run through the
+    composite, then decide. Empty verdicts here would have quietly refused
+    every vend."""
+    from entropy_os.composition.composite import CompositeEngine
+    from entropy_os.composition.events.bus import EventBus
+    from entropy_os.composition.federation.datahub import FederationBridge
+    from entropy_os.vending import decide
+
+    unified = CompositeEngine(
+        name="unified",
+        members={"checker": in_process_remote(Checker(), "http://checker.test")},
+        bus=EventBus(tmp_path / "events.jsonl"),
+        federation=FederationBridge(gms_url="http://127.0.0.1:9", platform="t"))
+
+    result = await unified.execute(ExecuteRequest(
+        capability="check.run", inputs={"subject": "x"}))
+    decision = decide(result.status, result.verdicts, result.error)
+
+    # `tests` passed but `build` did not run, and a hard gate that did not
+    # pass refuses the vend — the honest answer for an unbuilt artifact.
+    assert decision.accepted is False
+    assert decision.hard_passed == 1 and decision.hard_failed == 1

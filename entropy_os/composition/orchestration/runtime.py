@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 
 from ..contract import (
+    Verdict,
     ArtifactRef,
     ComposableEngine,
     ExecuteRequest,
@@ -283,8 +284,14 @@ async def finalize_and_assemble(pipeline: ComposedPipeline, inputs: dict,
                  "datahub": federation.status}))
 
     artifacts: list[ArtifactRef] = []
+    verdicts: list[Verdict] = []
     for r in stage_results:
         artifacts.extend(r.artifacts)
+        # Every stage's own checks, carried up. A composed run that reported
+        # only its composition gates would be claiming the whole objective was
+        # verified while hiding what each engine actually proved — and the
+        # engine-level checks are the ones with test results behind them.
+        verdicts.extend(r.verdicts)
     by_seq = {s.seq: r
               for s, r in zip(pipeline.stages, stage_results, strict=False)}
     outputs = {
@@ -303,7 +310,8 @@ async def finalize_and_assemble(pipeline: ComposedPipeline, inputs: dict,
         "objective_urn": objective_urn,
     }
     return ExecuteResult(
-        status=status, outputs=outputs, artifacts=artifacts, error=error,
+        status=status, outputs=outputs, artifacts=artifacts,
+        verdicts=verdicts, error=error,
         provenance=Provenance(
             engine=engine_name, capability=pipeline.name,
             ref=ExecutionRef(objective_id=objective_id,

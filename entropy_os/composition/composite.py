@@ -199,6 +199,12 @@ class CompositeEngine:
         return ExecuteResult(
             status=status, outputs=result.outputs,
             artifacts=result.artifacts, events=result.events,
+            # The member's own verdicts travel WITH the result. Dropping them
+            # here would mean an engine's checks stop existing the moment it
+            # is composed — a caller would see "completed" from a composite
+            # and have no way to learn what was verified, which is the exact
+            # collapse the contract's verdicts were added to prevent.
+            verdicts=result.verdicts,
             error=error,
             provenance=Provenance(
                 engine=self.name, capability=req.capability, ref=req.ref,
