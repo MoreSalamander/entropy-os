@@ -95,7 +95,16 @@ class ArchitectAgent:
     async def design(self, spec: SoftwareSpec, research_brief: str = "",
                      pattern_priors: list[dict] | None = None) -> Architecture:
         notes: list[str] = []
+        # The real field definitions, when the caller supplied them. This is
+        # the phase that decides the data model, so a schema that reaches
+        # intent and stops there changes nothing about the generated columns —
+        # which is exactly what happened before this line existed.
+        catalog = (f"\nREAL SCHEMA from the metadata catalog. Model the "
+                   f"entities on THESE field names exactly; do not rename them "
+                   f"and do not invent columns:\n{spec.catalog_schema}\n"
+                   if spec.catalog_schema else "")
         user = (f"SPEC: {spec.product_name} — {spec.purpose}\n"
+                f"{catalog}"
                 "Requirements:\n" +
                 "\n".join(f"- [{r.kind}/{r.priority.value}] {r.text}"
                           for r in spec.requirements) +

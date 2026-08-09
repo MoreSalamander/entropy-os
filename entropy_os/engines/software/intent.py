@@ -71,6 +71,20 @@ class IntentAnalyzer:
     def __init__(self, llm: LLMClient):
         self.llm = llm
 
+    @staticmethod
+    def _catalog_schema(request: str) -> str:
+        """Pull the catalog block out of the request, verbatim.
+
+        Split on a marker rather than asked of the model: the whole value of
+        these field names is that they are the ones the catalog gave, and a
+        model paraphrasing them back is how `accepted_because` becomes
+        `acceptance_reason` on the way through.
+        """
+        marker = "--- CATALOG SCHEMA ---"
+        if marker not in request:
+            return ""
+        return request.split(marker, 1)[1].strip()
+
     async def analyze(self, request: str) -> SoftwareSpec:
         proposal: dict = {}
         try:
@@ -121,6 +135,7 @@ class IntentAnalyzer:
 
         return SoftwareSpec(
             raw_request=request,
+            catalog_schema=self._catalog_schema(request),
             product_name=name[:40],
             purpose=str(proposal.get("purpose") or request)[:300],
             user_types=_strs("user_types", ["general users"]),

@@ -167,3 +167,44 @@ class TestStaticAgentsFire:
         assert results["review"].status == CheckStatus.FAIL
         assert any("service layer" in f["message"]
                    for f in results["review"].failures)
+
+
+# --------------------------------------------------------------------------- #
+# the catalog schema has to survive as far as the phase that uses it
+# --------------------------------------------------------------------------- #
+
+def test_the_catalog_block_is_extracted_verbatim():
+    """Split on a marker, never paraphrased by a model. The entire value of
+    these names is that they are the catalog's; a model restating them is how
+    `accepted_because` becomes `acceptance_reason` on the way through."""
+    from entropy_os.engines.software.intent import IntentAnalyzer
+
+    request = ("build a service for gate outcomes\n\n"
+               "--- CATALOG SCHEMA ---\n"
+               "outcome-0 [veritas]\n"
+               "    accepted : boolean\n"
+               "    accepted_because : string")
+    got = IntentAnalyzer._catalog_schema(request)
+    assert "accepted : boolean" in got
+    assert "accepted_because : string" in got
+    assert "build a service" not in got     # the request itself does not leak in
+
+
+def test_a_request_without_a_catalog_block_yields_nothing():
+    from entropy_os.engines.software.intent import IntentAnalyzer
+    assert IntentAnalyzer._catalog_schema("just build me something") == ""
+
+
+def test_the_architecture_prompt_carries_the_schema_when_there_is_one():
+    """The regression this exists for: the schema reached intent, stopped
+    there, and the generator invented its own column names while everything
+    reported success."""
+    from entropy_os.engines.software.models import SoftwareSpec
+
+    spec = SoftwareSpec(raw_request="x", product_name="Tracker",
+                        purpose="track outcomes",
+                        catalog_schema="outcome-0\n    accepted : boolean")
+    assert spec.catalog_schema
+    assert "accepted : boolean" in spec.catalog_schema
+    # and a spec without one carries an empty string rather than None
+    assert SoftwareSpec(raw_request="x").catalog_schema == ""

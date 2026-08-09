@@ -35,6 +35,8 @@ import httpx
 from . import engine_client
 from .composition.contract import Determinism, Verdict
 from .datahub_read import GraphContext, consult
+from .schema_fidelity import Fidelity, measure
+from .schema_fidelity import verdict as fidelity_verdict
 from .vending import Acceptance, decide
 
 DEFAULT_GMS = "http://localhost:8080"
@@ -43,6 +45,10 @@ ENV = "PROD"
 
 # Long enough for a real generation, which is minutes of model work.
 BUILD_TIMEOUT_S = 1800.0
+
+# Split point between the human request and the catalog's own words. Shared
+# with the software engine, which extracts everything after it verbatim.
+CATALOG_MARKER = "--- CATALOG SCHEMA ---"
 
 
 def dataset_urn(name: str, platform: str = PLATFORM, env: str = ENV) -> str:
@@ -57,6 +63,7 @@ class AgentRun:
     grounded: bool                       # did real schema information reach the build
     outputs: dict[str, Any] = field(default_factory=dict)
     verdicts: list[Verdict] = field(default_factory=list)
+    fidelity: Fidelity | None = None
     acceptance: Acceptance | None = None
     urn: str = ""
     upstreams: list[str] = field(default_factory=list)
@@ -90,11 +97,15 @@ def compose_request(request: str, graph: GraphContext) -> str:
                 f"NOTE: the metadata catalog was consulted and holds nothing "
                 f"related to this request. Infer the data model from the "
                 f"request alone.")
+    # The marker is machine-readable on purpose. The engine splits on it to
+    # carry these field names, verbatim, into the phase that actually decides
+    # the data model — prose alone reached intent and died there.
     return (
         f"{request}\n\n"
         f"Use these REAL datasets from the organisation's metadata catalog. "
         f"Model your schema on their actual fields — do not invent columns, "
-        f"and do not rename the ones given:\n\n{graph.brief()}")
+        f"and do not rename the ones given:\n\n"
+        f"{CATALOG_MARKER}\n{graph.brief()}")
 
 
 class Publisher:
@@ -238,6 +249,10 @@ class Publisher:
                         "hard_gates_failed": acc.hard_failed if acc else 0,
                         "product_name": run.outputs.get("product_name", ""),
                         "files_written": run.outputs.get("files_written", 0),
+                        "catalog_fields_adopted": (
+                            f"{len(run.fidelity.matched)}/"
+                            f"{len(run.fidelity.catalog_fields - {'id', 'created_at'})}"
+                            if run.fidelity else "not measured"),
                         "out_dir": run.outputs.get("out_dir", ""),
                     },
                     run.upstreams)
@@ -268,6 +283,19 @@ async def run(request: str, gms_url: str = "", out_dir: str = "") -> AgentRun:
 
     r.outputs = result.get("outputs") or {}
     r.verdicts = [Verdict.model_validate(v) for v in result.get("verdicts", [])]
+
+    # The agent's own verdict on its own claim. The engine gates the code;
+    # nothing gated whether the code actually adopted the schema the agent
+    # went and fetched, which is the one thing that makes this build
+    # metadata-aware rather than metadata-adjacent. Only meaningful when a
+    # schema was available: there is no fidelity to measure against a catalog
+    # that offered no fields, and a gate that fired anyway would be scoring
+    # the weather.
+    catalog_fields = {f.path for d in graph.datasets for f in d.fields if f.path}
+    out_path = r.outputs.get("out_dir")
+    if catalog_fields and out_path:
+        r.fidelity = measure(out_path, catalog_fields)
+        r.verdicts.append(fidelity_verdict(r.fidelity))
     r.acceptance = decide(result.get("status", "failed"), r.verdicts,
                           result.get("error", ""))
     r.published = await Publisher(gms_url).publish(r)

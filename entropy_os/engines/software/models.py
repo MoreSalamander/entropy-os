@@ -63,6 +63,13 @@ class SoftwareSpec(BaseModel):
     unknowns: list[str] = Field(default_factory=list)
     dependencies: list[str] = Field(default_factory=list)   # external systems/services
     candidate_approaches: list[str] = Field(default_factory=list)
+    # Real field definitions from a metadata catalog, when the caller supplied
+    # them. Carried on the spec rather than left in raw_request because the
+    # later phases build their prompts from the SPEC — a schema that lives
+    # only in the original wording reaches intent and dies there, which is
+    # exactly what happened: the catalog said `accepted`, the generator wrote
+    # `gate_outcome`, and nothing noticed.
+    catalog_schema: str = ""
     created_at: datetime = Field(default_factory=now_utc)
 
     def by_kind(self, kind: str) -> list[Requirement]:
