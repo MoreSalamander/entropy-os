@@ -98,7 +98,8 @@ class GraphContext:
             head = f"{d.name} [{d.platform}]"
             ups = self.upstreams.get(d.urn) or []
             if ups:
-                head += f"  ← fed by {', '.join(u.split(',')[1] if ',' in u else u for u in ups[:4])}"
+                named = [u.split(",")[1] if "," in u else u for u in ups[:4]]
+                head += f"  ← fed by {', '.join(named)}"
             out.append(head)
             for f in d.fields[:24]:
                 t = f" : {f.type}" if f.type else ""
