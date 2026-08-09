@@ -102,7 +102,7 @@ from products.tutorial.publish import publish_tutorial
 from products.tutorial.spec import TutorialSpec
 from pydantic import BaseModel
 
-from entropy_os import artifact_report, engine_client
+from entropy_os import artifact_report, dispensed, engine_client
 from entropy_os.accounts import AccountStore, BadCredentials, UsernameTaken, WeakCredentials
 from entropy_os.background_session import BackgroundSession
 from entropy_os.config import default_data_dir, load_dotenv
@@ -1042,6 +1042,9 @@ def create_app(
     except ValueError:
         set_default_override(None)
     runs = RunStore(base / "runs")
+    # Copies this face knows how to reach. In-memory on purpose: a
+    # dispensed container does not survive a restart either.
+    dispensed_registry = dispensed.Registry()
     injected_provider = provider  # set in tests; when None, pick per-request by model
     # The contract seam, injected the same way and for the same reason: a test
     # of THESE routes must exercise the front door's own logic — auth, quota,
@@ -1106,6 +1109,8 @@ def create_app(
 
     validate_groups(REGISTRY)
     app = FastAPI(title="Entropy OS")
+    # Reachable for tests and for anything that needs the routing table.
+    app.state.dispensed = dispensed_registry
     # The state the routers will consume once the monolith decomposes
     # (post-hackathon); today it also anchors the smoke tests.
     app.state.data_dir = base
@@ -1311,13 +1316,39 @@ def create_app(
     # caller-supplied path inside the artifact root, and nothing here widens it.
     @app.post("/api/one-engine/artifact-run")
     async def one_engine_artifact_run(req: ArtifactRunRequest) -> dict[str, Any]:
-        """Open a generated product, rather than reading its source."""
-        return await engine_client.run_artifact(
+        """Open a generated product, rather than reading its source.
+
+        The composite dispenses it on loopback; this returns a path on the
+        origin the viewer is already using. Handing back 127.0.0.1 would
+        point a hosted visitor at their own laptop.
+        """
+        result = await engine_client.run_artifact(
             req.path, req.kind, req.description, req.objective_id)
+        if result.get("container_id") and result.get("host_port"):
+            copy = dispensed_registry.add(dispensed.Copy(
+                container_id=result["container_id"],
+                port=int(result["host_port"]),
+                kind=result.get("kind", ""), image=result.get("image", "")))
+            result["url"] = dispensed.public_path(copy.container_id)
+            result["loopback_url"] = copy.origin
+        return result
+
+    @app.api_route("/dispensed/{container_id}/{path:path}",
+                   methods=["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"])
+    async def dispensed_proxy(container_id: str, path: str,
+                              request: Request) -> Response:
+        """Reach a dispensed copy through this origin."""
+        copy = dispensed_registry.get(container_id)
+        if copy is None:
+            raise HTTPException(404, "no such dispensed copy (it may have been "
+                                     "returned, or this face restarted)")
+        return await dispensed.forward(copy, path, request)
 
     @app.post("/api/one-engine/artifact-stop")
     async def one_engine_artifact_stop(req: ArtifactStopRequest) -> dict[str, Any]:
-        return await engine_client.stop_artifact(req.container_id)
+        out = await engine_client.stop_artifact(req.container_id)
+        dispensed_registry.drop(req.container_id)
+        return out
 
     @app.get("/api/one-engine/artifact-tree")
     async def one_engine_artifact_tree_at(path: str) -> dict[str, Any]:

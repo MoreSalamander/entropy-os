@@ -292,7 +292,11 @@ def build_unified_app() -> FastAPI:
         app.state.dispensed[copy.container_id] = copy
         return {"url": copy.url, "container_id": copy.container_id,
                 "image": item.image, "kind": item.kind,
-                "container_port": item.container_port}
+                "container_port": item.container_port,
+                # The port on THIS machine. A front door in front of us needs
+                # it to proxy the copy; the loopback url above is only usable
+                # by something already on this machine.
+                "host_port": copy.port}
 
     @app.post("/artifacts/stop")
     async def stop_artifact(req: StopArtifactRequest):
