@@ -15,7 +15,6 @@ from __future__ import annotations
 import asyncio
 
 from ..contract import (
-    Verdict,
     ArtifactRef,
     ComposableEngine,
     ExecuteRequest,
@@ -23,6 +22,7 @@ from ..contract import (
     ExecutionRef,
     Provenance,
     SemanticEvent,
+    Verdict,
     identifying,
     now_iso,
 )

@@ -97,5 +97,13 @@ class RemoteEngine:
             raise ArtifactNotServed(f"{self.base_url} refused: {r.status_code}")
         return dict(r.json())
 
+    async def artifact_tree(self, path: str) -> dict:
+        r = await self._client.get(f"{self.base_url}/artifacts/tree",
+                                   params={"path": path},
+                                   timeout=self._timeout(30.0))
+        if r.status_code != 200:
+            raise ArtifactNotServed(f"{self.base_url} refused: {r.status_code}")
+        return dict(r.json())
+
     async def aclose(self) -> None:
         await self._client.aclose()

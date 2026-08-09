@@ -193,7 +193,10 @@ class LeafAdapter:
         if root is None:
             raise ArtifactNotServed("this engine serves no artifact files")
         target = Path(path)
-        if rel:
+        # A single-file artifact IS the file. Joining `rel` onto it would
+        # build `report.md/report.md`, which is how asking for the only file
+        # in an artifact turned into a 404.
+        if rel and not target.is_file():
             target = target / rel
         try:
             resolved = target.resolve(strict=True)
@@ -208,6 +211,39 @@ class LeafAdapter:
         return {"path": str(resolved), "engine": self.name,
                 "size": resolved.stat().st_size,
                 "text": resolved.read_text(encoding="utf-8", errors="replace")}
+
+    async def artifact_tree(self, path: str) -> dict:
+        """What is inside one artifact this engine produced.
+
+        Same containment rule as artifact_file, for the same reason: the
+        caller supplies the path. A single-file artifact lists itself, so a
+        consumer does not need to know which kind it asked about.
+        """
+        root = self.artifact_root()
+        if root is None:
+            raise ArtifactNotServed("this engine serves no artifact files")
+        try:
+            resolved = Path(path).resolve(strict=True)
+            base = Path(root).resolve(strict=True)
+            resolved.relative_to(base)
+        except (OSError, ValueError) as exc:
+            raise ArtifactNotServed("no such artifact inside this engine") from exc
+        if resolved.is_file():
+            return {"root": str(resolved), "engine": self.name,
+                    "files": [{"path": resolved.name,
+                               "size": resolved.stat().st_size}]}
+        files = sorted(
+            ({"path": str(f.relative_to(resolved)), "size": f.stat().st_size}
+             for f in resolved.rglob("*")
+             # Caches and build output are not part of what was MADE, and
+             # listing them buries the four files a reader actually wants.
+             if f.is_file() and not any(
+                 part in {"__pycache__", ".git", ".ruff_cache", ".pytest_cache",
+                          "node_modules", ".venv", ".next", ".mypy_cache"}
+                 or part.endswith((".pyc", ".pyo"))
+                 for part in f.relative_to(resolved).parts)),
+            key=lambda d: d["path"])
+        return {"root": str(resolved), "engine": self.name, "files": files}
 
     async def health(self) -> HealthReport:
         checks = {"adapter": "up"}

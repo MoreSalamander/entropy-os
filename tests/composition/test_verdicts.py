@@ -325,3 +325,52 @@ async def test_the_acceptance_rule_reads_a_composed_result(tmp_path):
     # pass refuses the vend — the honest answer for an unbuilt artifact.
     assert decision.accepted is False
     assert decision.hard_passed == 1 and decision.hard_failed == 1
+
+
+async def test_a_directory_artifact_becomes_a_browsable_listing(tmp_path):
+    """A path printed at a reader is not a deliverable. The tree is what turns
+    a generated project into something a visitor can actually open."""
+    root = tmp_path / "engine"
+    (root / "proj" / "app").mkdir(parents=True)
+    (root / "proj" / "main.py").write_text("x = 1\n")
+    (root / "proj" / "app" / "api.py").write_text("y = 2\n")
+    (root / "proj" / "__pycache__").mkdir()
+    (root / "proj" / "__pycache__" / "junk.pyc").write_bytes(b"\x00")
+
+    remote = in_process_remote(Producer(root), "http://producer.test")
+    got = await remote.artifact_tree(str(root / "proj"))
+    paths = [f["path"] for f in got["files"]]
+    assert paths == ["app/api.py", "main.py"]
+    # Build noise is not part of what was made.
+    assert not any("__pycache__" in p for p in paths)
+
+
+async def test_the_tree_honours_the_same_boundary_as_the_file_route(tmp_path):
+    root = tmp_path / "engine"
+    root.mkdir(parents=True)
+    (tmp_path / "elsewhere").mkdir()
+
+    remote = in_process_remote(Producer(root), "http://producer.test")
+    r = await remote._client.get("/artifacts/tree",
+                                 params={"path": str(tmp_path / "elsewhere")})
+    assert r.status_code == 404
+
+
+async def test_a_single_file_artifact_is_readable_by_its_own_name(tmp_path):
+    """The tree lists a single-file artifact as one entry named after itself,
+    so a client naturally asks for path=<the file>&rel=<its name>. Joining
+    those would build `report.md/report.md`. Asking for the only file in an
+    artifact must return that file."""
+    root = tmp_path / "engine"
+    root.mkdir(parents=True)
+    report = root / "session_1.md"
+    report.write_text("# Findings\n")
+
+    remote = in_process_remote(Producer(root), "http://producer.test")
+    tree = await remote.artifact_tree(str(report))
+    assert [f["path"] for f in tree["files"]] == ["session_1.md"]
+
+    got = await remote.artifact_file(str(report), "session_1.md")
+    assert got["text"] == "# Findings\n"
+    # …and without the redundant rel, which must behave identically.
+    assert (await remote.artifact_file(str(report)))["text"] == "# Findings\n"

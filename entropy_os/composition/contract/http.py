@@ -103,6 +103,18 @@ def build_engine_app(engine: ComposableEngine, title: str = "engine",
         except ArtifactNotServed:
             raise HTTPException(404, "no such artifact file") from None
 
+    @app.get("/artifacts/tree")
+    async def artifact_tree(path: str):
+        """The files inside one artifact, so a directory is browsable rather
+        than a dead path printed at a reader."""
+        reader = getattr(engine, "artifact_tree", None)
+        if reader is None:
+            raise HTTPException(404, "this engine does not serve artifact files")
+        try:
+            return await reader(path)
+        except ArtifactNotServed:
+            raise HTTPException(404, "no such artifact") from None
+
     @app.post("/events", status_code=204)
     async def ingest(event: SemanticEvent):
         await engine.ingest_event(event)

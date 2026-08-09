@@ -417,6 +417,18 @@ class CompositeEngine:
                 continue
         raise ArtifactNotServed("no member serves that artifact")
 
+    async def artifact_tree(self, path: str) -> dict:
+        """Ask the members, exactly as with artifact_file: the owner answers."""
+        for member in self.members.values():
+            reader = getattr(member, "artifact_tree", None)
+            if reader is None:
+                continue
+            try:
+                return await reader(path)
+            except Exception:
+                continue
+        raise ArtifactNotServed("no member serves that artifact")
+
     async def aclose(self) -> None:
         await asyncio.gather(*(m.aclose() for m in self.members.values()),
                              return_exceptions=True)
