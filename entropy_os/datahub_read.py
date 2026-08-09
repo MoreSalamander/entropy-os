@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import sys
 from contextlib import asynccontextmanager
@@ -109,6 +110,36 @@ class GraphContext:
         return "\n".join(out)
 
 
+# Words that carry no cataloguing signal. A request is written for a person
+# ("a service that records and queries…") and a catalog is indexed on nouns,
+# so the sentence a human types is close to the worst possible query: measured
+# against this instance, the full sentence returned 2 hits where its own
+# keywords returned 51.
+_NOISE = {
+    "a", "an", "the", "and", "or", "for", "of", "to", "in", "on", "with",
+    "that", "this", "it", "its", "is", "are", "be", "build", "create", "make",
+    "service", "app", "application", "system", "tool", "api", "please",
+    "records", "record", "queries", "query", "using", "use", "from", "into",
+    "which", "what", "how", "some", "new", "small", "simple",
+}
+
+
+def search_terms(request: str, limit: int = 6) -> str:
+    """The catalog query for a human's request.
+
+    Deterministic on purpose. Asking a model to pick search terms would put a
+    model between the request and what the graph is allowed to return, and a
+    silently narrowed search is indistinguishable from a graph that holds
+    nothing — the one confusion this whole module exists to prevent.
+    """
+    seen: list[str] = []
+    for raw in re.findall(r"[A-Za-z][A-Za-z0-9_-]{2,}", request.lower()):
+        if raw in _NOISE or raw in seen:
+            continue
+        seen.append(raw)
+    return " ".join(seen[:limit]) or request
+
+
 def _text(result: Any) -> str:
     return "".join(c.text for c in getattr(result, "content", []) if hasattr(c, "text"))
 
@@ -169,7 +200,7 @@ async def consult(request: str, gms_url: str = "", limit: int = 4) -> GraphConte
     try:
         async with session(gms_url) as s:
             found = _loads(_text(await s.call_tool(
-                "search", {"query": request, "num_results": limit})))
+                "search", {"query": search_terms(request), "num_results": limit})))
             results = found.get("searchResults") or []
             for r in results:
                 ent = r.get("entity") or {}
