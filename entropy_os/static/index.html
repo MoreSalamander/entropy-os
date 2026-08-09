@@ -2095,6 +2095,61 @@ async function showArtifact(oid, idx) {
   };
   sel.addEventListener('change', load);
   load();
+
+  // Reading the source tells you what was written; running it tells you
+  // whether it works. A generated project or site is a product, and the copy
+  // is reached through THIS origin — a loopback address handed to a visitor
+  // points at their own machine.
+  drawOpenReal(oid, tree.root || '', (tree.kind || guessKind(tree.root || '')));
+}
+
+function guessKind(root) {
+  if (/\/projects?\//.test(root)) return 'project';
+  if (/\/sites?\//.test(root)) return 'site';
+  return '';
+}
+
+function drawOpenReal(oid, path, kind) {
+  const host = document.getElementById(`oe-view-${oid}`);
+  if (!host || !path) return;
+  const bar = document.createElement('div');
+  bar.style.cssText = 'margin-top:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap';
+  host.appendChild(bar);
+
+  if (kind !== 'project' && kind !== 'site') {
+    bar.innerHTML = `<span class="muted" style="font-size:11.5px">
+      this output is a document — it is shown, not run</span>`;
+    return;
+  }
+  bar.innerHTML = `<button class="oe-run" style="font-size:11.5px;padding:2px 9px">open it for real</button>
+    <span class="muted" style="font-size:11.5px">builds a disposable container and serves it here</span>`;
+  bar.querySelector('.oe-run').addEventListener('click', async (ev) => {
+    const btn = ev.currentTarget;
+    btn.disabled = true; btn.textContent = 'building…';
+    try {
+      const r = await api('/api/one-engine/artifact-run', {
+        method: 'POST', headers: {'content-type': 'application/json'},
+        body: JSON.stringify({path, kind, objective_id: oid}),
+      });
+      if (r.error) throw new Error(r.error);
+      bar.innerHTML = `<a href="${esc(r.url)}" target="_blank" rel="noopener"
+           style="font-size:11.5px">open your copy ↗</a>
+        <span class="muted" style="font-size:11.5px">running · ${esc(r.image || '')}</span>
+        <button class="oe-return" style="font-size:11.5px;padding:2px 9px">throw it away</button>`;
+      bar.querySelector('.oe-return').addEventListener('click', async () => {
+        await api('/api/one-engine/artifact-stop', {
+          method: 'POST', headers: {'content-type': 'application/json'},
+          body: JSON.stringify({container_id: r.container_id}),
+        });
+        drawOpenReal(oid, path, kind);
+        bar.remove();
+      });
+    } catch (e) {
+      // A refusal carries a reason worth reading: "no Dockerfile" and
+      // "docker is down" need different fixes.
+      bar.innerHTML = `<span class="muted" style="font-size:11.5px">could not open it: ${esc(String(e))}</span>`;
+    }
+  });
 }
 
 async function loadKeytracker() {
