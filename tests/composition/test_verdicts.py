@@ -163,12 +163,12 @@ class Producer(Checker):
     name = "producer"
     datahub_platform = "producer"
 
-    def __init__(self, root):
+    def __init__(self, root, seeded=None):
         super().__init__()
-        self._root = root
+        self._roots = [root] + ([seeded] if seeded else [])
 
-    def artifact_root(self):
-        return self._root
+    def artifact_roots(self):
+        return list(self._roots)
 
 
 async def test_an_engine_serves_a_file_from_its_own_artifact_root(tmp_path):
@@ -404,3 +404,32 @@ async def test_an_objectives_verdicts_survive_the_process_that_made_them(tmp_pat
     gates = {v["gate"] for v in verdicts}
     assert gates == {"tests", "reviewer", "build"}
     assert {v["determinism"] for v in verdicts} == {"hard", "soft"}
+
+
+async def test_seeded_artifacts_outside_the_data_volume_are_still_this_engines(tmp_path):
+    """The hosted face ships real recorded runs whose outputs live in an image
+    directory, not on the data volume. They are just as legitimately this
+    engine's work, so containment spans both roots — otherwise the demo's own
+    history would be unopenable in the place it is meant to be shown."""
+    live = tmp_path / "volume"
+    live.mkdir()
+    seeded = tmp_path / "image-seed"
+    seeded.mkdir()
+    (seeded / "session_old.md").write_text("# A run from before\n")
+
+    remote = in_process_remote(Producer(live, seeded=seeded), "http://p.test")
+    got = await remote.artifact_file(str(seeded / "session_old.md"))
+    assert got["text"] == "# A run from before\n"
+
+
+async def test_adding_a_second_root_does_not_widen_it_to_everything(tmp_path):
+    live = tmp_path / "volume"
+    live.mkdir()
+    seeded = tmp_path / "image-seed"
+    seeded.mkdir()
+    secret = tmp_path / "secret.txt"
+    secret.write_text("not yours")
+
+    remote = in_process_remote(Producer(live, seeded=seeded), "http://p.test")
+    r = await remote._client.get("/artifacts/file", params={"path": str(secret)})
+    assert r.status_code == 404

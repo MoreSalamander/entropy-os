@@ -167,7 +167,28 @@ assert all("name" in org and "title" in org for org in orgs), "org entries malfo
 about = client.get("/about")
 assert about.status_code in (200, 404), f"/about -> {about.status_code}"
 
-print(f"boot probe: OK — {len(orgs)} orgs, /about -> {about.status_code}")
+# Boot-loop #2 (2026-08-09): the composed engine is served from this same
+# wheel now, and it reads a topology file and serves its own face. Both were
+# outside the package when the engines were absorbed, so the front door
+# booted clean while the composite crashed on a missing config and the
+# machine room 500'd on a missing template. The front door alone is no
+# longer a sufficient probe.
+from entropy_os.paths import COMPOSITION_CONFIG, RESEARCH_CONFIG
+
+for label, path in (("composition.yaml", COMPOSITION_CONFIG),
+                    ("research.yaml", RESEARCH_CONFIG)):
+    assert path.exists(), f"the wheel does not carry {label}: {path}"
+
+from entropy_os.composition.config import load_config
+cfg = load_config()
+assert cfg.engines, "topology loaded but declares no members"
+
+from entropy_os.composition.app import UI_PATH
+assert UI_PATH.exists(), f"the wheel does not carry the composed face: {UI_PATH}"
+assert "machine room" in UI_PATH.read_text(), "the composed face is not the one we ship"
+
+print(f"boot probe: OK — {len(orgs)} orgs, /about -> {about.status_code}, "
+      f"composite topology {len(cfg.engines)} members, face present")
 PYEOF
 )
 

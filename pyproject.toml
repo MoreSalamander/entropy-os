@@ -59,7 +59,11 @@ include = ["entropy_os*"]
 # package carries everything it serves). scripts/smoke_bare_install.sh guards
 # this.
 [tool.setuptools.package-data]
-"entropy_os" = ["static/**/*"]
+"entropy_os" = ["static/**/*", "config/*.yaml"]
+# The composed engine serves its own face. Without this the machine room is a
+# 500 on a bare install — the same lesson as static/, learned again one
+# directory down.
+"entropy_os.composition" = ["ui/*.html"]
 # The web engine writes real Next.js projects from these; a bare install that
 # omitted them would fail at generation time rather than at import time, which
 # is the worst moment to discover a packaging mistake.

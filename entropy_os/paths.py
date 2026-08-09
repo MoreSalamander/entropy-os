@@ -27,10 +27,17 @@ from pathlib import Path
 # entropy_os/paths.py -> entropy_os/ -> the checkout.
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-# Configuration is version-controlled and lives with the code; one file per
-# component, so absorbing a second component that also wanted "config.yaml at
-# the root" is a naming question already answered rather than a collision.
-CONFIG_DIR = REPO_ROOT / "config"
+# Configuration is version-controlled and lives INSIDE the package, not beside
+# it. A checkout has both; an installed wheel has only what the package
+# carries, and a config resolved from the checkout root simply is not there
+# once this is pip-installed — which is how the composite came to boot fine
+# locally and crash hosted on a file it could not find.
+#
+# ENTROPY_CONFIG_DIR points at operator-supplied configuration instead, for a
+# deployment that wants to wire members differently without a rebuild.
+_CONFIG_OVERRIDE = os.environ.get("ENTROPY_CONFIG_DIR", "").strip()
+CONFIG_DIR = (Path(_CONFIG_OVERRIDE).expanduser().resolve()
+              if _CONFIG_OVERRIDE else Path(__file__).resolve().parent / "config")
 
 COMPOSITION_CONFIG = CONFIG_DIR / "composition.yaml"
 RESEARCH_CONFIG = CONFIG_DIR / "research.yaml"

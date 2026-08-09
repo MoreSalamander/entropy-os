@@ -15,21 +15,21 @@
 engines:
   research:
     port: 9101
-    url: http://localhost:9101
+    url: http://127.0.0.1:9101
   software:
     port: 9102
-    url: http://localhost:9102
+    url: http://127.0.0.1:9102
   university:
     port: 9103
-    url: http://localhost:9103
+    url: http://127.0.0.1:9103
   web:
     port: 9104
-    url: http://localhost:9104
+    url: http://127.0.0.1:9104
 
 unified:
   name: one-engine
   port: 9100
-  url: http://localhost:9100
+  url: http://127.0.0.1:9100
   datahub_platform: one-engine
 
 # Second-level composition: System B consumes the unified engine purely via
@@ -44,7 +44,7 @@ system_b:
   port: 9110
 
 datahub:
-  gms_url: http://localhost:8080
+  gms_url: http://127.0.0.1:8080
   env: PROD
 
 temporal:

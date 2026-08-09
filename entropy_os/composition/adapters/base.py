@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import importlib.util
+import os
 import traceback
 from collections import deque
 from collections.abc import Callable
@@ -53,6 +54,19 @@ Vouch = Callable[..., Verdict]
 # a source file, small enough that no single request can be used to haul
 # the host's disk through it.
 MAX_INLINE_BYTES = 2_000_000
+
+
+def _within_any(resolved: Path, roots: list[Path]) -> bool:
+    """Containment against several roots. Resolution happens BEFORE this, so
+    a symlink or `..` cannot walk out of one root and back in through another
+    while still looking contained."""
+    for root in roots:
+        try:
+            resolved.relative_to(Path(root).resolve(strict=True))
+            return True
+        except (OSError, ValueError):
+            continue
+    return False
 
 
 class LeafAdapter:
@@ -168,18 +182,34 @@ class LeafAdapter:
                                   finished_at=now_iso(), datahub_urns=urns,
                                   notes=notes))
 
-    def artifact_root(self) -> Path | None:
-        """The one directory this engine will serve files from, or None.
+    def artifact_roots(self) -> list[Path]:
+        """Every directory this engine will serve files from.
 
-        An engine's artifacts live under its own storage root, so that root
-        is the containment boundary for reads. Returning None means "I do not
-        serve files", which is the honest answer for an engine that has no
-        storage of its own rather than an invitation to fall back to the
-        filesystem.
+        Normally one: the engine's own storage. But a deployment can seed
+        historical outputs from somewhere else entirely — the hosted face
+        ships real recorded runs whose artifacts sit in an image directory,
+        not on the data volume — and those are just as legitimately this
+        engine's work. The same env vars that tell artifact resolution where
+        to look name the extra roots here, so the two cannot disagree about
+        what belongs to whom.
+
+        An empty list means "I do not serve files", which is the honest
+        answer for an engine with no storage rather than an invitation to
+        fall back to the whole filesystem.
         """
         if not self.member_key:
-            return None
-        return engine_storage(self.member_key)
+            return []
+        roots = [engine_storage(self.member_key)]
+        seeded = os.environ.get(
+            f"ONE_ENGINE_ARTIFACTS_{self.member_key.upper()}", "").strip()
+        if seeded:
+            roots.append(Path(seeded))
+        return roots
+
+    def artifact_root(self) -> Path | None:
+        """The primary root. Kept for callers that want one directory."""
+        roots = self.artifact_roots()
+        return roots[0] if roots else None
 
     async def artifact_file(self, path: str, rel: str = "") -> dict:
         """One file this engine produced, or a refusal.
@@ -189,8 +219,8 @@ class LeafAdapter:
         root. Doing it the other way round tests a string rather than a
         location, which is how a read surface becomes an arbitrary-file read.
         """
-        root = self.artifact_root()
-        if root is None:
+        roots = self.artifact_roots()
+        if not roots:
             raise ArtifactNotServed("this engine serves no artifact files")
         target = Path(path)
         # A single-file artifact IS the file. Joining `rel` onto it would
@@ -200,10 +230,10 @@ class LeafAdapter:
             target = target / rel
         try:
             resolved = target.resolve(strict=True)
-            base = Path(root).resolve(strict=True)
-            resolved.relative_to(base)
-        except (OSError, ValueError) as exc:
+        except OSError as exc:
             raise ArtifactNotServed("no such file inside this engine") from exc
+        if not _within_any(resolved, roots):
+            raise ArtifactNotServed("no such file inside this engine")
         if not resolved.is_file():
             raise ArtifactNotServed("not a file")
         if resolved.stat().st_size > MAX_INLINE_BYTES:
@@ -219,15 +249,15 @@ class LeafAdapter:
         caller supplies the path. A single-file artifact lists itself, so a
         consumer does not need to know which kind it asked about.
         """
-        root = self.artifact_root()
-        if root is None:
+        roots = self.artifact_roots()
+        if not roots:
             raise ArtifactNotServed("this engine serves no artifact files")
         try:
             resolved = Path(path).resolve(strict=True)
-            base = Path(root).resolve(strict=True)
-            resolved.relative_to(base)
-        except (OSError, ValueError) as exc:
+        except OSError as exc:
             raise ArtifactNotServed("no such artifact inside this engine") from exc
+        if not _within_any(resolved, roots):
+            raise ArtifactNotServed("no such artifact inside this engine")
         if resolved.is_file():
             return {"root": str(resolved), "engine": self.name,
                     "files": [{"path": resolved.name,

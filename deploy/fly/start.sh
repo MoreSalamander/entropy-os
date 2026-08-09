@@ -45,6 +45,16 @@ python /opt/entropy-os/scripts/seed_shelf.py || echo "WARN: shelf seeding failed
 ONE_ENGINE_DATA="${ONE_ENGINE_DATA:-$DATA/one-engine}"
 mkdir -p "$ONE_ENGINE_DATA"
 
+# The engines' own accumulated state — knowledge graphs, vector indexes,
+# generated projects, learner profiles. This must be on the Volume: the
+# default is a directory inside the installed package, which here is an image
+# layer, so a restart would discard everything the engines had learned while
+# the front door came back looking perfectly healthy.
+ENTROPY_STORAGE="${ENTROPY_STORAGE:-$DATA/engines}"
+export ENTROPY_STORAGE
+mkdir -p "$ENTROPY_STORAGE"
+echo "engines: state on ${ENTROPY_STORAGE}"
+
 # Seed the recorded run history once. Seed-if-missing, never overwrite: a live
 # machine's accumulated log outranks whatever shipped in the image.
 if [ ! -f "$ONE_ENGINE_DATA/events.jsonl" ] && [ -f /opt/one-engine-seed/events.jsonl ]; then

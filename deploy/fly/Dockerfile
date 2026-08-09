@@ -37,41 +37,35 @@ RUN pip install --no-cache-dir . \
 # (fastapi, httpx, pydantic, networkx, qdrant-client); the three downstream
 # engines depend on research-engine, so most of the install is shared.
 #
-# Installed as packages rather than checkouts: in the image there is one
-# environment, so the adapters import their engine directly instead of each
-# running inside its own venv the way they do on the laptop.
+# The engines are no longer separate installs. They were absorbed into
+# entropy-os, so `pip install .` above already put research, software,
+# university and web in this image along with the composed engine — one
+# environment, one version, nothing to keep in step.
 #
-# The install order and --no-deps are load-bearing, not style. The three
-# downstream engines declare `research-engine` as a dependency and it does NOT
-# exist on PyPI, so resolving them normally fails. They are therefore installed
-# with dependencies switched off, against a research-engine already present.
+# What that deleted is worth recording, because every line of it was load-
+# bearing while it existed: research-engine installed first because the other
+# three declared it as a dependency and it is not on PyPI; --no-deps on those
+# three both to make that resolvable AND to close a supply-chain hole, since
+# `code-engine` IS a real PyPI package owned by someone else. There is now no
+# `pip install code-engine` to get wrong, because there is no separate
+# package to install.
 #
-# The same flag closes a supply-chain hole: `code-engine` IS a real PyPI
-# package owned by someone else. Every engine here must stay pinned to its git
-# URL — never relax these into a bare `pip install code-engine`.
+# `ruff` stays: the software engine shells out to it as part of its
+# verification gate, and nothing else pulls it in.
 #
-# `ruff` is the one dependency the --no-deps installs would otherwise miss
-# (code-engine runs it as part of its verification gate).
-#
-# one-engine takes its [orchestration] extra even though no Temporal server
-# runs here: the unified app imports temporalio at module load, and the extra
-# exists precisely because only the composite may depend on it — engines never
-# import Temporal. Installing the client without a server is the honest state;
-# composed runs fall back to inline execution and health reports degraded.
-ARG ONE_ENGINE_REF=main
-RUN pip install --no-cache-dir \
-      "research-engine @ git+https://github.com/MoreSalamander/research-engine@main" \
- && pip install --no-cache-dir --no-deps \
-      "code-engine @ git+https://github.com/MoreSalamander/code-engine@main" \
-      "learn-engine @ git+https://github.com/MoreSalamander/learn-engine@main" \
-      "design-engine @ git+https://github.com/MoreSalamander/design-engine@main" \
- && pip install --no-cache-dir ruff \
- && git clone --depth 1 --branch "${ONE_ENGINE_REF}" \
-      https://github.com/MoreSalamander/one-engine.git /opt/one-engine \
- && pip install --no-cache-dir -e "/opt/one-engine[orchestration]"
+# temporalio stays for the same reason it always did — the composed app
+# imports it at module load. No Temporal server runs here, which is the
+# honest state: composed runs fall back to inline execution and /health
+# reports degraded rather than pretending to durability it does not have.
+RUN pip install --no-cache-dir ruff "temporalio>=1.7"
 
-# The laptop's config points at local repo paths and venvs; this one does not.
-COPY deploy/fly/one-engine.config.yaml /opt/one-engine/config.yaml
+# No topology file is copied any more. It used to differ from the laptop's
+# because that one carried repo paths and venv paths for a launcher that
+# started each adapter in its own environment; those keys are gone, and what
+# is left — four loopback addresses — is identical in both places and ships
+# inside the package. A deployment that needs different addresses sets
+# ONE_ENGINE_MEMBER_RESEARCH and friends, or points ENTROPY_CONFIG_DIR at a
+# directory of its own.
 # Real recorded runs, so the composition wing has history to serve on first
 # boot. Copied to the Volume by start.sh only when absent — a live machine's
 # accumulated log is never overwritten.
