@@ -33,7 +33,7 @@ graph:
 
 vectors:
   backend: "qdrant-embedded"    # qdrant-client local mode; set url for a real Qdrant server
-  path: "storage_data/qdrant"
+  path: "qdrant"
   url: ""                       # e.g. "http://localhost:6333" flips to server mode
   similarity_merge_threshold: 0.86
 
@@ -46,10 +46,10 @@ queue:
   redis_url: "redis://localhost:6379/0"
 
 knowledge_graph:
-  path: "storage_data/knowledge_graph.json"
+  path: "knowledge_graph.json"
 
 sessions:
-  path: "storage_data/sessions"
+  path: "sessions"
 
 datahub:
   # Context Graph → real DataHub emission (datasets + lineage + run provenance).
@@ -73,4 +73,4 @@ sources:
   reddit_degraded_ok: true      # public JSON endpoints, no OAuth: works from most IPs, honestly flaky
 
 report:
-  output_dir: "storage_data/reports"
+  output_dir: "reports"
