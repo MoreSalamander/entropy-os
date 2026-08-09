@@ -248,10 +248,10 @@ class PaperBuilder:
             return self._deterministic_prose(theme)
         return prose
 
-    async def _abstract(self, topic: str, themes: list[Theme], stats: dict) -> str:
+    async def _abstract(self, subject: str, themes: list[Theme], stats: dict) -> str:
         heads = "; ".join(t.title for t in themes[:5])
         if self.llm is None:
-            return (f"This report examines {topic}. It draws on "
+            return (f"This report examines {subject}. It draws on "
                     f"{stats['refs']} sources and {stats['claims']} verified "
                     f"findings across {len(themes)} areas: {heads}.")
         try:
@@ -260,13 +260,13 @@ class PaperBuilder:
                 "Write a 3-5 sentence abstract for a research paper. State "
                 "what was examined and what was found. No citations, no "
                 "bullets, no invented specifics.",
-                f"Topic: {topic}\nSections: {heads}\n"
+                f"Topic: {subject}\nSections: {heads}\n"
                 + "\n".join(f"- {c.statement}" for t in themes
                             for c in t.claims[:2]))
         except LLMUnavailable:
             prose = ""
         return (prose or "").strip() or (
-            f"This report examines {topic}. It draws on {stats['refs']} sources "
+            f"This report examines {subject}. It draws on {stats['refs']} sources "
             f"and {stats['claims']} verified findings across {len(themes)} areas: {heads}.")
 
     # -- build ------------------------------------------------------------
@@ -282,7 +282,11 @@ class PaperBuilder:
 
         stats = {"refs": len(references),
                  "claims": sum(len(t.claims) for t in themes)}
-        abstract = await self._abstract(topic, themes, stats)
+        # The cleaned subject, not the raw prompt: a paper that opens
+        # "This report examines i would like to learn about X" has
+        # published the question someone typed instead of naming its own
+        # subject.
+        abstract = await self._abstract(_title(topic), themes, stats)
 
         contested = [f.text for f in findings if f.kind == "contradiction"][:6]
         open_questions = [f.text for f in findings if f.kind == "question"][:6]

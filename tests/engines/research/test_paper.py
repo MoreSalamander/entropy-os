@@ -225,3 +225,16 @@ async def test_a_missing_model_costs_readability_never_grounding():
     paper = await PaperBuilder(llm=None).build(cg, [])
     assert paper.references
     assert "[1]" in " ".join(t.prose for t in paper.themes)
+
+
+async def test_the_abstract_names_the_subject_not_the_prompt():
+    """The title was cleaned and the abstract was not, so a paper opened with
+    "This report examines i would like to learn about U.S. currency" — it had
+    published the question someone typed instead of naming its own subject."""
+    cg, dollar, _ = _graph("i would like to learn about U.S. currency")
+    cg.claims["c1"] = _claim("The dollar is the US currency unit",
+                             [dollar.id], [_ev("https://a.test")])
+    paper = await PaperBuilder(llm=None).build(cg, [])
+    assert "i would like to learn" not in paper.abstract
+    assert "U.S. currency" in paper.abstract
+    assert paper.title == "U.S. currency"
