@@ -90,16 +90,42 @@ def test_the_gate_is_checked_before_the_infrastructure(tmp_path):
 # honest refusal — what this machine cannot package, it says so
 # --------------------------------------------------------------------------- #
 
-def test_a_next_js_site_is_refused_with_the_real_reason(tmp_path):
-    """design-engine emits source, not a served bundle. Shipping an unbuilt
-    tree as though it were a running site would be a lie, so it is refused
-    with the reason rather than packaged badly."""
+def test_a_next_js_site_is_packageable_now_that_there_is_a_build_for_it(tmp_path):
+    """This used to be a refusal, and the refusal was honest: a generated
+    Next.js tree is source, and packaging it needed a node toolchain the
+    machine did not have. A container is exactly where a toolchain you do not
+    have locally belongs, so the answer changed from "no" to a build stage."""
     site = tmp_path / "site"
     site.mkdir()
     (site / "package.json").write_text("{}")
     ok, why = packageable(ArtifactRef(kind="site", path=str(site)))
-    assert ok is False
-    assert "node build" in why
+    assert ok is True, why
+
+
+def test_a_site_without_a_package_json_is_still_refused(tmp_path):
+    """The build strategy assumes a node project. A tree with no package.json
+    is not one, and saying so beats a container that fails at `npm install`
+    minutes later."""
+    from entropy_os.composition.vending.docker import VendingError
+    from entropy_os.composition.vending.machine import package
+
+    site = tmp_path / "site"
+    site.mkdir()
+    (site / "index.tsx").write_text("export default () => null")
+    with pytest.raises(VendingError, match="package.json"):
+        package(ArtifactRef(kind="site", path=str(site)), "obj-test")
+
+
+def test_each_kind_is_dispensed_on_the_port_it_actually_serves():
+    """One default port for everything dispensed containers that were running
+    perfectly and answering nothing."""
+    from entropy_os.composition.vending.machine import (
+        CONTAINER_PORTS,
+        DEFAULT_CONTAINER_PORT,
+    )
+    assert CONTAINER_PORTS["project"] == 8000     # the generated Dockerfile's EXPOSE
+    assert CONTAINER_PORTS["site"] == 3000        # next start
+    assert DEFAULT_CONTAINER_PORT == 80           # nginx, for the static kinds
 
 
 def test_a_sidecar_is_not_a_product(tmp_path):
