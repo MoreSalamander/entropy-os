@@ -28,7 +28,10 @@ primary_region = "dfw"           # matches the veritas_data volume (created clos
   # directory inside the installed package — which on Fly is an image layer,
   # so every restart would silently discard everything four engines had
   # learned. It belongs on the Volume with the rest of the state.
-  ENTROPY_STORAGE = "/data/engines"
+  # /data, not /data/engines: the storage root CONTAINS an engines/ level, so
+  # pointing at the deeper path produced /data/engines/engines/<key>. The
+  # layout here now matches the laptop's exactly, one directory up.
+  ENTROPY_STORAGE = "/data"
 
 [http_service]
   internal_port = 8101

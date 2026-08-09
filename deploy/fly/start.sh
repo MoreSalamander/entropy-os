@@ -50,10 +50,10 @@ mkdir -p "$ONE_ENGINE_DATA"
 # default is a directory inside the installed package, which here is an image
 # layer, so a restart would discard everything the engines had learned while
 # the front door came back looking perfectly healthy.
-ENTROPY_STORAGE="${ENTROPY_STORAGE:-$DATA/engines}"
+ENTROPY_STORAGE="${ENTROPY_STORAGE:-$DATA}"
 export ENTROPY_STORAGE
 mkdir -p "$ENTROPY_STORAGE"
-echo "engines: state on ${ENTROPY_STORAGE}"
+echo "engines: state on ${ENTROPY_STORAGE}/engines"
 
 # Seed the recorded run history once. Seed-if-missing, never overwrite: a live
 # machine's accumulated log outranks whatever shipped in the image.
