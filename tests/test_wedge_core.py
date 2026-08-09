@@ -79,29 +79,6 @@ def test_fail_closed_is_checked_after_auth(tmp_path):
 
 # --- the happy path: isolated, persisted, gated ----------------------------------------------
 
-def test_good_submission_runs_gated_and_persists_to_the_tenant(tmp_path):
-    res = _wedge(tmp_path).submit(authorization="Bearer tok_alice", goal="add two numbers")
-    assert res.accepted and res.isolated and res.tenant == "alice"
-    # the built function is returned, not just a verdict
-    assert "def add" in res.code
-    # the contract is surfaced (behind-the-scenes)
-    assert res.spec and res.spec.get("function_name") == "add"
-    assert any(g["passed"] for g in res.evidence)             # the gate trail is surfaced
-    assert (tmp_path / "tenants" / "alice" / "software").exists()  # persisted under the tenant root
-
-
-def test_two_tenants_are_isolated(tmp_path):
-    auth = WedgeAuth({"tok_alice": "alice", "tok_bob": "bob"})
-    w = Wedge(tmp_path, _provider, auth, sandbox_check=lambda: True)
-    w.submit(authorization="Bearer tok_alice", goal="add two numbers")
-    assert (tmp_path / "tenants" / "alice").exists()
-    # bob has not run; alice's run is his alone
-    assert not (tmp_path / "tenants" / "bob").exists()
-
-
-# --- HTTP shell: status preflight + 401/503 mapping ------------------------------------------
-
-
 def test_unvendable_slot_is_refused_before_the_sandbox(tmp_path):
     """The allowlist is deterministic and sits before any execution concern:
     an org not on the machine is refused even with a healthy sandbox."""
@@ -113,249 +90,149 @@ def test_unvendable_slot_is_refused_before_the_sandbox(tmp_path):
         wedge.submit(authorization="Bearer tok", goal="x", org="production")
 
 
-def test_web_slot_vends_the_page(tmp_path):
-    """The web slot returns the page itself in the tray — the artifact, not
-    just a verdict."""
-    from engine.model import ScriptedProvider
-
-    from entropy_os.wedge import Wedge, WedgeAuth
-
-    provider = ScriptedProvider({
-        "designer": '{"title": "T", "description": "d", "required_elements": ["h1"], '
-                    '"aesthetics": {}}',
-        "web-developer": "<!doctype html><html><head><style>h1{color:#111;background:#fff}</style>"
-                         "</head><body><h1>Hello</h1></body></html>",
-    })
-    wedge = Wedge(tmp_path, lambda: provider, WedgeAuth({"tok": "tenant1"}),
-                  sandbox_check=lambda: True)
-    res = wedge.submit(authorization="Bearer tok", goal="a page", org="web")
-    assert res.org == "web"
-    # Whatever the gates decided, the tray carries the artifacts that existed
-    # and the evidence names real gates.
-    assert isinstance(res.artifacts, list) and isinstance(res.evidence, list)
-    assert any(e["gate"] for e in res.evidence)
+# --- the contract path: what the wedge itself is responsible for ------------
+#
+# The slots no longer run studios in this process; they call capabilities.
+# So these test the wedge's OWN job — routing, tenancy, the acceptance rule,
+# metering, and what lands in the tray — against a fake engine, rather than
+# re-testing engines that have their own suites.
 
 
-def test_research_with_no_sources_and_no_search_client_is_refused(tmp_path):
-    """No corpus and no live search = a summarizer wearing a lab coat.
-    Refused honestly, before any model call."""
-    from entropy_os.wedge import SourcesUnavailable, Wedge, WedgeAuth
+def _result(*, status="completed", verdicts=(), outputs=None, artifacts=()):
+    """A contract ExecuteResult, as JSON, the way the client returns it."""
+    return {
+        "status": status,
+        "outputs": dict(outputs or {}),
+        "artifacts": [dict(a) for a in artifacts],
+        "verdicts": [dict(v) for v in verdicts],
+        "provenance": {"ref": {"execution_id": "exec-test"}},
+        "error": "" if status == "completed" else "the engine gave up",
+    }
 
-    wedge = Wedge(tmp_path, lambda: None, WedgeAuth({"tok": "tenant1"}),
-                  sandbox_check=lambda: True)
+
+def _hard(gate="pytest", passed=True):
+    return {"gate": gate, "determinism": "hard", "passed": passed,
+            "evidence": f"{gate}: {'ok' if passed else 'failed'}", "facts": {}}
+
+
+def _wedge_with(tmp_path, execute, read_artifact=None, **kw):
+    auth = WedgeAuth(kw.pop("tokens", None) or {"tok_alice": "alice"})
+    return Wedge(tmp_path, _provider, auth, sandbox_check=lambda: True,
+                 execute=execute,
+                 read_artifact=read_artifact or (lambda path: {"text": f"<{path}>"}),
+                 **kw)
+
+
+def test_a_slot_routes_to_its_capability_and_carries_the_goal(tmp_path):
+    seen = {}
+
+    def execute(capability, inputs):
+        seen["capability"], seen["inputs"] = capability, inputs
+        return _result(verdicts=[_hard()])
+
+    res = _wedge_with(tmp_path, execute).submit(
+        authorization="Bearer tok_alice", goal="add two numbers", org="software")
+    assert seen["capability"] == "software.build"
+    assert seen["inputs"]["request"] == "add two numbers"
+    assert res.accepted is True
+
+
+def test_the_acceptance_rule_decides_not_the_engines_own_optimism(tmp_path):
+    """An engine that completed but proved nothing is not an accepted vend.
+    This is the rule the tray's SHIPPED label rests on."""
+    res = _wedge_with(tmp_path, lambda c, i: _result(verdicts=[])).submit(
+        authorization="Bearer tok_alice", goal="x", org="software")
+    assert res.accepted is False
+
+    res = _wedge_with(tmp_path, lambda c, i: _result(
+        verdicts=[_hard("ruff"), _hard("pytest", passed=False)])).submit(
+        authorization="Bearer tok_alice", goal="x", org="software")
+    assert res.accepted is False
+    # …and the reasoning is handed to the visitor, not just the conclusion.
+    assert any(not g["passed"] for g in res.evidence)
+
+
+def test_the_software_slot_is_scoped_to_the_tenants_own_directory(tmp_path):
+    """Tenancy is the wedge's promise. Where the capability accepts a scope,
+    the wedge must actually use it."""
+    seen = {}
+
+    def execute(capability, inputs):
+        seen.update(inputs)
+        return _result(verdicts=[_hard()])
+
+    _wedge_with(tmp_path, execute).submit(
+        authorization="Bearer tok_alice", goal="x", org="software")
+    assert str(tmp_path / "tenants" / "alice" / "software") in seen["out_dir"]
+
+
+def test_the_learn_slot_is_scoped_to_the_tenants_own_learner(tmp_path):
+    seen = {}
+
+    def execute(capability, inputs):
+        seen.update({"cap": capability, **inputs})
+        return _result(verdicts=[_hard("roadmap")])
+
+    _wedge_with(tmp_path, execute).submit(
+        authorization="Bearer tok_alice", goal="teach me x", org="learn")
+    assert seen["cap"] == "university.design_curriculum"
+    assert seen["learner_name"] == "alice"
+
+
+def test_an_unreachable_engine_is_not_a_rejection(tmp_path):
+    """Down and refused are different facts. Reporting an outage as 'not
+    accepted' would blame the visitor's request for the operator's problem —
+    and would charge them for it."""
+    from entropy_os.engine_client import EngineUnreachable
+    from entropy_os.wedge import SourcesUnavailable
+
+    def execute(capability, inputs):
+        raise EngineUnreachable("connection refused")
+
     with pytest.raises(SourcesUnavailable):
-        wedge.submit(authorization="Bearer tok", goal="what is spaced repetition?", org="research")
+        _wedge_with(tmp_path, execute).submit(
+            authorization="Bearer tok_alice", goal="x", org="software")
 
 
-def test_research_fetches_its_own_corpus_via_the_search_seam(tmp_path):
-    """REAL research, intelligence flow: the planner charts angles, the
-    workers fetch, and the tray carries the plan, the angle-tagged sources,
-    and the context graph alongside the report."""
-    from commons.parallel_client import ExtractResult, ScriptedSearchClient, SearchResult
-    from engine.model import SequencedProvider
-    from orgs.research_studio.intelligence import ANGLES
+def test_a_research_report_is_fetched_into_the_tray(tmp_path):
+    """A visitor must be able to READ what was made, not just be told it
+    exists somewhere on the operator's disk."""
+    def execute(capability, inputs):
+        return _result(verdicts=[_hard("claims_verified")],
+                       outputs={"report_path": "/engines/research/reports/s1.md"})
 
-    from entropy_os.wedge import Wedge, WedgeAuth
+    res = _wedge_with(tmp_path, execute,
+                      read_artifact=lambda p: {"text": "# Findings\n"}).submit(
+        authorization="Bearer tok_alice", goal="webgpu", org="research")
+    tray = {a["label"]: a["payload"] for a in res.artifacts}
+    assert tray["grounded report"] == "# Findings\n"
 
-    goal = "what is spaced repetition?"
-    client = ScriptedSearchClient(
-        search_by_query={
-            f"{goal} {ANGLES['news'][0]}": [
-                SearchResult(url="https://example.edu/sr", title="Spaced Repetition"),
-            ],
-        },
-        extract_by_url={
-            "https://example.edu/sr": ExtractResult(
-                url="https://example.edu/sr", title="Spaced Repetition",
-                content="Spaced repetition schedules reviews at increasing intervals."),
-        },
-    )
-    provider = SequencedProvider({
-        "researcher": [
-            '{"domain": "learning", "questions": ["does it work?"], "angles": ["news"]}',
-            '{"topic": "spaced repetition", '
-            '"claims": [{"text": "Spaced repetition schedules reviews at increasing intervals.", '
-            '"citations": '
-                '[{"source": "src1", "quote": "schedules reviews at increasing intervals"}]}], '
-            '"entities": [{"name": "Spaced Repetition", "type": "concept", "description": "review scheduling"}], '
-            '"relationships": [], "open_questions": []}',
-        ],
-        "judge": ['{"unsupported": []}'],
-    })
-    wedge = Wedge(tmp_path, lambda: provider, WedgeAuth({"tok": "tenant1"}),
-                  sandbox_check=lambda: True, search_client=client)
-    res = wedge.submit(authorization="Bearer tok", goal=goal, org="research")
-    assert res.org == "research"
+
+def test_a_directory_artifact_is_named_rather_than_silently_dropped(tmp_path):
+    """A generated project cannot be inlined. Saying so is better than an
+    empty tray that implies nothing was produced."""
+    from entropy_os.engine_client import EngineUnreachable
+
+    def execute(capability, inputs):
+        return _result(verdicts=[_hard()],
+                       artifacts=[{"kind": "project", "path": "/out/proj_1",
+                                   "description": "generated project"}])
+
+    def read_artifact(path):
+        raise EngineUnreachable("it is a directory")
+
+    res = _wedge_with(tmp_path, execute, read_artifact=read_artifact).submit(
+        authorization="Bearer tok_alice", goal="x", org="software")
     labels = [a["label"] for a in res.artifacts]
-    assert labels[0] == "research plan" and "RESEARCH PLAN" in res.artifacts[0]["payload"]
-    fetched = next(a for a in res.artifacts if a["label"] == "machine-fetched sources")
-    assert "example.edu" in fetched["payload"] and "[news]" in fetched["payload"]
-    graph = next(a for a in res.artifacts if a["label"] == "context graph")
-    assert "Spaced Repetition" in graph["payload"]
+    assert "project (directory)" in labels
+    assert any("/out/proj_1" in a["payload"] for a in res.artifacts)
 
 
-def test_research_tray_holds_a_rendered_page_not_report_json(tmp_path):
-    """The report artifact is machine-shaped JSON for the gates; the tray must
-    hand over a normal research page — findings, quotes, a sources index that
-    resolves corpus ids back to the fetched URLs. Raw JSON never reaches the
-    tray for a parseable report."""
-    from commons.parallel_client import ExtractResult, ScriptedSearchClient, SearchResult
-    from engine.model import SequencedProvider
-    from orgs.research_studio.intelligence import ANGLES
-
-    from entropy_os.wedge import Wedge, WedgeAuth
-
-    client = ScriptedSearchClient(
-        search_by_query={
-            f"what is spaced repetition? {ANGLES['news'][0]}": [
-                SearchResult(url="https://example.edu/sr", title="Spaced Repetition"),
-            ],
-        },
-        extract_by_url={
-            "https://example.edu/sr": ExtractResult(
-                url="https://example.edu/sr", title="Spaced Repetition",
-                content="Spaced repetition schedules reviews at increasing intervals."),
-        },
-    )
-    provider = SequencedProvider({
-        "researcher": [
-            '{"domain": "learning", "questions": ["does it work?"], "angles": ["news"]}',
-            '{"topic": "what is spaced repetition?", '
-            '"claims": [{"text": "Spaced repetition schedules reviews at increasing intervals.", '
-            '"citations": '
-                '[{"source": "src1", "quote": "schedules reviews at increasing intervals"}]}]}',
-        ],
-        "judge": ['{"unsupported": []}'],
-    })
-    wedge = Wedge(tmp_path, lambda: provider, WedgeAuth({"tok": "tenant1"}),
-                  sandbox_check=lambda: True, search_client=client)
-    res = wedge.submit(authorization="Bearer tok", goal="what is spaced repetition?",
-                       org="research")
-    rendered = [a for a in res.artifacts if a["label"] == "grounded report"]
-    assert rendered, f"no rendered report artifact in {[a['label'] for a in res.artifacts]}"
-    page = rendered[0]["payload"]
-    assert page.startswith("# "), "the tray artifact must be a page, not JSON"
-    assert "{" not in page.split("## Sources")[0], "no JSON syntax in the findings"
-    assert "## Findings" in page and "## Sources" in page
-    assert "[src1] https://example.edu/sr" in page, "corpus id must resolve to the fetched URL"
-    assert '> "schedules reviews at increasing intervals" — src1' in page
-
-
-def test_site_slot_vends_a_whole_site(tmp_path):
-    """The fourth slot: brief -> corpus -> synthesis -> pages -> site gates,
-    the tray carrying every page plus the design system and context graph."""
-    import json as _json
-
-    from commons.parallel_client import ExtractResult, ScriptedSearchClient, SearchResult
-    from engine.model import SequencedProvider
-    from orgs.web_studio.design_intelligence import DESIGN_ANGLES
-
-    from entropy_os.wedge import Wedge, WedgeAuth
-
-    brief = _json.dumps({
-        "industry": "healthcare AI", "audience": ["doctors"],
-        "brand_qualities": ["trust"], "user_goals": ["credibility"],
-        "pages": ["landing", "pricing"], "design_intents": ["medical trust"],
-    })
-    system = _json.dumps({
-        "layout": "enterprise_saas",
-        "palette": {"bg": "#0b0e14", "surface": "#151a23", "ink": "#e8ecf3", "accent": "#4a90d9"},
-        "heading_font": "Georgia, serif", "body_font": "Georgia, serif",
-        "components_by_page": {"landing": ["hero", "cta"], "pricing": ["pricing_table"]},
-        "inspired_by": [{"source": "src1", "pattern": "restrained hero"}],
-    })
-    vars_block = ":root { --accent: #4a90d9; --bg: #0b0e14; --ink: #e8ecf3; --surface: #151a23; }"
-
-    def page(slug, other):
-        return (
-            f"<!doctype html><html lang='en'><head><title>{slug}</title>"
-            f"<style>{vars_block} h1 {{ font-family: Georgia, serif; }}</style></head><body>"
-            f"<nav><a href=\"{slug}.html\">{slug}</a> <a href=\"{other}.html\">{other}</a></nav>"
-            f"<header class=\"hero\"><h1>{slug}</h1></header>"
-            f"<section class=\"pricing cta\"><button>Choose</button></section>"
-            f"<footer>fin</footer></body></html>"
-        )
-
-    def spec(slug):
-        return _json.dumps({"title": slug, "description": slug, "required_elements": ["nav", "footer"]})
-
-    provider = SequencedProvider({
-        "designer": [brief, system, spec("landing"), spec("pricing")],
-        "web-developer": [page("landing", "pricing"), page("pricing", "landing")],
-    })
-    intent = "medical trust"
-    client = ScriptedSearchClient(
-        search_by_query={
-            f"{DESIGN_ANGLES['award_winners'][0]} — {intent}": [
-                SearchResult(url="https://awards.example/x", title="Winner")],
-        },
-        extract_by_url={
-            "https://awards.example/x": ExtractResult(
-                url="https://awards.example/x", title="Winner", content="calm hero")},
-    )
-    wedge = Wedge(tmp_path, lambda: provider, WedgeAuth({"tok": "tenant1"}),
-                  sandbox_check=lambda: True, search_client=client)
-    res = wedge.submit(authorization="Bearer tok", goal="site for an AI healthcare startup",
-                       org="site")
-
-    assert res.org == "site" and res.accepted
-    labels = [a["label"] for a in res.artifacts]
-    assert labels[0] == "design brief" and "design system" in labels
-    assert "landing.html" in labels and "pricing.html" in labels and "context graph" in labels
-    assert any(g["gate"] == "site: nav-links-resolve" and g["passed"] for g in res.evidence)
-    assert any(g["gate"].startswith("landing: axe-wcag") and g["passed"] for g in res.evidence)
-
-
-def test_learn_slot_teaches_and_grades(tmp_path):
-    """The fifth slot: roadmap -> parallel research -> gated lesson in the
-    tray with an interactive quiz — and the grading door moves mastery,
-    unmetered, so the next vend starts where the learner is."""
-    import json as _json
-
-    from commons.parallel_client import ExtractResult, ScriptedSearchClient, SearchResult
-    from engine.model import SequencedProvider
-    from orgs.education_studio.curriculum import EDU_ANGLES
-
-    from entropy_os.wedge import Wedge, WedgeAuth
-
-    roadmap = _json.dumps({
-        "concepts": [{"name": "Vectors", "summary": "arrows"},
-                     {"name": "Regression", "summary": "lines"}],
-        "edges": [{"source": "Vectors", "relation": "requires", "target": "Regression"}],
-    })
-    lesson = _json.dumps({
-        "concept": "Vectors",
-        "sections": [{"title": "The idea", "body": "A vector has direction and magnitude.",
-                      "cites": ["src1"]}],
-        "quiz": [{"question": "A vector has?",
-                  "options": ["direction and magnitude", "flavor"],
-                  "answer_index": 0, "answer_span": "direction and magnitude"}],
-    })
-    provider = SequencedProvider({"researcher": [roadmap, lesson]})
-    client = ScriptedSearchClient(
-        search_by_query={
-            f"Vectors {EDU_ANGLES['academic'][0]}": [
-                SearchResult(url="https://mit.example/la", title="Course")],
-        },
-        extract_by_url={
-            "https://mit.example/la": ExtractResult(
-                url="https://mit.example/la", title="Course",
-                content="A vector has direction and magnitude.")},
-    )
-    wedge = Wedge(tmp_path, lambda: provider, WedgeAuth({"tok": "tenant1"}),
-                  sandbox_check=lambda: True, search_client=client)
-    res = wedge.submit(authorization="Bearer tok", goal="teach me machine learning", org="learn")
-
-    assert res.org == "learn" and res.accepted
-    labels = [a["label"] for a in res.artifacts]
-    assert labels[0] == "learning roadmap" and "lesson" in labels and "quiz" in labels
-    quiz = _json.loads(next(a["payload"] for a in res.artifacts if a["label"] == "quiz"))
-    assert quiz["concept"] == "Vectors" and len(quiz["items"]) == 1
-    assert any(g["gate"] == "lesson-contract" and g["passed"] for g in res.evidence)
-
-    graded = wedge.grade_learn("Bearer tok", res.run_id, [0])
-    assert graded["mastered"] is True and graded["concept"] == "Vectors"
-
-    import pytest as _pytest
-    with _pytest.raises(KeyError):
-        wedge.grade_learn("Bearer tok", "run_nonexistent", [0])
+def test_two_tenants_stay_in_their_own_directories(tmp_path):
+    seen = []
+    w = _wedge_with(tmp_path, lambda c, i: (seen.append(i), _result(verdicts=[_hard()]))[1],
+                    tokens={"tok_alice": "alice", "tok_bob": "bob"})
+    w.submit(authorization="Bearer tok_alice", goal="x", org="software")
+    w.submit(authorization="Bearer tok_bob", goal="x", org="software")
+    assert "/alice/" in seen[0]["out_dir"] and "/bob/" in seen[1]["out_dir"]
+    assert "/bob/" not in seen[0]["out_dir"]

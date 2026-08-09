@@ -18,6 +18,8 @@ from engine.model import ScriptedProvider
 from entropy_os.quota import QuotaPolicy, QuotaStore
 from entropy_os.wedge import QuotaExceeded, Wedge, WedgeAuth
 
+from .conftest import fake_execute
+
 
 class _Clock:
     def __init__(self) -> None:
@@ -131,7 +133,8 @@ def _wedge_provider() -> ScriptedProvider:
 def test_wedge_meters_runs_and_reports_remaining(tmp_path):
     meter = _store(tmp_path / "q", limit=2)
     auth = WedgeAuth({"tok": "alice"})
-    w = Wedge(tmp_path / "data", _wedge_provider, auth, sandbox_check=lambda: True, meter=meter)
+    w = Wedge(tmp_path / "data", _wedge_provider, auth, sandbox_check=lambda: True,
+              meter=meter, execute=fake_execute())
 
     r1 = w.submit(authorization="Bearer tok", goal="add two numbers")
     assert r1.accepted and r1.remaining == 1
@@ -163,7 +166,7 @@ def test_http_429_and_usage(tmp_path, monkeypatch):
     monkeypatch.setattr("engine.executor.default_executor", lambda: ContainerExecutor())
     monkeypatch.setenv("VERITAS_WEDGE_TOKENS", "tok_alice:alice")
     monkeypatch.setenv("VERITAS_WEDGE_QUOTA", "1")
-    client = TestClient(create_app(data_dir=tmp_path, provider=_wedge_provider()))
+    client = TestClient(create_app(data_dir=tmp_path, provider=_wedge_provider(), execute=fake_execute()))
     hdr = {"Authorization": "Bearer tok_alice"}
 
     assert client.get("/api/wedge/status").json()["metered"] is True

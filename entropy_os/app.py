@@ -1007,6 +1007,7 @@ def create_app(
     provider: ModelProvider | None = None,
     fetcher: TranscriptFetcher | None = None,
     search_client: SearchClient | None = None,
+    execute: Callable[[str, dict[str, Any]], dict[str, Any]] | None = None,
 ) -> FastAPI:
     base = Path(data_dir) if data_dir else _DATA
     visit_log = VisitLog(base / "visits.json")
@@ -1031,6 +1032,11 @@ def create_app(
         set_default_override(None)
     runs = RunStore(base / "runs")
     injected_provider = provider  # set in tests; when None, pick per-request by model
+    # The contract seam, injected the same way and for the same reason: a test
+    # of THESE routes must exercise the front door's own logic — auth, quota,
+    # status mapping — without a live composite behind it, and without waiting
+    # minutes for a real build.
+    injected_execute = execute
     # Transcript fetcher for the Knowledge Graph (P28b); ScriptedFetcher in tests so they stay offline.
     # Video first (YtDlpFetcher also catches a webpage with an embedded video), article text as
     # the fallback for pages with no video at all — one shared URL, either kind of source.
@@ -1571,7 +1577,8 @@ def create_app(
         req: WedgeRequest, authorization: str | None = Header(default=None)
     ) -> dict[str, Any]:
         wedge = Wedge(base, lambda: injected_provider or provider_for(req.model),
-                      wedge_auth, meter=quota,
+                      wedge_auth,
+                      execute=injected_execute, meter=quota,
                       unlimited_check=accounts.is_unlimited if accounts is not None else None,
                       search_client=web_search)
         try:
@@ -1614,7 +1621,8 @@ def create_app(
         """Deterministic quiz grading against the tenant's vended lesson;
         moves the learner model. Unmetered — assessment is part of the vend."""
         wedge = Wedge(base, lambda: injected_provider or provider_for(DEFAULT_MODEL),
-                      wedge_auth, meter=quota,
+                      wedge_auth,
+                      execute=injected_execute, meter=quota,
                       unlimited_check=accounts.is_unlimited if accounts is not None else None,
                       search_client=web_search)
         try:
@@ -1642,7 +1650,8 @@ def create_app(
             "done": False, "result": None, "error": None,
         }
         wedge = Wedge(base, lambda: injected_provider or provider_for(req.model),
-                      wedge_auth, meter=quota,
+                      wedge_auth,
+                      execute=injected_execute, meter=quota,
                       unlimited_check=accounts.is_unlimited if accounts is not None else None,
                       search_client=web_search)
 

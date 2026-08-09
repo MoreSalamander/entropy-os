@@ -27,25 +27,64 @@ endpoints in hub/app.py are a thin shell over `Wedge.submit`.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import re
+import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
-from commons.parallel_client import ParallelUnavailable, SearchClient
+from commons.parallel_client import SearchClient
 from engine.executor import sandbox_active
 from engine.memory import MemoryStore, default_memory_store
 from engine.model import ModelProvider
-from orgs.registry import get_org
-from orgs.research_studio.report import ReportParseError, parse_report, render_markdown
-from orgs.software_studio.pipeline import build_function
+
+from . import engine_client
+from .composition.contract import Verdict
+from .vending import SLOT_CAPABILITY, SLOT_INPUT_FIELD, decide
 
 # A tenant id becomes a directory name, so it must be path-safe by construction (no separators, no
 # traversal). Tokens are operator-defined, but we validate anyway — defense in depth.
 _TENANT_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
+
+
+def new_run_token() -> str:
+    return uuid.uuid4().hex[:12]
+
+
+def tenant_slug(name: str) -> str:
+    """A tenant id safe to hand an engine as a learner name."""
+    return re.sub(r"[^a-z0-9_-]", "-", name.lower())[:64] or "tenant"
+
+
+def _default_execute(capability: str, inputs: dict[str, Any]) -> dict[str, Any]:
+    """Reach the real composite. Separated so the seam has a name."""
+    return run_sync(engine_client.execute(capability, inputs))
+
+
+def _default_read_artifact(path: str) -> dict[str, Any]:
+    return run_sync(engine_client.artifact_text(path))
+
+
+def run_sync(coro: Any) -> Any:
+    """Run one contract call from this synchronous module.
+
+    The wedge is deliberately framework-free and is called from FastAPI's
+    threadpool and from background worker threads — never from inside a
+    running loop. asyncio.run is therefore correct here, and the explicit
+    check turns a subtle "this coroutine was never awaited" into a loud
+    error if that ever stops being true.
+    """
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+    raise RuntimeError(
+        "wedge.run_sync was called from inside an event loop; the caller "
+        "should await the contract client directly")
 
 
 class Unauthorized(Exception):
@@ -186,6 +225,8 @@ class Wedge:
         meter: Meter | None = None,
         unlimited_check: Callable[[str], bool] | None = None,
         search_client: SearchClient | None = None,
+        execute: Callable[[str, dict[str, Any]], dict[str, Any]] | None = None,
+        read_artifact: Callable[[str], dict[str, Any]] | None = None,
     ) -> None:
         self.base = Path(base)
         self.provider_factory = provider_factory
@@ -202,6 +243,13 @@ class Wedge:
         # empty-sources research is refused — a report grounded in nothing
         # would be a summarizer wearing a lab coat.
         self.search_client = search_client
+        # The contract seam. Injectable for the same reason the model provider
+        # always was: a unit test must be able to exercise this logic without
+        # a live engine on the other end. The default reaches the real
+        # composite; a test hands in a function and asserts on what the wedge
+        # DID with the result, which is the part that is actually its own.
+        self._execute = execute or _default_execute
+        self._read_artifact = read_artifact or _default_read_artifact
 
     def tenant_root(self, tenant: str) -> Path:
         if not _TENANT_RE.match(tenant):  # defense in depth; the token table already validated it
@@ -232,339 +280,174 @@ class Wedge:
             # QuotaExceeded if over the window's limit
             self.meter.check(tenant)
         root = self.tenant_root(tenant)
-        if org != "software":
-            return self._submit_org_run(tenant, goal, org, sources, root, exempt)
-        memory = self.memory_factory(root / "software")         # per-tenant, isolated by path
-        result = build_function(goal, self.provider_factory(), memory)
-        # The deliverable itself — the code the org wrote and the gates cleared. Without this, "SHIPPED"
-        # is a verdict with nothing behind it; with it, the tenant gets the verified function back.
-        code = ""
-        outcome = getattr(result, "code_outcome", None)
-        if outcome is not None and getattr(outcome, "artifact", None) is not None:
-            code = outcome.artifact.payload
-        # The spec is the contract the org committed to BEFORE writing code — the heart of the thesis
-        # ("no synthesis before the constraints are real"). Surfacing it is the behind-the-scenes view.
-        spec: dict[str, Any] | None = None
-        spec_outcome = getattr(result, "spec_outcome", None)
-        if spec_outcome is not None and getattr(spec_outcome, "artifact", None) is not None:
-            try:
-                loaded = json.loads(spec_outcome.artifact.payload)
-                spec = loaded if isinstance(loaded, dict) else None
-            except (json.JSONDecodeError, TypeError):
-                spec = None
+        # The tenant's own directory is the isolation boundary and the
+        # operator's audit trail, so it exists because a run happened here —
+        # not as a side effect of something else having written to it.
+        root.mkdir(parents=True, exist_ok=True)
+        return self._submit_via_contract(tenant, goal, org, root, exempt)
+
+    # ----------------------------------------------------------------- #
+    # the contract path
+    # ----------------------------------------------------------------- #
+
+    def _tenant_inputs(self, org: str, goal: str, root: Path) -> dict[str, Any]:
+        """The capability's inputs, scoped to this tenant where it can be.
+
+        Tenancy is the wedge's promise, not the engines' — they were built to
+        serve one operator and have no notion of who is asking. Two
+        capabilities can be scoped today and are:
+
+          software.build       out_dir      → this tenant's own directory
+          university.design…   learner_name → this tenant's own learner profile
+
+        research.investigate and web.generate_site take no scope, so their
+        runs share one knowledge graph and one output directory across every
+        tenant. Artifacts are still only handed back to the tenant whose run
+        produced them — the wedge never returns a path it did not just get —
+        but accumulated KNOWLEDGE is shared, which means one tenant's research
+        can inform another's. That is a real narrowing of the isolation
+        promise, it is recorded here rather than papered over, and it is the
+        remaining blocker for multi-tenant hosting of those two slots.
+        """
+        field = SLOT_INPUT_FIELD[org]
+        inputs: dict[str, Any] = {field: goal}
+        if org == "software":
+            inputs["out_dir"] = str(root / "software" / f"build-{new_run_token()}")
+        elif org == "learn":
+            inputs["learner_name"] = tenant_slug(root.name)
+        return inputs
+
+    def _submit_via_contract(
+        self, tenant: str, goal: str, org: str, root: Path, exempt: bool,
+    ) -> WedgeResult:
+        """Run one slot through the Universal Engine Contract.
+
+        The wedge no longer knows how any of this is built. It knows which
+        capability serves the slot, what the engine reported checking, and the
+        one rule that turns those verdicts into a decision.
+        """
+        capability = SLOT_CAPABILITY[org]
+        try:
+            result = self._execute(capability,
+                                   self._tenant_inputs(org, goal, root))
+        except engine_client.EngineUnreachable as exc:
+            # Unreachable is not rejected. Charging for a vend that never ran,
+            # or showing "not accepted" for a machine that was simply down,
+            # would both be lies of different kinds.
+            raise SourcesUnavailable(
+                f"the {org} engine is not reachable right now: {exc}") from exc
+
+        verdicts = [Verdict.model_validate(v) for v in result.get("verdicts", [])]
+        decision = decide(result.get("status", "failed"), verdicts,
+                          result.get("error", ""))
+        artifacts = self._collect_artifacts(org, result)
+
         remaining: int | None = None
         if self.meter is not None and not exempt:
-            self.meter.record(tenant, result.accepted, goal)   # the run counts (and is billable)
+            self.meter.record(tenant, decision.accepted, goal)
             remaining = self.meter.remaining(tenant)
         elif exempt:
-            # sentinel: unlimited (the page shows "unlimited" instead of a countdown)
             remaining = -1
+
+        outputs = result.get("outputs") or {}
         return WedgeResult(
             tenant=tenant,
             goal=goal,
-            accepted=result.accepted,
-            run_id=result.run_id,
+            accepted=decision.accepted,
+            run_id=(result.get("provenance") or {}).get("ref", {}).get(
+                "execution_id", "") or new_run_token(),
             isolated=True,
             persisted_at=str(root),
-            code=code,
-            spec=spec,
-            evidence=_evidence(result),
+            code=next((a["payload"] for a in artifacts
+                       if a["label"] == "generated code"), ""),
+            spec=outputs if isinstance(outputs, dict) else None,
+            evidence=decision.verdicts,
             remaining=remaining,
-            org="software",
-            artifacts=[{"label": "verified function", "payload": code}] if code else [],
+            org=org,
+            artifacts=artifacts,
         )
 
-    def _submit_site(
-        self, tenant: str, goal: str, root: Path, exempt: bool, memory: MemoryStore,
-    ) -> WedgeResult:
-        """Vend a whole website: brief -> design corpus -> synthesis ->
-        per-page walls -> site gates. The tray holds every page, the design
-        system, and the project's context graph."""
-        from orgs.web_studio.site import (
-            SiteBriefRejected,
-            SiteSynthesisRejected,
-            build_site,
-        )
+    def _collect_artifacts(self, org: str, result: dict[str, Any]) -> list[dict[str, Any]]:
+        """What dropped into the tray.
 
-        try:
-            site = build_site(
-                goal, self.provider_factory(), memory, self.search_client,
-                max_pages=3,
-            )
-        except (SiteBriefRejected, SiteSynthesisRejected) as exc:
-            raise SourcesUnavailable(f"the design brief/synthesis was refused: {exc}") from exc
+        A single-file artifact is fetched and shown. A directory is named,
+        measured and left as a reference — inlining a whole generated project
+        would flood the page, and pretending a tree is a document would be
+        worse. The reason each entry looks the way it does is stated, so a
+        visitor is never left guessing whether something is missing.
+        """
+        artifacts: list[dict[str, Any]] = []
+        outputs = result.get("outputs") or {}
 
-        evidence: list[dict[str, Any]] = []
-        for slug, result in site.pages.items():
-            outcome = getattr(result, "page_outcome", None) or getattr(result, "spec_outcome", None)
-            for gr in getattr(outcome, "gate_results", []) or []:
-                evidence.append({
-                    "gate": f"{slug}: {gr.gate_name}",
-                    "determinism": gr.determinism.value,
-                    "passed": gr.passed,
-                    "evidence": gr.evidence,
+        # The report a research run wrote is the deliverable, and it is one
+        # file, so it is fetched rather than referenced.
+        report_path = outputs.get("report_path")
+        if report_path:
+            try:
+                got = self._read_artifact(str(report_path))
+                artifacts.append({"label": "grounded report",
+                                  "payload": got.get("text", "")})
+            except engine_client.EngineUnreachable:
+                pass
+
+        for ref in result.get("artifacts") or []:
+            kind = ref.get("kind", "artifact")
+            path = ref.get("path", "")
+            if not path or (report_path and path == report_path):
+                continue
+            try:
+                got = self._read_artifact(path)
+                label = "generated code" if kind in ("project", "sidecar") else kind
+                artifacts.append({"label": label, "payload": got.get("text", "")})
+            except engine_client.EngineUnreachable:
+                # A directory, or an engine that will not serve it. Name it
+                # honestly instead of dropping it silently.
+                artifacts.append({
+                    "label": f"{kind} (directory)",
+                    "payload": f"{ref.get('description', kind)}\n{path}",
                 })
-        for g in site.site_gates:
-            evidence.append({
-                "gate": f"site: {g.gate}", "determinism": "hard",
-                "passed": g.passed, "evidence": g.evidence,
-            })
-
-        artifacts: list[dict[str, Any]] = [
-            {"label": "design brief", "payload": site.brief.brief()},
-            {"label": "design system", "payload": site.system.brief()},
-        ]
-        if site.sources:
-            artifacts.append({
-                "label": "machine-fetched design sources",
-                "payload": "\n".join(f"{s.url}  [{s.angle}]" for s in site.sources),
-            })
-        for slug in site.brief.pages:
-            html = site.page_html(slug)
-            if html:
-                artifacts.append({"label": f"{slug}.html", "payload": html})
-        artifacts.append({
-            "label": "context graph",
-            "payload": json.dumps(site.context_graph, indent=2),
-        })
-
-        remaining: int | None = None
-        if self.meter is not None and not exempt:
-            self.meter.record(tenant, site.accepted, goal)
-            remaining = self.meter.remaining(tenant)
-        elif exempt:
-            remaining = -1
-        return WedgeResult(
-            tenant=tenant, goal=goal, accepted=site.accepted,
-            run_id=next(iter(site.pages.values())).run_id if site.pages else "site",
-            isolated=True, persisted_at=str(root), evidence=evidence,
-            remaining=remaining, org="site", artifacts=artifacts,
-        )
-
-    def _submit_learn(
-        self, tenant: str, goal: str, root: Path, exempt: bool, memory: MemoryStore,
-    ) -> WedgeResult:
-        """One session of the university: roadmap verified, next concept
-        researched in parallel, lesson gated for grounding + answerability.
-        The lesson is persisted per tenant so /learn/grade can assess it —
-        mastery moves only through that door."""
-        if self.search_client is None:
-            raise SourcesUnavailable(
-                "the university researches every concept live — the operator sets PARALLEL_API_KEY"
-            )
-        from orgs.education_studio.curriculum import RoadmapParseError
-        from orgs.education_studio.lesson import render_lesson_markdown
-        from orgs.education_studio.pipeline import build_learning
-
-        try:
-            res = build_learning(goal, self.provider_factory(), memory, self.search_client)
-        except RoadmapParseError as exc:
-            raise SourcesUnavailable(f"the curriculum was refused: {exc}") from exc
-        except ParallelUnavailable as exc:
-            raise SourcesUnavailable(f"live research failed: {exc}") from exc
-
-        evidence = [
-            {"gate": gr.gate_name, "determinism": gr.determinism.value,
-             "passed": gr.passed, "evidence": gr.evidence}
-            for gr in res.lesson_outcome.gate_results
-        ]
-        source_urls = {f"src{i + 1}": f"{s.url} [{s.angle}]" for i, s in enumerate(res.sources)}
-        artifacts: list[dict[str, Any]] = [
-            {"label": "learning roadmap", "payload": res.roadmap.brief()},
-        ]
-        if res.sources:
-            artifacts.append({
-                "label": "machine-fetched sources",
-                "payload": "\n".join(f"{s.url}  [{s.angle}]" for s in res.sources),
-            })
-        if res.lesson is not None:
-            artifacts.append({
-                "label": "lesson",
-                "payload": render_lesson_markdown(res.lesson, source_urls=source_urls),
-            })
-            artifacts.append({
-                "label": "quiz",
-                "payload": json.dumps({
-                    "concept": res.concept, "run_id": res.run_id,
-                    "items": [{"question": q.question, "options": q.options}
-                              for q in res.lesson.quiz],
-                }),
-            })
-            # Persist the gradable lesson for THIS tenant, keyed by run id.
-            from engine.memory import MemoryRecord
-            memory.persist(MemoryRecord(
-                category="artifact",
-                title=f"pending-quiz:{res.run_id}",
-                body=json.dumps({
-                    "concept": res.concept,
-                    "lesson_payload": res.lesson_outcome.artifact.payload,
-                    "corpus_ids": sorted({f"src{i + 1}" for i in range(len(res.sources))}),
-                }),
-                tags=["lesson-pending", res.run_id],
-                provenance={"goal": goal, "run_id": res.run_id},
-            ))
-        artifacts.append({
-            "label": "context graph", "payload": json.dumps(res.context_graph, indent=2),
-        })
-
-        remaining: int | None = None
-        if self.meter is not None and not exempt:
-            self.meter.record(tenant, res.accepted, goal)
-            remaining = self.meter.remaining(tenant)
-        elif exempt:
-            remaining = -1
-        return WedgeResult(
-            tenant=tenant, goal=goal, accepted=res.accepted, run_id=res.run_id,
-            isolated=True, persisted_at=str(root), evidence=evidence,
-            remaining=remaining, org="learn", artifacts=artifacts,
-        )
+        return artifacts
 
     def grade_learn(self, authorization: str | None, run_id: str,
                     answers: list[int]) -> dict[str, Any]:
-        """The assessment door: deterministic grading against the persisted
-        lesson; the learner model moves here and only here. Never metered —
-        grading is part of the vend, not a second purchase."""
+        """The assessment door: deterministic grading, and the only way the
+        learner model moves. Never metered — grading is part of the vend, not
+        a second purchase.
+
+        The grading itself belongs to the university engine, which owns the
+        answer key and the mastery rules; the wedge's job is to remember which
+        session belongs to which tenant, so one learner can never grade
+        against another's activity. That bookkeeping is the isolation, and it
+        stays here where tenancy is understood.
+        """
         tenant = self.auth.tenant_for(authorization)
         root = self.base / "tenants" / tenant
         memory = self.memory_factory(root / "learn")
-        from orgs.education_studio.lesson import parse_lesson
-        from orgs.education_studio.pipeline import record_grade
 
         pending = None
         for record in memory.load_all():
-            if record.category == "artifact" and record.title == f"pending-quiz:{run_id}":
+            if (record.category == "artifact"
+                    and record.title == f"pending-quiz:{run_id}"):
                 pending = record
                 break
         if pending is None:
             raise KeyError(f"no gradable lesson for run {run_id!r} in this tenant")
         data = json.loads(pending.body)
-        lesson = parse_lesson(data["lesson_payload"], set(data["corpus_ids"]))
-        return record_grade(memory, data["concept"], lesson, answers)
 
-    def _submit_org_run(
-        self, tenant: str, goal: str, org: str, sources: list[str] | None,
-        root: Path, exempt: bool,
-    ) -> WedgeResult:
-        """Vend a non-software slot through the org registry: same tenant
-        isolation, same meter, artifacts pulled from every outcome that
-        carried one (the web page's HTML, the research report's text)."""
-        memory = self.memory_factory(root / org)
-        fetched_urls: list[str] = []
-        intelligence = None
-        if org == "site":
-            return self._submit_site(tenant, goal, root, exempt, memory)
-        if org == "learn":
-            return self._submit_learn(tenant, goal, root, exempt, memory)
-        if org == "research" and not sources:
-            # REAL research, full intelligence flow: the planner charts the
-            # angles, the angle workers acquire in parallel, the researcher
-            # extracts claims AND the graph, the same gates rule, and the
-            # verified entities persist to this tenant's knowledge layer.
-            if self.search_client is None:
-                raise SourcesUnavailable(
-                    "live research isn't enabled here — paste sources, or the operator sets "
-                        "PARALLEL_API_KEY"
-                )
-            from orgs.registry import OrgRun
-            from orgs.research_studio.pipeline import AcquisitionEmpty, build_intelligence
-
-            try:
-                intelligence = build_intelligence(
-                    goal, self.provider_factory(), memory, self.search_client,
-                )
-            except AcquisitionEmpty as exc:
-                raise SourcesUnavailable(str(exc)) from exc
-            except ParallelUnavailable as exc:
-                raise SourcesUnavailable(f"live search failed: {exc}") from exc
-            fetched_urls = [f"{s.url}  [{s.angle}]" for s in intelligence.sources]
-            rep = intelligence.report
-            run = OrgRun(
-                org="research", goal=goal, accepted=rep.accepted,
-                outcomes=[rep.report_outcome], informed_by=rep.informed_by,
-                run_id=rep.run_id, activity=rep.activity,
-            )
-        else:
-            run = get_org(org).build(goal, self.provider_factory(), memory, sources=sources)
-        evidence: list[dict[str, Any]] = []
-        artifacts: list[dict[str, Any]] = []
-        for outcome in run.outcomes:
-            for gr in outcome.gate_results:
-                evidence.append({
-                    "gate": gr.gate_name,
-                    "determinism": gr.determinism.value,
-                    "passed": gr.passed,
-                    "evidence": gr.evidence,
-                })
-            art = getattr(outcome, "artifact", None)
-            if art is not None and getattr(art, "payload", None):
-                artifacts.append({"label": getattr(art, "type", "artifact"), "payload": art.payload})
-        if org == "research":
-            # The report artifact is machine-shaped JSON so the gates can rule
-            # exactly; the tray hands over a normal research page rendered
-            # from that verified structure. Corpus ids map back to where each
-            # source came from (src1, src2, ... in source order). A payload
-            # that doesn't parse (a garbled rejected proposal) stays raw and
-            # honestly labeled rather than pretending to be a page.
-            source_urls: dict[str, str] = {}
-            if intelligence is not None:
-                # The intelligence flow acquired the corpus itself; ids follow
-                # acquisition order, so the map is exact — URL and angle both.
-                source_urls = {
-                    f"src{i + 1}": f"{src.url} [{src.angle}]"
-                    for i, src in enumerate(intelligence.sources)
-                }
-            for i, s in enumerate(sources or []):
-                head = s.strip().split("\n", 1)[0]
-                if head.startswith("SOURCE: "):
-                    source_urls[f"src{i + 1}"] = head[len("SOURCE: "):].strip()
-                elif head.startswith(("http://", "https://")) and " " not in head:
-                    source_urls[f"src{i + 1}"] = head
-            for entry in artifacts:
-                if entry["label"] == "report":
-                    try:
-                        entry["payload"] = render_markdown(parse_report(entry["payload"]),
-                                                           source_urls)
-                        entry["label"] = "grounded report"
-                    except ReportParseError:
-                        pass
-        if fetched_urls:
-            artifacts.insert(0, {
-                "label": "machine-fetched sources",
-                "payload": "\n".join(fetched_urls),
-            })
-        if intelligence is not None:
-            artifacts.insert(0, {"label": "research plan", "payload": intelligence.plan.brief()})
-            artifacts.append({
-                "label": "context graph",
-                "payload": json.dumps(intelligence.context_graph, indent=2),
-            })
-            # The graph spool: when a DataHub is reachable, the run's context
-            # graph is queued for emission into the metadata knowledge graph
-            # (the emitter runs under the operator's datahub venv).
-            if os.environ.get("DATAHUB_GMS"):
-                spool = root.parent / "graph_spool" if (root / "..").exists() else root / "graph_spool"
-                spool = (root / "graph_spool")
-                spool.mkdir(parents=True, exist_ok=True)
-                (spool / f"research-{run.run_id}.json").write_text(
-                    json.dumps({"run_id": run.run_id, "tenant": tenant,
-                                "graph": intelligence.context_graph}, indent=2),
-                    encoding="utf-8",
-                )
-        remaining: int | None = None
-        if self.meter is not None and not exempt:
-            self.meter.record(tenant, run.accepted, goal)
-            remaining = self.meter.remaining(tenant)
-        elif exempt:
-            remaining = -1
-        return WedgeResult(
-            tenant=tenant,
-            goal=goal,
-            accepted=run.accepted,
-            run_id=run.run_id,
-            isolated=True,
-            persisted_at=str(root),
-            evidence=evidence,
-            remaining=remaining,
-            org=org,
-            artifacts=artifacts,
-        )
+        result = self._execute("university.assess", {
+            "session_id": data["session_id"],
+            "activity_id": data["activity_id"],
+            "answers": {str(i): a for i, a in enumerate(answers)},
+        })
+        if result.get("status") != "completed":
+            raise SourcesUnavailable(
+                f"grading did not complete: {result.get('error', 'unknown')}")
+        outputs = result.get("outputs") or {}
+        graded = outputs.get("graded") or []
+        return {
+            "concept": data.get("concept", ""),
+            "correct": sum(1 for g in graded if g.get("correct")),
+            "total": len(graded),
+            "mastery": outputs.get("mastery_level", ""),
+            "graded": graded,
+        }

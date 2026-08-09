@@ -17,6 +17,8 @@ from engine.model import ScriptedProvider
 from entropy_os.accounts import AccountStore, BadCredentials, UsernameTaken, WeakCredentials
 from entropy_os.wedge import Unauthorized, Wedge
 
+from .conftest import fake_execute
+
 
 def _store(tmp_path, **kw) -> AccountStore:
     return AccountStore(tmp_path / "accounts.db", **kw)
@@ -113,7 +115,8 @@ def test_wedge_runs_under_account_auth(tmp_path):
         return ScriptedProvider({"spec": spec,
                                  "developer": "def add(a, b):\n    return a + b\n"})
     # AccountStore as auth
-    wedge = Wedge(tmp_path / "data", provider, s, sandbox_check=lambda: True)
+    wedge = Wedge(tmp_path / "data", provider, s, sandbox_check=lambda: True,
+                  execute=fake_execute())
     res = wedge.submit(authorization=f"Bearer {token}", goal="add two numbers")
     assert res.accepted and res.tenant == uid
     assert (tmp_path / "data" / "tenants" / uid).exists()  # isolated under the account's own id
@@ -136,7 +139,7 @@ def test_unlimited_username_bypasses_the_quota(tmp_path):
 
     meter = QuotaStore(tmp_path / "q", QuotaPolicy(limit=1))
     wedge = Wedge(tmp_path / "data", provider, s, sandbox_check=lambda: True, meter=meter,
-                  unlimited_check=s.is_unlimited)
+                  unlimited_check=s.is_unlimited, execute=fake_execute())
 
     otok = s.login("owner", "password1")
     for _ in range(4):  # well past the limit of 1 — never blocked
@@ -163,7 +166,7 @@ def test_http_auth_flow(tmp_path, monkeypatch):
                        "signature": "def add(a, b)",
                        "cases": [{"args": [1, 2], "expected": 3}]})
     provider = ScriptedProvider({"spec": spec, "developer": "def add(a, b):\n    return a + b\n"})
-    client = TestClient(create_app(data_dir=tmp_path, provider=provider))
+    client = TestClient(create_app(data_dir=tmp_path, provider=provider, execute=fake_execute()))
 
     assert client.get("/api/wedge/status").json()["accounts"] is True
     assert client.post("/api/auth/signup",
