@@ -1,0 +1,66 @@
+{
+ "summary": "grounded build \u00b7 4 dataset(s) consulted \u00b7 not accepted (hard gate(s) failed: agent.schema_fidelity)",
+ "grounded": true,
+ "catalog_fields": [
+  "accepted",
+  "accepted_because",
+  "confidence",
+  "created_by",
+  "model_invoked",
+  "retrieved_context",
+  "type"
+ ],
+ "generated": [
+  "hunter_run_id",
+  "id",
+  "model_config",
+  "model_invoked",
+  "opportunity_type",
+  "outcome"
+ ],
+ "matched": [
+  "model_invoked"
+ ],
+ "coverage": 14,
+ "verdicts": [
+  [
+   "software.ruff",
+   "hard",
+   true,
+   "0 findings"
+  ],
+  [
+   "software.pytest",
+   "hard",
+   true,
+   "6 passed, 1 warning in 0.04s"
+  ],
+  [
+   "software.security",
+   "hard",
+   true,
+   "0 findings"
+  ],
+  [
+   "software.performance",
+   "hard",
+   true,
+   "0 findings"
+  ],
+  [
+   "software.review",
+   "hard",
+   true,
+   "0 findings"
+  ],
+  [
+   "agent.schema_fidelity",
+   "hard",
+   false,
+   "1/7 catalog fields adopted (14%) \u2014 used: model_invoked; ignored: accepted, accepted_becaus"
+  ]
+ ],
+ "accepted": false,
+ "published": "published urn:li:dataset:(urn:li:dataPlatform:entropy-agent,generated.proj_54a90c8210,PROD) with 6 assertion(s) and 4 lineage upstream(s)",
+ "urn": "urn:li:dataset:(urn:li:dataPlatform:entropy-agent,generated.proj_54a90c8210,PROD)"
+}

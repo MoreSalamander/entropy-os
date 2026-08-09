@@ -1,0 +1,75 @@
+{
+ "summary": "grounded build \u00b7 4 dataset(s) consulted \u00b7 accepted (6 hard gate(s) passed)",
+ "grounded": true,
+ "catalog_fields": [
+  "accepted",
+  "accepted_because",
+  "confidence",
+  "created_by",
+  "model_invoked",
+  "retrieved_context",
+  "type"
+ ],
+ "generated": [
+  "accepted",
+  "accepted_because",
+  "confidence",
+  "created_by",
+  "id",
+  "model_config",
+  "model_invoked",
+  "retrieved_context",
+  "type"
+ ],
+ "matched": [
+  "accepted",
+  "accepted_because",
+  "confidence",
+  "created_by",
+  "model_invoked",
+  "retrieved_context",
+  "type"
+ ],
+ "coverage": 100,
+ "verdicts": [
+  [
+   "software.ruff",
+   "hard",
+   true,
+   "0 findings"
+  ],
+  [
+   "software.pytest",
+   "hard",
+   true,
+   "2 passed, 1 warning in 0.02s"
+  ],
+  [
+   "software.security",
+   "hard",
+   true,
+   "0 findings"
+  ],
+  [
+   "software.performance",
+   "hard",
+   true,
+   "0 findings"
+  ],
+  [
+   "software.review",
+   "hard",
+   true,
+   "0 findings"
+  ],
+  [
+   "agent.schema_fidelity",
+   "hard",
+   true,
+   "7/7 catalog fields adopted (100%) \u2014 used: accepted, accepted_because, confidence, created_"
+  ]
+ ],
+ "accepted": true,
+ "published": "published urn:li:dataset:(urn:li:dataPlatform:entropy-agent,generated.proj_fbfdd60377,PROD) with 6 assertion(s) and 4 lineage upstream(s)",
+ "urn": "urn:li:dataset:(urn:li:dataPlatform:entropy-agent,generated.proj_fbfdd60377,PROD)"
+}
