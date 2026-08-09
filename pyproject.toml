@@ -48,6 +48,9 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "pytest-asyncio>=0.23", "mypy>=1.8"]
+# Reading the metadata graph before generating. An extra rather than a core
+# dependency: the system runs without a DataHub to consult, and says so.
+datahub = ["mcp-server-datahub>=0.6", "mcp>=1.29"]
 
 [tool.setuptools.packages.find]
 include = ["entropy_os*"]
