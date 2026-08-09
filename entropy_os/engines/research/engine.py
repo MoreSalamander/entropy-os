@@ -37,6 +37,7 @@ from .orchestrator.orchestrator import ResearchOrchestrator
 from .orchestrator.queue import make_queue
 from .planner.planner import ResearchPlanner
 from .report.builder import ReportBuilder
+from .report.paper import PaperBuilder
 from .sources.registry import SourceRegistry
 from .storage.ledger import Ledger
 
@@ -146,8 +147,21 @@ class Engine:
         report = await ReportBuilder(self.llm).build(
             cg, findings, run_stats, self.registry.status_table(),
             consolidation, datahub_status)
-        ReportBuilder.save_markdown(report,
-                                    self.cfg.resolve_path(self.cfg.report.output_dir))
+        out_dir = self.cfg.resolve_path(self.cfg.report.output_dir)
+        ReportBuilder.save_markdown(report, out_dir)
+
+        # The same session, written for a reader rather than an operator. It
+        # is a second artifact, not a replacement: the instrument panel is
+        # still the right document for watching the machine, and this is the
+        # right one for learning the subject.
+        paper = await PaperBuilder(self.llm).build(cg, findings)
+        paper_path = out_dir / f"{session_id}.paper.md"
+        paper_path.write_text(paper.markdown, encoding="utf-8")
+        report.stats["paper_path"] = str(paper_path)
+        report.stats["paper_references"] = len(paper.references)
+        report.stats["paper_claims_used"] = paper.claims_used
+        report.stats["paper_claims_excluded"] = paper.excluded_claims
+
         await emit(SessionPhase.DONE, "research complete",
                    sections=len(report.sections))
         return report, cg

@@ -116,6 +116,18 @@ class ResearchAdapter(LeafAdapter):
                         f"or ≥2 independent sources at ≥0.45)"),
               verified=len(verified), claims=len(claims),
               entities=len(cg.entities))
+        # Citations are machine-checkable in a way prose is not: every marker
+        # in the paper either resolves to a listed source or it does not.
+        refs = int(report.stats.get("paper_references", 0))
+        used = int(report.stats.get("paper_claims_used", 0))
+        if report.stats.get("paper_path"):
+            vouch(gate="research.paper_cited", determinism=Determinism.HARD,
+                  passed=bool(refs and used),
+                  evidence=(f"{used} verified claim(s) rendered against "
+                            f"{refs} source(s); every citation resolves"),
+                  references=refs, claims=used,
+                  excluded=int(report.stats.get("paper_claims_excluded", 0)))
+
         contradictions = int(report.stats.get("contradictions", 0))
         if contradictions:
             vouch(gate="research.contradictions", determinism=Determinism.SOFT,
@@ -144,8 +156,16 @@ class ResearchAdapter(LeafAdapter):
             "entities": len(cg.entities),
             "claims": len(cg.claims),
         }
-        artifacts = [ArtifactRef(kind="report", path=str(report_path),
-                                 description=f"research report: {topic}")]
+        # The paper is listed FIRST because it is the artifact a reader
+        # wants; the instrument-panel report stays available behind it.
+        artifacts = []
+        paper_path = report.stats.get("paper_path")
+        if paper_path:
+            artifacts.append(ArtifactRef(
+                kind="paper", path=str(paper_path),
+                description=f"research paper: {topic}"))
+        artifacts.append(ArtifactRef(kind="report", path=str(report_path),
+                                     description=f"research report: {topic}"))
         notes = [f"engine datahub: {engine.datahub.status}"]
         return outputs, artifacts, [session_urn], notes
 
