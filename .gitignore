@@ -5,3 +5,12 @@ data/
 .env
 build/
 dist/
+
+# Absorbed engines write their knowledge graphs, vector indexes and
+# generated artifacts here; runs are state, not source.
+storage_data/
+.pytest_cache/
+*.bak.*
+node_modules/
+.next/
+.DS_Store

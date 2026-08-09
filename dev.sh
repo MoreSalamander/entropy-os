@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# dev.sh — local development bootstrap for the two-repo layout.
+# dev.sh — local development bootstrap.
 #
-# Installs veritas (the engine room) editable from the sibling checkout so
-# engine changes are live here without reinstall, then this package with its
-# dev extras. A clean machine without ../veritas still resolves the declared
-# git dependency from pyproject instead.
+# One environment for the front door, the composed engine, and the four
+# engines it composes. Veritas (the engine room) is still a separate package,
+# installed editable from the sibling checkout so engine-room changes are live
+# here without a reinstall; a clean machine without ../veritas resolves the
+# declared git dependency from pyproject instead.
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -25,8 +26,11 @@ if [ -d ../veritas ]; then
   echo "veritas: editable from ../veritas"
 fi
 pip -q install -e ".[dev]"
-# The web studio's render gate drives a real browser; each playwright version
+# The web engine's render gate drives a real browser; each playwright version
 # wants its own build.
 playwright install chromium
-echo "entropy-os: ready — run with  .venv/bin/uvicorn entropy_os.app:app --port 8101"
-echo "            pre-deploy check:  ./dev.sh smoke  (bare-install boot)"
+echo "entropy-os: ready"
+echo "  front door → .venv/bin/uvicorn entropy_os.app:app --port 8101"
+echo "  engines    → ./scripts/up.sh        (adapters, worker, composed engine)"
+echo "  tests      → .venv/bin/pytest -q"
+echo "  pre-deploy → ./dev.sh smoke         (bare-install boot)"

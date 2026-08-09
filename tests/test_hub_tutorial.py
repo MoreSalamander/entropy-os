@@ -14,11 +14,11 @@ from __future__ import annotations
 import json
 import time
 
-from fastapi.testclient import TestClient
-
 from engine.model import ScriptedProvider, SequencedProvider
-from entropy_os.app import create_app
+from fastapi.testclient import TestClient
 from products.tutorial.container import DispensedCopy
+
+from entropy_os.app import create_app
 
 GOOD_CONTENT = json.dumps({
     "overview": "A short walkthrough.",
@@ -140,7 +140,8 @@ def test_a_persistently_bad_proposal_is_rejected_not_persisted(tmp_path, monkeyp
     # Every attempt returns unusable prose (no JSON) — the gate must fail every one of the
     # bounded retries and nothing may reach Veritas's own store, a container, or the mirror.
     build_called = {"yes": False}
-    client = _client(tmp_path, ScriptedProvider({"tutorial-generator": "not json at all"}), monkeypatch)
+    client = _client(tmp_path, ScriptedProvider({"tutorial-generator": "not json at all"}),
+                     monkeypatch)
     monkeypatch.setattr(
         "entropy_os.app.build_tutorial_image",
         lambda *a, **k: build_called.__setitem__("yes", True),
@@ -181,7 +182,8 @@ def test_dispense_runs_a_copy_of_the_products_own_container(tmp_path, monkeypatc
 
     def _fake_dispense(image):
         seen_image["image"] = image
-        return DispensedCopy(container_id="c_abc123", image=image, url="http://127.0.0.1:55001", port=55001)
+        return DispensedCopy(container_id="c_abc123", image=image, url="http://127.0.0.1:55001",
+                             port=55001)
 
     monkeypatch.setattr("entropy_os.app.dispense_copy", _fake_dispense)
     resp = client.post(f"/api/tutorial/products/{product_id}/dispense")

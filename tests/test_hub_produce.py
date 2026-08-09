@@ -11,9 +11,9 @@ import json
 import shutil
 import time
 
+from engine.model import ScriptedProvider
 from fastapi.testclient import TestClient
 
-from engine.model import ScriptedProvider
 from entropy_os.app import create_app
 
 CONCEPT = json.dumps({"title": "Why the Sky is Blue", "logline": "a kid learns why the sky is blue",
@@ -22,9 +22,11 @@ CONCEPT = json.dumps({"title": "Why the Sky is Blue", "logline": "a kid learns w
 SCRIPT = json.dumps({"scenes": [
     {"heading": "A", "beats": [
         {"narration": "Mia looks up at the wide blue sky and wonders why it is blue.", "entities": ["Mia"]},
-        {"narration": "The sun pours its light across the whole town below.", "entities": ["the sun"]}]},
+        {"narration": "The sun pours its light across the whole town below.", "entities": ["the "
+            "sun"]}]},
     {"heading": "B", "beats": [
-        {"narration": "Tiny air molecules scatter the blue light everywhere.", "entities": ["air molecules"]}]},
+        {"narration": "Tiny air molecules scatter the blue light everywhere.", "entities": ["air "
+            "molecules"]}]},
 ]})
 STORYBOARD = json.dumps({"shots": [
     {"beat_id": "s1b1", "description": "Mia on the grass", "entities": ["Mia"]},
@@ -50,7 +52,8 @@ def _poll(client, token, until, timeout=90.0):
 
 def test_produce_review_approve_end_to_end(tmp_path):
     client = _client(tmp_path)
-    token = client.post("/api/produce/start", json={"brief": "explain why the sky is blue"}).json()["token"]
+    token = client.post("/api/produce/start",
+                        json={"brief": "explain why the sky is blue"}).json()["token"]
 
     reviewing = _poll(client, token, lambda s: s["phase"] == "reviewing")
     # the machine floor passed — every recorded gate verdict is in the trust list

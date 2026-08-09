@@ -10,18 +10,20 @@ the sandbox gate but BEFORE the run.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
-
 from engine.model import ScriptedProvider
+
 from entropy_os.quota import QuotaPolicy, QuotaStore
-from products.wedge import QuotaExceeded, Wedge, WedgeAuth
+from entropy_os.wedge import QuotaExceeded, Wedge, WedgeAuth
+
+from .conftest import fake_execute
 
 
 class _Clock:
     def __init__(self) -> None:
-        self.t = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        self.t = datetime(2026, 1, 1, tzinfo=UTC)
 
     def __call__(self) -> datetime:
         return self.t
@@ -38,8 +40,10 @@ def _store(tmp_path, limit=3, window=timedelta(days=1), clock=None) -> QuotaStor
 
 def test_check_passes_until_the_limit_then_refuses(tmp_path):
     s = _store(tmp_path, limit=2)
-    s.check("alice"); s.record("alice", True, "g")   # 1
-    s.check("alice"); s.record("alice", True, "g")   # 2
+    s.check("alice")   # 1
+    s.record("alice", True, "g")
+    s.check("alice")   # 2
+    s.record("alice", True, "g")
     with pytest.raises(QuotaExceeded):
         s.check("alice")                             # 3rd is over the limit
 
@@ -53,7 +57,8 @@ def test_remaining_counts_down(tmp_path):
 
 def test_quota_is_per_tenant(tmp_path):
     s = _store(tmp_path, limit=1)
-    s.check("alice"); s.record("alice", True, "g")
+    s.check("alice")
+    s.record("alice", True, "g")
     with pytest.raises(QuotaExceeded):
         s.check("alice")
     s.check("bob")  # bob's allowance is untouched by alice's spend
@@ -62,7 +67,8 @@ def test_quota_is_per_tenant(tmp_path):
 def test_window_expiry_frees_the_allowance(tmp_path):
     clock = _Clock()
     s = _store(tmp_path, limit=1, window=timedelta(hours=1), clock=clock)
-    s.check("alice"); s.record("alice", True, "g")
+    s.check("alice")
+    s.record("alice", True, "g")
     with pytest.raises(QuotaExceeded):
         s.check("alice")
     clock.advance(hours=2)          # the earlier run rolls out of the window
@@ -73,7 +79,8 @@ def test_window_expiry_frees_the_allowance(tmp_path):
 def test_limit_zero_is_unmetered(tmp_path):
     s = _store(tmp_path, limit=0)
     for _ in range(5):
-        s.check("alice"); s.record("alice", True, "g")  # never raises
+        s.check("alice")  # never raises
+        s.record("alice", True, "g")
     assert s.remaining("alice") == -1
 
 
@@ -126,7 +133,8 @@ def _wedge_provider() -> ScriptedProvider:
 def test_wedge_meters_runs_and_reports_remaining(tmp_path):
     meter = _store(tmp_path / "q", limit=2)
     auth = WedgeAuth({"tok": "alice"})
-    w = Wedge(tmp_path / "data", _wedge_provider, auth, sandbox_check=lambda: True, meter=meter)
+    w = Wedge(tmp_path / "data", _wedge_provider, auth, sandbox_check=lambda: True,
+              meter=meter, execute=fake_execute())
 
     r1 = w.submit(authorization="Bearer tok", goal="add two numbers")
     assert r1.accepted and r1.remaining == 1
@@ -138,7 +146,7 @@ def test_wedge_meters_runs_and_reports_remaining(tmp_path):
 
 def test_quota_is_checked_after_the_sandbox_gate(tmp_path):
     # no live sandbox => the run is refused for ISOLATION, never reaching the meter (no spend recorded)
-    from products.wedge import SandboxUnavailable
+    from entropy_os.wedge import SandboxUnavailable
     meter = _store(tmp_path / "q", limit=1)
     w = Wedge(tmp_path / "data", _wedge_provider, WedgeAuth({"tok": "alice"}),
               sandbox_check=lambda: False, meter=meter)
@@ -158,11 +166,13 @@ def test_http_429_and_usage(tmp_path, monkeypatch):
     monkeypatch.setattr("engine.executor.default_executor", lambda: ContainerExecutor())
     monkeypatch.setenv("VERITAS_WEDGE_TOKENS", "tok_alice:alice")
     monkeypatch.setenv("VERITAS_WEDGE_QUOTA", "1")
-    client = TestClient(create_app(data_dir=tmp_path, provider=_wedge_provider()))
+    client = TestClient(create_app(data_dir=tmp_path, provider=_wedge_provider(), execute=fake_execute()))
     hdr = {"Authorization": "Bearer tok_alice"}
 
     assert client.get("/api/wedge/status").json()["metered"] is True
-    assert client.post("/api/wedge/submit", json={"goal": "add two numbers"}, headers=hdr).status_code == 200
-    assert client.post("/api/wedge/submit", json={"goal": "add two numbers"}, headers=hdr).status_code == 429
+    assert client.post("/api/wedge/submit", json={"goal": "add two numbers"},
+                       headers=hdr).status_code == 200
+    assert client.post("/api/wedge/submit", json={"goal": "add two numbers"},
+                       headers=hdr).status_code == 429
     usage = client.get("/api/wedge/usage", headers=hdr).json()
     assert usage["metered"] and usage["used_in_window"] == 1 and usage["billable_total"] == 1

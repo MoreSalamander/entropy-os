@@ -9,9 +9,9 @@ from __future__ import annotations
 
 import json
 
+from engine.model import ScriptedProvider
 from fastapi.testclient import TestClient
 
-from engine.model import ScriptedProvider
 from entropy_os.app import create_app
 
 REPORT = json.dumps({
@@ -39,7 +39,8 @@ def test_report_document_renders_claims_and_grounding(tmp_path):
     assert resp.status_code == 200 and "text/html" in resp.headers["content-type"]
     page = resp.text
     assert "Bald eagles fly up to 30 mph." in page          # the claim
-    assert "fly at speeds of up to 30 mph" in page           # the verbatim grounding quote, on the page
+    # the verbatim grounding quote, on the page
+    assert "fly at speeds of up to 30 mph" in page
     assert "src1" in page and "grounded" in page.lower()
 
 

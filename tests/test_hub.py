@@ -10,9 +10,9 @@ from __future__ import annotations
 import json
 import time
 
+from engine.model import ScriptedProvider
 from fastapi.testclient import TestClient
 
-from engine.model import ScriptedProvider
 from entropy_os.app import create_app
 
 GOOD_SPEC = json.dumps(
@@ -123,7 +123,8 @@ def test_chat_is_ungoverned_passthrough(tmp_path):
     # NO persistence. It returns the model's reply and writes nothing to the run/memory stores.
     provider = ScriptedProvider({"chat": "the sky is blue"})
     client = TestClient(create_app(data_dir=tmp_path, provider=provider))
-    resp = client.post("/api/chat", json={"messages": [{"role": "user", "content": "why is the sky blue?"}]})
+    resp = client.post("/api/chat",
+                       json={"messages": [{"role": "user", "content": "why is the sky blue?"}]})
     assert resp.status_code == 200
     assert resp.json()["reply"] == "the sky is blue"
     # nothing was persisted — the ungoverned tab leaves no trace

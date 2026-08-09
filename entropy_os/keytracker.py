@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 
@@ -29,7 +29,7 @@ class KeyRecord:
     keychain_account: str
     env_var_name: str
     used_by_repos: list[str] = field(default_factory=list)
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     last_rotated_at: datetime | None = None
     status: str = "active"  # "active" | "revoked"
 
@@ -109,9 +109,10 @@ class KeyTrackerStore:
         return [_row_to_record(r) for r in rows]
 
     def mark_rotated(self, key_id: str) -> KeyRecord | None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         with self._connect() as con:
-            con.execute("UPDATE keys SET last_rotated_at = ? WHERE id = ?", (now.isoformat(), key_id))
+            con.execute("UPDATE keys SET last_rotated_at = ? WHERE id = ?",
+                        (now.isoformat(), key_id))
             row = con.execute(f"SELECT {_COLUMNS} FROM keys WHERE id = ?", (key_id,)).fetchone()
         return _row_to_record(row) if row is not None else None
 

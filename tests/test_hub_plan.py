@@ -12,9 +12,9 @@ from __future__ import annotations
 import json
 import time
 
+from engine.model import ScriptedProvider
 from fastapi.testclient import TestClient
 
-from engine.model import ScriptedProvider
 from entropy_os.app import create_app
 
 SPEC = json.dumps(
@@ -78,7 +78,8 @@ def test_plan_refine_then_approve_replans(tmp_path):
     from engine.model import SequencedProvider
 
     provider = SequencedProvider({
-        "planner": [bad, bad, bad, good],  # propose_plan retries up to 3x per round; round 1 stays bad
+        # propose_plan retries up to 3x per round; round 1 stays bad
+        "planner": [bad, bad, bad, good],
         "router": ["function"], "spec": [SPEC], "developer": [CODE], "qa": ["[]"], "doc": [DOC],
     })
     client = TestClient(create_app(data_dir=tmp_path, provider=provider))
@@ -88,7 +89,8 @@ def test_plan_refine_then_approve_replans(tmp_path):
     assert blocked["runnable"] is False and "not runnable" in blocked["gate"]
 
     # refine → re-plan (the 4th scripted planner reply is the good one) → now runnable
-    client.post(f"/api/plan/{token}/review", json={"approved": False, "feedback": "use real studios"})
+    client.post(f"/api/plan/{token}/review",
+                json={"approved": False, "feedback": "use real studios"})
     runnable = _poll(client, token, lambda s: s["phase"] == "reviewing" and s["runnable"])
     assert [step["org"] for step in runnable["plan"]] == ["software"]
 

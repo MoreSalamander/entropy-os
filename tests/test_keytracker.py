@@ -5,7 +5,7 @@ holding one; these tests are entirely about the metadata contract.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -61,7 +61,7 @@ def test_mark_rotated_updates_last_rotated_at(tmp_path: Path) -> None:
     rotated = store.mark_rotated("a")
     assert rotated is not None
     assert rotated.last_rotated_at is not None
-    assert (datetime.now(timezone.utc) - rotated.last_rotated_at) < timedelta(seconds=5)
+    assert (datetime.now(UTC) - rotated.last_rotated_at) < timedelta(seconds=5)
 
 
 def test_revoke_sets_status_but_keeps_the_record(tmp_path: Path) -> None:
@@ -111,9 +111,7 @@ def test_keytracker_keys_endpoint_lists_metadata_with_no_repos_and_degrades_spen
     """No repo directories exist under this tmp_path, so spend must degrade
     to 'unattributed' (None) rather than raise — same posture as the
     collector's schema-mismatch handling."""
-    import entropy_os.app as app_mod
-
-    app_mod  # keep the import referenced; the fixture already built the app
+    import entropy_os.app  # noqa: F401 — the fixture already built the app
     resp = client.get("/api/keytracker/keys")
     assert resp.status_code == 200
     assert resp.json() == []  # nothing tracked yet in a fresh store

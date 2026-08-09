@@ -12,9 +12,9 @@ from __future__ import annotations
 import json
 import time
 
+from engine.model import ScriptedProvider
 from fastapi.testclient import TestClient
 
-from engine.model import ScriptedProvider
 from entropy_os.app import create_app
 
 SPEC = {
@@ -26,7 +26,8 @@ SPEC = {
 GOOD = ("<!doctype html><html><head><style>"
         "body{background:#0a0a0a;color:#ffffff;font-family:monospace;}"
         "a,button{color:#ffffff;background:#0a0a0a;font-family:monospace;}"
-        "</style></head><body><nav><a href='#'>Home</a></nav><h1>Hi</h1><button>Go</button></body></html>")
+        "</style></head><body><nav><a "
+            "href='#'>Home</a></nav><h1>Hi</h1><button>Go</button></body></html>")
 
 
 def _provider() -> ScriptedProvider:

@@ -62,6 +62,109 @@ async def _get(client: httpx.AsyncClient, path: str) -> Any:
     return r.json()
 
 
+# A capability that researches a topic or generates a codebase runs for many
+# minutes; the eight seconds that suit a health probe would guarantee failure.
+EXECUTE_TIMEOUT_S = 1800.0
+
+
+class EngineUnreachable(RuntimeError):
+    """The engine could not be reached at all.
+
+    Distinct on purpose from a capability that ran and failed. The contract
+    reserves HTTP errors for transport faults precisely so a caller can tell
+    "it refused" from "I never asked it" — collapsing the two would let an
+    outage read as a verdict.
+    """
+
+
+async def artifact_text(path: str, rel: str = "") -> dict[str, Any]:
+    """Read one file the composition produced, addressed by PATH.
+
+    Distinct from `artifact_file` below, which addresses a file by its place
+    in a recorded objective. Both exist because a vend and an objective are
+    different things: a vend has a result in hand and no objective record.
+
+    The front door never touches the engines' disk itself. It asks, and the
+    engine that owns the artifact decides — which is what keeps this correct
+    when the composite stops sharing a filesystem with its members.
+    """
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(f"{base_url()}/artifacts/file",
+                                 params={"path": path, "rel": rel},
+                                 timeout=30.0)
+            r.raise_for_status()
+            return dict(r.json())
+    except (httpx.HTTPError, ValueError) as e:
+        raise EngineUnreachable(f"{type(e).__name__}: {e}") from e
+
+
+async def artifact_tree_at(path: str) -> dict[str, Any]:
+    """The files inside an artifact, addressed by path."""
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(f"{base_url()}/artifacts/tree",
+                                 params={"path": path}, timeout=30.0)
+            r.raise_for_status()
+            return dict(r.json())
+    except (httpx.HTTPError, ValueError) as e:
+        raise EngineUnreachable(f"{type(e).__name__}: {e}") from e
+
+
+async def run_artifact(path: str, kind: str, description: str = "",
+                       objective_id: str = "") -> dict[str, Any]:
+    """Build and dispense a disposable copy of one artifact.
+
+    Generous timeout: this builds a container image, which is minutes on a
+    cold cache and is exactly the wait a person accepts to see the thing run.
+    """
+    payload = {"path": path, "kind": kind, "description": description,
+               "objective_id": objective_id}
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.post(f"{base_url()}/artifacts/run", json=payload,
+                                  timeout=900.0)
+            if r.status_code == 422:
+                # A refusal carries a reason worth showing verbatim.
+                return {"error": r.json().get("detail", "refused")}
+            r.raise_for_status()
+            return dict(r.json())
+    except (httpx.HTTPError, ValueError) as e:
+        raise EngineUnreachable(f"{type(e).__name__}: {e}") from e
+
+
+async def stop_artifact(container_id: str) -> dict[str, Any]:
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.post(f"{base_url()}/artifacts/stop",
+                                  json={"container_id": container_id},
+                                  timeout=60.0)
+            r.raise_for_status()
+            return dict(r.json())
+    except (httpx.HTTPError, ValueError) as e:
+        raise EngineUnreachable(f"{type(e).__name__}: {e}") from e
+
+
+async def execute(capability: str, inputs: dict[str, Any],
+                  timeout_s: float = EXECUTE_TIMEOUT_S) -> dict[str, Any]:
+    """Run one capability and return the contract's ExecuteResult as a dict.
+
+    Reached through the composite's own /execute, which means a caller names
+    a capability and never names an engine. Which member answers — or whether
+    a member answers at all rather than a composed pipeline — is the
+    composite's business.
+    """
+    payload = {"capability": capability, "inputs": inputs}
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.post(f"{base_url()}/execute", json=payload,
+                                  timeout=timeout_s)
+            r.raise_for_status()
+            return dict(r.json())
+    except (httpx.HTTPError, ValueError) as e:
+        raise EngineUnreachable(f"{type(e).__name__}: {e}") from e
+
+
 async def overview() -> dict[str, Any]:
     """Identity, capabilities, composition tree and health, in one round trip.
 

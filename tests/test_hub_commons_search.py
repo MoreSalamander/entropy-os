@@ -6,12 +6,16 @@ manual smoke test and offline by tests/test_parallel_client.py's request/respons
 
 from __future__ import annotations
 
-from fastapi.testclient import TestClient
-
+from commons.parallel_client import (
+    ExtractResult,
+    ScriptedSearchClient,
+    SearchResult,
+)
 from engine.memory import TRUST_MACHINE_FETCHED, TRUST_VOUCHED
 from engine.model import ScriptedProvider
+from fastapi.testclient import TestClient
+
 from entropy_os.app import create_app
-from commons.parallel_client import ExtractResult, ParallelClient, ScriptedSearchClient, SearchResult
 
 
 def _client(tmp_path, search_client=None):

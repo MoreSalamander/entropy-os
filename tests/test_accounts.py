@@ -12,10 +12,12 @@ import json
 from datetime import timedelta
 
 import pytest
-
 from engine.model import ScriptedProvider
+
 from entropy_os.accounts import AccountStore, BadCredentials, UsernameTaken, WeakCredentials
-from products.wedge import Unauthorized, Wedge
+from entropy_os.wedge import Unauthorized, Wedge
+
+from .conftest import fake_execute
 
 
 def _store(tmp_path, **kw) -> AccountStore:
@@ -25,7 +27,7 @@ def _store(tmp_path, **kw) -> AccountStore:
 # --- signup ----------------------------------------------------------------------------------
 
 def test_signup_returns_a_path_safe_tenant_id(tmp_path):
-    from products.wedge import _TENANT_RE
+    from entropy_os.wedge import _TENANT_RE
     uid = _store(tmp_path).signup("Alice_99", "hunter2hunter")
     assert _TENANT_RE.match(uid)  # a user id is always a valid tenant directory
 
@@ -109,8 +111,12 @@ def test_wedge_runs_under_account_auth(tmp_path):
     uid = s.signup("devuser", "password1")
     token = s.login("devuser", "password1")
 
-    provider = lambda: ScriptedProvider({"spec": spec, "developer": "def add(a, b):\n    return a + b\n"})
-    wedge = Wedge(tmp_path / "data", provider, s, sandbox_check=lambda: True)  # AccountStore as auth
+    def provider():
+        return ScriptedProvider({"spec": spec,
+                                 "developer": "def add(a, b):\n    return a + b\n"})
+    # AccountStore as auth
+    wedge = Wedge(tmp_path / "data", provider, s, sandbox_check=lambda: True,
+                  execute=fake_execute())
     res = wedge.submit(authorization=f"Bearer {token}", goal="add two numbers")
     assert res.accepted and res.tenant == uid
     assert (tmp_path / "data" / "tenants" / uid).exists()  # isolated under the account's own id
@@ -118,11 +124,13 @@ def test_wedge_runs_under_account_auth(tmp_path):
 
 def test_unlimited_username_bypasses_the_quota(tmp_path):
     from entropy_os.quota import QuotaPolicy, QuotaStore
-    from products.wedge import QuotaExceeded
+    from entropy_os.wedge import QuotaExceeded
 
     spec = json.dumps({"function_name": "add", "description": "add two numbers",
                        "signature": "def add(a, b)", "cases": [{"args": [1, 2], "expected": 3}]})
-    provider = lambda: ScriptedProvider({"spec": spec, "developer": "def add(a, b):\n    return a + b\n"})
+    def provider():
+        return ScriptedProvider({"spec": spec,
+                                 "developer": "def add(a, b):\n    return a + b\n"})
 
     s = _store(tmp_path / "acct", unlimited={"owner"})
     owner = s.signup("owner", "password1")
@@ -131,7 +139,7 @@ def test_unlimited_username_bypasses_the_quota(tmp_path):
 
     meter = QuotaStore(tmp_path / "q", QuotaPolicy(limit=1))
     wedge = Wedge(tmp_path / "data", provider, s, sandbox_check=lambda: True, meter=meter,
-                  unlimited_check=s.is_unlimited)
+                  unlimited_check=s.is_unlimited, execute=fake_execute())
 
     otok = s.login("owner", "password1")
     for _ in range(4):  # well past the limit of 1 — never blocked
@@ -158,14 +166,18 @@ def test_http_auth_flow(tmp_path, monkeypatch):
                        "signature": "def add(a, b)",
                        "cases": [{"args": [1, 2], "expected": 3}]})
     provider = ScriptedProvider({"spec": spec, "developer": "def add(a, b):\n    return a + b\n"})
-    client = TestClient(create_app(data_dir=tmp_path, provider=provider))
+    client = TestClient(create_app(data_dir=tmp_path, provider=provider, execute=fake_execute()))
 
     assert client.get("/api/wedge/status").json()["accounts"] is True
-    assert client.post("/api/auth/signup", json={"username": "alice", "password": "password1"}).status_code == 200
-    assert client.post("/api/auth/signup", json={"username": "alice", "password": "password2"}).status_code == 409
-    assert client.post("/api/auth/login", json={"username": "alice", "password": "nope"}).status_code == 401
+    assert client.post("/api/auth/signup",
+                       json={"username": "alice", "password": "password1"}).status_code == 200
+    assert client.post("/api/auth/signup",
+                       json={"username": "alice", "password": "password2"}).status_code == 409
+    assert client.post("/api/auth/login",
+                       json={"username": "alice", "password": "nope"}).status_code == 401
 
-    token = client.post("/api/auth/login", json={"username": "alice", "password": "password1"}).json()["token"]
+    token = client.post("/api/auth/login",
+                        json={"username": "alice", "password": "password1"}).json()["token"]
     r = client.post("/api/wedge/submit", json={"goal": "add two numbers"},
                     headers={"Authorization": f"Bearer {token}"})
     assert r.status_code == 200 and r.json()["accepted"]

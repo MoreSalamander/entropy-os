@@ -21,9 +21,6 @@ periodically whenever the registry is actually being used.
 from __future__ import annotations
 
 import time
-from typing import Generic, TypeVar
-
-V = TypeVar("V")
 
 # Known, accepted tradeoff: a session that is written once (`registry[token] =
 # {...}`) and then only ever mutated in place (`registry[token]["field"] = x`)
@@ -37,12 +34,13 @@ V = TypeVar("V")
 DEFAULT_MAX_AGE_SECONDS = 6 * 60 * 60  # 6 hours: comfortably longer than any real session
 
 
-class ExpiringRegistry(Generic[V]):
+class ExpiringRegistry[V]:
     """A `dict[str, V]`-shaped store where entries older than `max_age_seconds`
     are evicted automatically. Sweeps every `sweep_every` writes rather than on
     every single write, so the sweep's O(n) scan doesn't run on every request."""
 
-    def __init__(self, max_age_seconds: float = DEFAULT_MAX_AGE_SECONDS, sweep_every: int = 20) -> None:
+    def __init__(self, max_age_seconds: float = DEFAULT_MAX_AGE_SECONDS,
+                 sweep_every: int = 20) -> None:
         self._max_age = max_age_seconds
         self._sweep_every = sweep_every
         self._writes_since_sweep = 0

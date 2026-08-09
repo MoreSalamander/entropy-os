@@ -1,0 +1,57 @@
+# Quality gate for one-engine. The rule set is deliberately small: correctness
+# (F, E, W, B), import hygiene (I), and modern-Python idiom (UP). Anything
+# stricter would be style opinion rather than a defect check.
+line-length = 100
+
+[lint]
+select = ["F", "E", "W", "I", "B", "UP"]
+ignore = [
+    # UP042 rewrites `class X(str, Enum)` into `StrEnum`. Those are not
+    # equivalent: `str(X.A)` yields "X.A" under the former and "a" under the
+    # latter. These enums are pydantic model fields that get serialised into
+    # API responses, DataHub dataset properties and model prompts, so the
+    # rewrite would change what this system SAYS about itself in nineteen
+    # places. Ruff marks the fix unsafe; that is the correct reading.
+    "UP042",
+]
+
+[lint.per-file-ignores]
+# E501 (line length) is waived ONLY where it fires on embedded documents
+# rather than on code: CSS and HTML in the front door's rendered pages, the
+# JSX the web engine writes, long seed URLs, and docstring prose. Every
+# genuine code line in this repository is under the limit — those were
+# wrapped, not exempted — and a comment cannot be placed inside a string
+# literal, so a per-line noqa is not available for these.
+#
+# Adding a file here is a claim that its long lines are DATA. If a long
+# line of real code appears in one of them, that claim has quietly stopped
+# being true.
+"entropy_os/accounts.py" = ["E501"]
+"entropy_os/app.py" = ["E501"]
+"entropy_os/engines/research/graphs/knowledge_graph.py" = ["E501"]
+"entropy_os/engines/research/planner/planner.py" = ["E501"]
+"entropy_os/engines/research/sources/academic.py" = ["E501"]
+"entropy_os/engines/research/sources/base.py" = ["E501"]
+"entropy_os/engines/research/sources/code.py" = ["E501"]
+"entropy_os/engines/research/sources/community.py" = ["E501"]
+"entropy_os/engines/research/sources/keyed.py" = ["E501"]
+"entropy_os/engines/web/codegen/project_writer.py" = ["E501"]
+"entropy_os/engines/web/research/intent.py" = ["E501"]
+"entropy_os/engines/web/research/seeds.py" = ["E501"]
+"entropy_os/engines/web/research/site_analyzer.py" = ["E501"]
+"entropy_os/engines/web/review/agents.py" = ["E501"]
+"entropy_os/quota.py" = ["E501"]
+"tests/engines/web/conftest.py" = ["E501"]
+"tests/test_accounts.py" = ["E501"]
+"tests/test_collector_endpoints.py" = ["E501"]
+"tests/test_hub.py" = ["E501"]
+"tests/test_hub_bench.py" = ["E501"]
+"tests/test_hub_plan.py" = ["E501"]
+"tests/test_hub_produce.py" = ["E501"]
+"tests/test_hub_route.py" = ["E501"]
+"tests/test_hub_tune.py" = ["E501"]
+"tests/test_hub_tutorial.py" = ["E501"]
+"tests/test_quota.py" = ["E501"]
+"tests/test_wedge_create.py" = ["E501"]
+"entropy_os/wedge.py" = ["E501"]
+"tests/test_wedge_core.py" = ["E501"]

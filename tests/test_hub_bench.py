@@ -6,13 +6,11 @@ slow real model run.
 
 from __future__ import annotations
 
-import tempfile
 import time
-from pathlib import Path
-
-from fastapi.testclient import TestClient
 
 from engine.model import ScriptedProvider
+from fastapi.testclient import TestClient
+
 from entropy_os.app import _bench_aggregate, create_app
 
 
@@ -31,7 +29,8 @@ def test_bench_session_runs_the_matrix_and_summarizes(tmp_path):
     # an empty scripted provider -> every build fails fast -> cells errored, but the session still
     # completes the full matrix and aggregates (the orchestration is what's under test here).
     client = TestClient(create_app(data_dir=tmp_path, provider=ScriptedProvider({})))
-    token = client.post("/api/bench/start", json={"models": ["gemma-12b"], "repeats": 1}).json()["token"]
+    token = client.post("/api/bench/start",
+                        json={"models": ["gemma-12b"], "repeats": 1}).json()["token"]
 
     deadline = time.time() + 30
     state = client.get(f"/api/bench/{token}").json()

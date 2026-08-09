@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>one-engine — composable intelligence</title>
+<meta name="description" content="Four autonomous AI engines converge into one engine — and that engine can be composed again.">
+<style>
+  :root {
+    --bg:#0b0d10; --panel:#12161b; --line:#1e2630; --text:#e7edf3;
+    --muted:#8a99a8; --accent:#5ad1c4; --accent2:#7aa2f7; --ok:#9ece6a;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg:#fbfcfd; --panel:#fff; --line:#e3e8ee; --text:#131820;
+            --muted:#5d6b7a; --accent:#0f8b7d; --accent2:#3b62c4; --ok:#3f7d20; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text);
+         font:16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  .wrap { max-width:860px; margin:0 auto; padding:0 24px; }
+  header { padding:76px 0 44px; border-bottom:1px solid var(--line); }
+  h1 { font-size:clamp(34px,6vw,52px); margin:0 0 14px; letter-spacing:-.03em;
+       font-weight:660; }
+  h1 span { color:var(--accent); }
+  .lede { font-size:19px; color:var(--muted); max-width:34em; margin:0; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.11em;
+       color:var(--muted); margin:52px 0 16px; font-weight:640; }
+  p { max-width:38em; }
+  pre { background:var(--panel); border:1px solid var(--line); border-radius:10px;
+        padding:16px 18px; overflow-x:auto; font-family:var(--mono);
+        font-size:12.5px; line-height:1.65; }
+  code { font-family:var(--mono); font-size:.9em; }
+  p code, li code { background:var(--panel); border:1px solid var(--line);
+                    padding:1px 5px; border-radius:4px; }
+  table { width:100%; border-collapse:collapse; margin:8px 0 4px; font-size:14.5px; }
+  th, td { text-align:left; padding:9px 12px 9px 0; border-bottom:1px solid var(--line);
+           vertical-align:top; }
+  th { color:var(--muted); font-weight:600; font-size:12px; text-transform:uppercase;
+       letter-spacing:.06em; }
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+           gap:14px; margin-top:8px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:11px;
+          padding:16px 18px; }
+  .card h3 { margin:0 0 5px; font-size:15px; }
+  .card p { margin:0; font-size:13.5px; color:var(--muted); }
+  .keystone { border-left:3px solid var(--accent); padding-left:18px; margin:20px 0; }
+  a { color:var(--accent2); }
+  footer { margin:72px 0 56px; padding-top:22px; border-top:1px solid var(--line);
+           color:var(--muted); font-size:13.5px; }
+  .scroll { overflow-x:auto; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>one<span>·</span>engine</h1>
+  <p class="lede">Four autonomous AI engines converge into one engine — and
+  that engine can be composed again.</p>
+</header>
+
+<h2>The claim</h2>
+<p>Not four applications wired together. A composable intelligence
+architecture: independent domain engines join into a unified system through a
+single contract, and the unified system exposes <em>that same contract</em>,
+so it can become a capability inside something larger. Composition is
+recursive by construction, not by special case.</p>
+
+<div class="scroll"><pre>        research + software + university + web
+                          ↓
+                 UNIFIED INTELLIGENCE          ← speaks the contract
+                          ↓
+                     CAPABILITY                ← consumed by URL, opaquely
+                          ↓
+                    HIGHER SYSTEM              ← speaks the same contract
+                          ↓
+                       BEYOND</pre></div>
+
+<h2>The four engines stay four engines</h2>
+<div class="cards">
+  <div class="card"><h3>Research</h3><p>Planning, parallel acquisition,
+    evidence extraction, six reasoning agents, verified reports.</p></div>
+  <div class="card"><h3>Software</h3><p>Intent, architecture gates, code
+    generation, verification, self-model sidecar.</p></div>
+  <div class="card"><h3>University</h3><p>Prerequisite DAG, adaptive teaching
+    policy, evidence-based mastery, misconception repair.</p></div>
+  <div class="card"><h3>Web</h3><p>Real-site design research, design knowledge
+    graph, gated synthesis, review agents.</p></div>
+</div>
+<p style="margin-top:18px">Each keeps its own codebase, agents, Parallel
+integration, Context Graph, Knowledge Graph, and DataHub platform.
+<strong>Not one line of those four repositories was modified</strong>, and
+nothing was installed into their environments — each adapter runs inside its
+engine's own venv and calls its existing front door.</p>
+
+<h2>The keystone</h2>
+<div class="keystone">
+<p style="margin-top:0">Every engine — leaf or composite — serves the same nine
+routes: <code>/identity</code>, <code>/capabilities</code>,
+<code>/context</code>, <code>/knowledge</code>, <code>/state</code>,
+<code>/health</code>, <code>/events</code>, <code>/execute</code>, and event
+ingest.</p>
+<p style="margin-bottom:0">Because a composite serves exactly what it consumes,
+one ~90-line class is the entire composition mechanism at every level:</p>
+</div>
+
+<div class="scroll"><pre># the unified system holds four of these
+CompositeEngine(members={"research": RemoteEngine("http://localhost:9101"), ...})
+
+# a second-level system holds ONE of these, and cannot tell the difference
+CompositeEngine(members={"unified": RemoteEngine("http://localhost:9100")})</pre></div>
+
+<p>If recursion needed a different mechanism one level up, the claim would be
+false. Ask the second-level system who it is, and it answers all the way
+down — through a single contract call:</p>
+
+<div class="scroll"><pre>meta-studio          composite
+ └── one-engine      composite
+      ├── research-engine   leaf
+      ├── code-engine       leaf
+      ├── learn-engine      leaf
+      └── design-engine     leaf</pre></div>
+
+<h2>Four layers, four owners</h2>
+<table>
+  <tr><th>Layer</th><th>Owns</th></tr>
+  <tr><td><strong>Parallel</strong></td><td>perception — the engines' own
+    external acquisition, reused rather than duplicated</td></tr>
+  <tr><td><strong>DataHub</strong></td><td>memory — what the system
+    <em>knows</em>: identity, relationships, provenance</td></tr>
+  <tr><td><strong>Agents</strong></td><td>reasoning — each engine's own
+    specialists, untouched</td></tr>
+  <tr><td><strong>Temporal</strong></td><td>execution — what the system is
+    <em>doing</em>: state, retries, signals, recovery</td></tr>
+</table>
+<p>Temporal is never the knowledge graph; DataHub is never the workflow state.
+That separation is enforced by packaging: <code>temporalio</code> is an
+optional extra only the unified system installs, so an engine
+<em>cannot</em> import it.</p>
+
+<h2>Federation, not flattening</h2>
+<p>Each engine keeps publishing to its own DataHub platform. The federation
+adds one platform that owns only the cross-domain claims — and takes its
+lineage upstreams from datasets the engines emitted themselves, so a single
+composed run renders as one connected graph spanning five platforms.</p>
+<div class="scroll"><pre>concept.&lt;slug&gt;          cross-domain identity — every domain's name for one subject
+stage.&lt;obj&gt;.&lt;n&gt;-&lt;eng&gt;   one member execution  — upstreams: that engine's OWN datasets
+objective.&lt;obj&gt;         the composed run      — upstreams: every stage + the concept</pre></div>
+
+<h2>The engines propose; the scaffold decides</h2>
+<p>Federation gave the system memory and Temporal gave it durability. Neither
+gave it judgment — and the first real run showed the cost: the software engine
+honestly reported a failing test suite, and the pipeline generated a public
+website for that software anyway. Nobody had <em>decided</em> whether that was
+acceptable.</p>
+<p>A <strong>composition gate</strong> is a pure function from a stage's
+contract result to a verdict. It declares how it judged, honestly:</p>
+<table>
+  <tr><th>Determinism</th><th>Meaning</th><th>On failure</th></tr>
+  <tr><td><code>HARD</code></td><td>a recorded fact — a test result, a count,
+    a score</td><td>block the run</td></tr>
+  <tr><td><code>SOFT</code></td><td>an opinion, never dressed up as
+    proof</td><td>recorded only</td></tr>
+  <tr><td><code>HUMAN</code></td><td>a person decides</td><td>hold for a
+    signal</td></tr>
+</table>
+<p>Verification is <code>HUMAN</code> on purpose: whether the suite is red is a
+hard fact the gate settles; whether to ship anyway is a judgment a person
+makes. Gates read only the contract, so they add decision without adding
+coupling — and they run <em>inside</em> the workflow, so the decision is the
+orchestrator's and lands in durable history. Every verdict is published as an
+event and as a DataHub dataset downstream of the stage it judged.</p>
+
+<h2>Events describe; they never command</h2>
+<p><code>ResearchCompleted</code>, <code>CurriculumCreated</code>,
+<code>SoftwareBuilt</code>, <code>SiteGenerated</code> — past-tense facts
+about state changes. No event tells another engine what to do, and ingesting
+one provably executes nothing. That restraint is what keeps the engines
+autonomous while the system behaves as one.</p>
+
+<h2>It evolves, and it does less on purpose</h2>
+<p>The system is not limited to one-time generation. Asked to re-evaluate a
+subject, it researches what changed, then reads <em>its own history</em> to
+work out what it already built — and skips every stage whose domain has
+nothing to update. Each skip records its reason rather than leaving a hole.</p>
+<div class="scroll"><pre>new information about X
+        ↓
+research                    what has changed about X?
+        ↓
+impact analysis             what has this system already made for X?
+        ↓
+curriculum · software · web only where something exists to update</pre></div>
+<p>Impact reads the composite's own stage narration rather than each engine's
+private event vocabulary — so an engine that joins later becomes legible to it
+by naming its outputs conventionally, with no table to update anywhere.</p>
+
+<h2>Degradation is honest</h2>
+<table>
+  <tr><th>Missing</th><th>Behavior</th><th>Health</th></tr>
+  <tr><td>DataHub</td><td>objectives run; URNs still returned</td><td>degraded</td></tr>
+  <tr><td>Temporal</td><td>same pipeline, inline; provenance says so</td><td>degraded</td></tr>
+  <tr><td>One member</td><td>pipeline stops at that stage</td><td>degraded</td></tr>
+  <tr><td>All members</td><td>nothing to compose</td><td>down</td></tr>
+</table>
+<p>Health reads <code>ok</code> only when the system can actually deliver what
+the architecture promises — not merely when its servers are running.</p>
+
+<h2>Run it</h2>
+<div class="scroll"><pre>./scripts/up.sh
+
+curl -X POST http://localhost:9100/objectives \
+  -H 'content-type: application/json' \
+  -d '{"inputs":{"topic":"WebGPU compute shaders"}}'</pre></div>
+<p>Research runs; its discoveries shape the curriculum; the curriculum's
+learning order shapes the software request; the software's product name shapes
+the web brief. Then it all lands in DataHub as one connected graph.</p>
+
+<footer>
+  <a href="https://github.com/MoreSalamander/one-engine">Source on GitHub</a> ·
+  <a href="https://moresalamander.github.io">MoreSalamander StudioLabs</a>
+  <br><br>
+  <em>A MoreSalamander StudioLabs Production.</em>
+</footer>
+
+</div>
+</body>
+</html>
