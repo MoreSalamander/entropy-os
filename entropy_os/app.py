@@ -1412,6 +1412,11 @@ def create_app(
             "/api/orgs", "/api/org-groups", "/api/dashboard", "/api/models",
             "/api/runs", "/api/memory", "/api/memory/recall", "/api/commons",
             "/api/tutorial/products", "/api/academy/products",
+            # Session ids and titles for the reports /report/research/ serves.
+            # /report/ is already an open prefix, so without this the documents
+            # are readable and undiscoverable — knowing an id by heart is not
+            # reachability, which is why the listing was written at all.
+            "/api/research/sessions",
         }
         _READ_PREFIXES = (
             "/static/", "/shared/", "/productions/", "/report/", "/commons/",
