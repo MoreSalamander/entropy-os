@@ -39,6 +39,8 @@ class ResearchAdapter(LeafAdapter):
         self._engine = None    # constructed lazily: loads KG + vector index
 
     def _get(self):
+        if self.llm_changed():
+            self._engine = None       # rebuilt below against the new routing
         if self._engine is None:
             # Imported here, not at module top: this module is importable in
             # any venv (for tests/registry), but the real engine only exists

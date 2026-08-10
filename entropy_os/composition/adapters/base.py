@@ -95,6 +95,35 @@ class LeafAdapter:
         self._executions_total = 0
         self._counters: dict[str, int] = {}
         self._lock = asyncio.Lock()
+        # Which model routing the cached engine was built against. None means
+        # nothing is cached yet; see `llm_changed()`.
+        self._llm_fingerprint: str | None = None
+
+    # ----------------------------------------------------------------- #
+    # model routing
+    # ----------------------------------------------------------------- #
+    def llm_changed(self) -> bool:
+        """Has the operator re-routed the models since the engine was built?
+
+        Adapters cache their engine because construction is expensive — the
+        research engine loads a knowledge graph and a vector index — and that
+        cache is exactly what would otherwise make a model switch look like it
+        did nothing: the setting changes, the adapter keeps answering from an
+        engine wired to the old client, and the operator sees the old model in
+        the logs with no error to explain it.
+
+        Reading the fingerprint per call is what lets a change made in the
+        front door reach these separate processes at all: it comes off the
+        settings file, not off any state this process owns. The credential is
+        deliberately not part of the fingerprint, so rotating a key does not
+        throw away a loaded graph.
+        """
+        from ..llm import active_spec
+
+        current = active_spec().fingerprint()
+        changed = self._llm_fingerprint is not None and current != self._llm_fingerprint
+        self._llm_fingerprint = current
+        return changed
 
     # ----------------------------------------------------------------- #
     # to implement

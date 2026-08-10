@@ -105,7 +105,16 @@ from pydantic import BaseModel
 from entropy_os import artifact_report, dispensed, engine_client
 from entropy_os.accounts import AccountStore, BadCredentials, UsernameTaken, WeakCredentials
 from entropy_os.background_session import BackgroundSession
+from entropy_os.composition.llm import ROLES as ENGINE_ROLES
+from entropy_os.composition.llm import active_spec
+from entropy_os.composition.llm import settings as llm_settings
 from entropy_os.config import default_data_dir, load_dotenv
+from entropy_os.model_host import (
+    forget_key,
+    key_status,
+    local_inventory,
+    store_key,
+)
 from entropy_os.expiring_store import ExpiringRegistry
 from entropy_os.groups import GROUPS, validate_groups
 from entropy_os.keytracker import KeyTrackerStore
@@ -154,6 +163,38 @@ class CloudToggleBody(BaseModel):
     — a function-local pydantic model under deferred annotations binds as a
     QUERY param and 422s every request (third time this class of bug bit)."""
     cloud: str
+
+
+class ModelDefaultBody(BaseModel):
+    """Which catalog model the front-door agents ride by default.
+
+    Wider than CloudToggleBody on purpose: that one only ever moved the default
+    to a Claude tier, so switching *back* to a specific local model — rather
+    than to whatever the import-time default happened to be — was not
+    expressible. `off` still means "no override".
+    """
+    model: str
+
+
+class ApiKeyBody(BaseModel):
+    """An Anthropic key on its way to the Keychain. The value is used and
+    dropped; nothing on the response path can echo it back."""
+    key: str
+
+
+class EngineRoutingBody(BaseModel):
+    """Model routing for the four composed engines.
+
+    Every field is optional and only what is sent is changed, because the
+    interesting configurations are partial: routing `judge` to Claude while
+    the rest stays local is one field, and a body that had to restate the
+    whole routing to change one role would make that the awkward case.
+    """
+    backend: str | None = None            # "local" | "claude"
+    cloud_roles: list[str] | None = None  # roles to send to Claude
+    claude_models: dict[str, str] | None = None   # role → claude model id
+    local_models: dict[str, str] | None = None    # role → ollama model tag
+    effort: str | None = None             # low|medium|high|xhigh|max
 
 
 class VisitBody(BaseModel):
@@ -1013,6 +1054,219 @@ class PlanSession(BackgroundSession):
             set_activity_listener(None)
 
 
+def _models_page_html() -> str:
+    """The operator's model page: which models are running, and how to change.
+
+    Server-rendered shell, client-rendered body from `/api/llm` — the same
+    shape the report and commons pages use. It is a page rather than a panel
+    inside the hub SPA because the two layers it controls (front-door agents,
+    composed engines) are operator concerns, and the hosted face 404s this
+    path along with every other closed route without needing to know it exists.
+
+    The key field is `type="password"` and is cleared the moment it is sent;
+    nothing on this page ever renders a credential, because nothing it fetches
+    contains one.
+    """
+    return """<!doctype html><meta charset="utf-8">
+<title>Models · Entropy OS</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+ :root{color-scheme:light dark}
+ body{font:15px/1.55 ui-sans-serif,system-ui,-apple-system,sans-serif;
+      max-width:60rem;margin:0 auto;padding:2rem 1.25rem 5rem}
+ h1{font-size:1.5rem;margin:0 0 .25rem}
+ h2{font-size:1.05rem;margin:2.5rem 0 .35rem}
+ p.sub{opacity:.7;margin:0 0 .5rem}
+ section{border:1px solid color-mix(in srgb,currentColor 18%,transparent);
+         border-radius:10px;padding:1rem 1.1rem;margin-top:.9rem}
+ table{border-collapse:collapse;width:100%}
+ td,th{text-align:left;padding:.35rem .5rem;vertical-align:middle;
+       border-bottom:1px solid color-mix(in srgb,currentColor 10%,transparent)}
+ th{font-weight:600;font-size:.8rem;text-transform:uppercase;opacity:.6}
+ .muted{opacity:.6} .warn{color:#b4530a} .ok{color:#1a7f37}
+ code{font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace}
+ button{font:inherit;padding:.4rem .8rem;border-radius:7px;cursor:pointer;
+        border:1px solid color-mix(in srgb,currentColor 30%,transparent);
+        background:color-mix(in srgb,currentColor 6%,transparent)}
+ button.primary{background:#1a5fb4;color:#fff;border-color:#1a5fb4}
+ select,input{font:inherit;padding:.3rem .4rem;border-radius:6px;
+   border:1px solid color-mix(in srgb,currentColor 30%,transparent);
+   background:transparent;color:inherit}
+ .row{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
+ .flash{margin-top:.8rem;font-size:.9rem}
+</style>
+<h1>Models</h1>
+<p class="sub">What is running the models right now, and how to change it.
+Two layers choose independently — the front-door agents, and the four composed
+engines — so both are shown.</p>
+<div id="app">loading…</div>
+<div class="flash" id="flash"></div>
+<script>
+const CLAUDE = ["claude-opus-5","claude-sonnet-5","claude-haiku-4-5"];
+const $ = (s) => document.querySelector(s);
+let state = null;
+
+const esc = (s) => String(s).replace(/[&<>"]/g,
+  c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(body.detail || (r.status + " " + r.statusText));
+  return body;
+}
+
+function flash(msg, bad) {
+  $("#flash").innerHTML = '<span class="' + (bad ? "warn" : "ok") + '">' +
+    esc(msg) + "</span>";
+}
+
+function render() {
+  const s = state, key = s.anthropic_key, oll = s.ollama;
+  const installed = oll.installed || [];
+  const agentRows = s.agents.choices.map(m => `
+    <tr>
+      <td><label><input type="radio" name="agentmodel" value="${esc(m.name)}"
+          ${m.name === s.agents.default ? "checked" : ""}
+          ${m.available ? "" : "disabled"}> ${esc(m.label)}</label></td>
+      <td><code>${esc(m.id)}</code></td>
+      <td class="muted">${esc(m.cost)}</td>
+      <td class="${m.available ? "muted" : "warn"}">${m.available
+        ? esc(m.note)
+        : (m.kind === "ollama" ? "not pulled — ollama pull " + esc(m.id)
+                               : "needs an API key")}</td>
+    </tr>`).join("");
+
+  // Embedding models are in the same inventory but cannot answer a chat role;
+  // offering nomic-embed-text as a judge would produce confident nonsense
+  // rather than an error, so it is not offered.
+  const chat = installed.filter(n => !/embed/i.test(n));
+  const localOpts = (sel) => ['<option value="">engine default</option>']
+    .concat(chat.map(n =>
+      `<option value="${esc(n)}" ${n === sel ? "selected" : ""}>${esc(n)}</option>`))
+    .join("");
+  const claudeOpts = (sel) => CLAUDE.map(n =>
+    `<option value="${esc(n)}" ${n === sel ? "selected" : ""}>${esc(n)}</option>`
+  ).join("");
+
+  const roleRows = s.engines.roles.map(r => `
+    <tr>
+      <td><strong>${esc(r.role)}</strong></td>
+      <td><select data-target="${esc(r.role)}">
+            <option value="local" ${r.target === "local" ? "selected" : ""}>local</option>
+            <option value="claude" ${r.target === "claude" ? "selected" : ""}>claude</option>
+          </select></td>
+      <td><select data-local="${esc(r.role)}">${localOpts(r.local_model)}</select></td>
+      <td><select data-claude="${esc(r.role)}">${claudeOpts(r.claude_model)}</select></td>
+    </tr>`).join("");
+
+  $("#app").innerHTML = `
+  <section>
+    <h2 style="margin-top:0">Anthropic API key</h2>
+    <p class="sub">Needed for any Claude model. Stored in the macOS Keychain —
+    never in this app's files, never returned by its API.</p>
+    <p>${key.present
+      ? '<span class="ok">key present</span> <span class="muted">(from ' +
+        esc(key.source) + ', ending ' + esc(key.tail) + ')</span>'
+      : '<span class="warn">no key — Claude models are unavailable</span>'}</p>
+    ${key.editable ? `
+    <div class="row">
+      <input type="password" id="key" placeholder="sk-ant-…" size="40"
+             autocomplete="off">
+      <button class="primary" id="savekey">Save key</button>
+      ${key.present ? '<button id="forgetkey">Forget</button>' : ""}
+    </div>` : `<p class="muted">ANTHROPIC_API_KEY is set in the server's
+      environment and takes precedence; unset it and restart to manage the key
+      here.</p>`}
+  </section>
+
+  <section>
+    <h2 style="margin-top:0">Front-door agents</h2>
+    <p class="sub">The studios, the wedge and the tutorials. One model at a
+    time; an explicit per-run choice still wins over this default.</p>
+    <table><tr><th>model</th><th>id</th><th>cost</th><th>notes</th></tr>
+      ${agentRows}</table>
+    <p class="row" style="margin-bottom:0">
+      <button class="primary" id="saveagent">Use this model</button>
+      <span class="muted">now: <code>${esc(s.agents.default)}</code></span></p>
+  </section>
+
+  <section>
+    <h2 style="margin-top:0">Composed engines</h2>
+    <p class="sub">Research, software, university and web. Routed per role, so
+    the model that <em>grades</em> a claim need not be the one that produced
+    it. Leaving a local model as “engine default” keeps that engine's own
+    tuned choice.</p>
+    <p class="muted">${esc(s.engines.describes_as)}</p>
+    <table><tr><th>role</th><th>runs on</th><th>local model</th>
+      <th>claude model</th></tr>${roleRows}</table>
+    <p class="row" style="margin-bottom:0">
+      <button class="primary" id="saveengines">Apply routing</button>
+      <button id="resetengines">Reset to environment</button>
+      <span class="muted">embeddings stay local:
+        <code>${esc(s.engines.embed_model)}</code></span></p>
+  </section>
+
+  <section>
+    <h2 style="margin-top:0">Ollama</h2>
+    <p>${oll.running
+      ? '<span class="ok">running</span> at <code>' + esc(oll.url) + '</code>'
+      : '<span class="warn">not reachable</span> at <code>' + esc(oll.url) +
+        '</code> — local models cannot run'}</p>
+    <p class="muted">${installed.length
+      ? installed.map(esc).map(n => "<code>" + n + "</code>").join(" · ")
+      : "nothing pulled"}</p>
+  </section>`;
+
+  const on = (id, fn) => { const el = $("#" + id); if (el) el.onclick = fn; };
+  on("savekey", async () => {
+    const el = $("#key");
+    try { state = await api("/api/llm/key", {method: "POST",
+            headers: {"content-type": "application/json"},
+            body: JSON.stringify({key: el.value})});
+          el.value = ""; render(); flash("key stored"); }
+    catch (e) { flash(e.message, true); }
+  });
+  on("forgetkey", async () => {
+    try { state = await api("/api/llm/key", {method: "DELETE"});
+          render(); flash("key removed"); }
+    catch (e) { flash(e.message, true); }
+  });
+  on("saveagent", async () => {
+    const picked = document.querySelector('input[name=agentmodel]:checked');
+    try { state = await api("/api/llm/default", {method: "POST",
+            headers: {"content-type": "application/json"},
+            body: JSON.stringify({model: picked ? picked.value : "off"})});
+          render(); flash("agents now ride " + state.agents.default); }
+    catch (e) { flash(e.message, true); }
+  });
+  on("saveengines", async () => {
+    const cloud = [], claude = {}, local = {};
+    for (const r of state.engines.roles) {
+      if ($('[data-target="' + r.role + '"]').value === "claude") cloud.push(r.role);
+      claude[r.role] = $('[data-claude="' + r.role + '"]').value;
+      local[r.role] = $('[data-local="' + r.role + '"]').value;
+    }
+    const backend = cloud.length === state.engines.roles.length ? "claude" : "local";
+    try { state = await api("/api/llm/engines", {method: "POST",
+            headers: {"content-type": "application/json"},
+            body: JSON.stringify({backend, cloud_roles: cloud,
+                                  claude_models: claude, local_models: local})});
+          render(); flash("routing applied — the next run uses it"); }
+    catch (e) { flash(e.message, true); }
+  });
+  on("resetengines", async () => {
+    try { state = await api("/api/llm/engines", {method: "DELETE"});
+          render(); flash("overrides cleared"); }
+    catch (e) { flash(e.message, true); }
+  });
+}
+
+api("/api/llm").then(s => { state = s; render(); })
+  .catch(e => { $("#app").textContent = "could not load: " + e.message; });
+</script>"""
+
+
 def create_app(
     data_dir: Path | None = None,
     provider: ModelProvider | None = None,
@@ -1413,12 +1667,178 @@ def create_app(
                 bench = json.loads(bench_path.read_text(encoding="utf-8")).get("models", {})
             except (OSError, ValueError):
                 bench = {}
+        installed = set(local_inventory().get("installed") or [])
         return [
             {"name": k, "label": v["label"], "cost": v["cost"], "kind": v["kind"],
-             "note": MODEL_NOTES.get(k, ""), "recommended": k == DEFAULT_MODEL,
-             "bench": bench.get(k)}
+             "id": v["id"], "note": MODEL_NOTES.get(k, ""),
+             "recommended": k == DEFAULT_MODEL, "bench": bench.get(k),
+             # A catalog entry whose weights were never pulled stays selectable
+             # right up until the first call 404s inside Ollama. Saying so here
+             # lets the page grey it out instead.
+             "available": (v["id"] in installed if v["kind"] == "ollama"
+                           else bool(key_status()["present"]))}
             for k, v in MODELS.items()
         ]
+
+    # ------------------------------------------------------------------ #
+    # Model control
+    #
+    # Two layers pick models independently, and conflating them would be the
+    # easy mistake: the FRONT-DOOR agents (studios, wedge, tutorials) ride the
+    # `engine.catalog` toggle, while the FOUR COMPOSED ENGINES ride an LLMSpec
+    # that also routes per role. They are separate because they answer to
+    # different owners — one is this product's choice of proposer, the other is
+    # each engine's own local configuration, which the composite deliberately
+    # does not take over. So this surface reports and edits both, side by side,
+    # rather than pretending one switch covers the system.
+    # ------------------------------------------------------------------ #
+    def _llm_state() -> dict[str, Any]:
+        spec = active_spec()
+        local = local_inventory()
+        installed = set(local.get("installed") or [])
+        return {
+            "agents": {
+                "default": get_default_override() or DEFAULT_MODEL,
+                "import_default": DEFAULT_MODEL,
+                "override": get_default_override(),
+                "choices": [
+                    {"name": k, "label": v["label"], "kind": v["kind"],
+                     "id": v["id"], "cost": v["cost"],
+                     "note": MODEL_NOTES.get(k, ""),
+                     "available": (v["id"] in installed if v["kind"] == "ollama"
+                                   else bool(key_status()["present"]))}
+                    for k, v in MODELS.items()
+                ],
+            },
+            "engines": {
+                "backend": spec.backend,
+                "describes_as": spec.describe(),
+                "roles": [
+                    {"role": r,
+                     "target": "claude" if spec.routes_to_cloud(r) else "local",
+                     "claude_model": spec.model_for(r),
+                     # An unpinned role is not unconfigured — it is the engine's
+                     # own choice, which is the thing the composite refuses to
+                     # take over. Reported as empty so the page can show it as
+                     # "engine default" rather than inventing a value.
+                     "local_model": spec.local_models.get(r, "")}
+                    for r in ENGINE_ROLES
+                ],
+                "embed_model": spec.embed_model,
+                "effort": spec.claude_effort,
+                "overrides": llm_settings.load(),
+            },
+            "ollama": local,
+            "anthropic_key": key_status(),
+        }
+
+    @app.get("/api/llm")
+    def llm_state() -> dict[str, Any]:
+        return _llm_state()
+
+    @app.post("/api/llm/default")
+    def set_agent_default(body: ModelDefaultBody) -> dict[str, Any]:
+        """Move the front-door agents' default model. `off` clears it."""
+        choice = body.model.strip().lower()
+        if choice in ("", "off", "none"):
+            set_default_override(None)
+        elif choice in MODELS:
+            set_default_override(choice)
+        else:
+            raise HTTPException(
+                status_code=422,
+                detail=f"unknown model {choice!r}; one of: off, "
+                       + ", ".join(MODELS))
+        values = _load_settings()
+        values["cloud_override"] = get_default_override()
+        _save_settings(values)
+        return _llm_state()
+
+    @app.post("/api/llm/engines")
+    def set_engine_routing(body: EngineRoutingBody) -> dict[str, Any]:
+        """Re-route the composed engines' models.
+
+        Written to the shared settings file rather than held in memory: the
+        four adapters are separate processes, so a change kept here would be a
+        change only this process could see — the engines would keep running the
+        old models with nothing to explain why.
+        """
+        values = llm_settings.load()
+        if body.backend is not None:
+            backend = body.backend.strip().lower()
+            if backend not in ("local", "claude"):
+                raise HTTPException(status_code=422,
+                                    detail="backend must be local or claude")
+            values["backend"] = backend
+        if body.cloud_roles is not None:
+            unknown = [r for r in body.cloud_roles if r not in ENGINE_ROLES]
+            if unknown:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"unknown roles {unknown}; one of: {list(ENGINE_ROLES)}")
+            values["cloud_roles"] = list(body.cloud_roles)
+        for field, sent in (("claude_models", body.claude_models),
+                            ("local_models", body.local_models)):
+            if sent is None:
+                continue
+            unknown = [r for r in sent if r not in ENGINE_ROLES]
+            if unknown:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"unknown roles {unknown}; one of: {list(ENGINE_ROLES)}")
+            # An empty value clears the pin rather than storing "", so the role
+            # falls back to the engine's own config instead of being routed to
+            # a model named nothing.
+            values[field] = {r: m.strip() for r, m in sent.items() if m.strip()}
+        if body.effort is not None:
+            effort = body.effort.strip().lower()
+            if effort and effort not in ("low", "medium", "high", "xhigh", "max"):
+                raise HTTPException(status_code=422, detail="unknown effort level")
+            values["claude_effort"] = effort
+        llm_settings.save(values)
+        return _llm_state()
+
+    @app.delete("/api/llm/engines")
+    def clear_engine_routing() -> dict[str, Any]:
+        """Drop every override; the deployment's environment decides again."""
+        llm_settings.clear()
+        return _llm_state()
+
+    @app.post("/api/llm/key")
+    def set_api_key(body: ApiKeyBody) -> dict[str, Any]:
+        """Store an Anthropic key in the Keychain.
+
+        Never persisted by this app and never echoed: the response is the same
+        status object every other caller gets, which knows only whether a key
+        exists and its last four characters.
+        """
+        key = body.key.strip()
+        if not key:
+            raise HTTPException(status_code=422, detail="empty key")
+        if not key_status()["editable"]:
+            raise HTTPException(
+                status_code=409,
+                detail="ANTHROPIC_API_KEY is set in this process's environment "
+                       "and wins over the Keychain; unset it and restart to "
+                       "manage the key here")
+        try:
+            store_key(key)
+        except NotImplementedError as e:
+            raise HTTPException(status_code=501, detail=str(e)) from e
+        except (subprocess.SubprocessError, OSError, ValueError) as e:
+            raise HTTPException(status_code=500,
+                                detail=f"keychain write failed: {e}") from e
+        return _llm_state()
+
+    @app.delete("/api/llm/key")
+    def forget_api_key() -> dict[str, Any]:
+        forget_key()
+        return _llm_state()
+
+    @app.get("/models")
+    def models_page() -> HTMLResponse:
+        return HTMLResponse(_models_page_html(),
+                            headers={"Cache-Control": "no-store"})
 
     @app.post("/api/runs/start")
     def start_run(req: RunRequest) -> dict[str, str]:

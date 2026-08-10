@@ -33,6 +33,8 @@ class SoftwareAdapter(LeafAdapter):
         self._engine = None
 
     def _get(self):
+        if self.llm_changed():
+            self._engine = None       # rebuilt below against the new routing
         if self._engine is None:
             from entropy_os.engines.software.engine import CodeEngine
             self._engine = CodeEngine(

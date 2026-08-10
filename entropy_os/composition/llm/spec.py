@@ -66,9 +66,39 @@ class LLMSpec:
     # the engines already handle that path, so it fails honestly.
     embed_base_url: str = "http://localhost:11434"
     embed_model: str = "nomic-embed-text"
+    # Local role→model overrides. Empty is the important default: it means
+    # "the engine's own config decides", which is what keeps `build_llm()`
+    # able to return None and leave the local path untouched. A single entry
+    # here is enough to make one-engine construct the local client itself, so
+    # this dict is never populated speculatively.
+    local_models: dict[str, str] = field(default_factory=dict)
+    local_base_url: str = ""               # "" → the engine's own base URL
 
     def model_for(self, role: str) -> str:
         return self.claude_models.get(role, DEFAULT_CLAUDE_MODEL)
+
+    @property
+    def has_local_overrides(self) -> bool:
+        return bool(self.local_models) or bool(self.local_base_url)
+
+    def fingerprint(self) -> str:
+        """A stable identity for "which models does this run use?".
+
+        Adapters cache their engine — an engine construction loads a knowledge
+        graph and a vector index, so rebuilding per request is not an option.
+        That cache has to be invalidated when the routing changes, and the
+        comparison must ignore the credential: a rotated key is the same
+        routing and must not throw away a loaded graph.
+        """
+        return "|".join((
+            self.backend,
+            ",".join(sorted(self.cloud_roles)),
+            ",".join(f"{r}={self.claude_models[r]}" for r in sorted(self.claude_models)),
+            ",".join(f"{r}={self.local_models[r]}" for r in sorted(self.local_models)),
+            self.local_base_url, self.claude_effort,
+            self.embed_base_url, self.embed_model,
+            "fb" if self.claude_fallbacks else "-",
+        ))
 
     def routes_to_cloud(self, role: str) -> bool:
         return self.backend == "claude" or role in self.cloud_roles
@@ -100,14 +130,17 @@ class LLMSpec:
 
     def describe(self) -> str:
         """Operator-readable summary. Never includes the credential."""
+        pinned = ", ".join(f"{r}→{self.local_models[r]}"
+                           for r in ROLES if r in self.local_models)
+        note = f" [{pinned}]" if pinned else ""
         if not self.any_cloud:
-            return "local (ollama)"
+            return f"local (ollama){note}"
         source = "caller-supplied key" if self.claude_api_key else "environment"
         cloud = [r for r in ROLES if self.routes_to_cloud(r)]
         models = sorted({self.model_for(r) for r in cloud})
         where = "all roles" if len(cloud) == len(ROLES) else "+".join(cloud)
         local = [r for r in ROLES if not self.routes_to_cloud(r)]
-        rest = f"; local: {'+'.join(local)}" if local else ""
+        rest = f"; local: {'+'.join(local)}{note}" if local else ""
         embed = f"{self.embed_model} @ {self.embed_base_url}" \
             if self.embed_base_url else "disabled"
         return (f"claude [{', '.join(models)}] for {where} via {source}{rest}; "
@@ -132,6 +165,10 @@ def spec_from_env() -> LLMSpec:
         ONE_ENGINE_CLAUDE_FALLBACKS   0 disables server-side refusal fallback
         ONE_ENGINE_EMBED_URL          embeddings host (default local ollama)
         ONE_ENGINE_EMBED_MODEL        empty disables embeddings entirely
+        ONE_ENGINE_LOCAL_MODEL_JUDGE  pin one role's LOCAL model, overriding the
+                                      engine's own config (also …_EXTRACT,
+                                      _PLAN, _SUMMARIZE, _LIGHT)
+        ONE_ENGINE_LOCAL_URL          Ollama host for the local half
     """
     backend = os.environ.get("ONE_ENGINE_LLM_BACKEND", "local").strip().lower()
     if backend not in ("local", "claude"):
@@ -152,6 +189,15 @@ def spec_from_env() -> LLMSpec:
                  for r in os.environ.get("ONE_ENGINE_CLAUDE_ROLES", "").split(",")}
     cloud_roles = frozenset(r for r in requested if r in ROLES)
 
+    # Local pins are read the same way and, like the cloud ones, only exist
+    # when named: an empty dict means "the engine's own config decides", which
+    # is the default that keeps the local path byte-for-byte what it was.
+    local_models: dict[str, str] = {}
+    for role in ROLES:
+        pinned = os.environ.get(f"ONE_ENGINE_LOCAL_MODEL_{role.upper()}", "").strip()
+        if pinned:
+            local_models[role] = pinned
+
     return LLMSpec(
         backend=backend,
         cloud_roles=cloud_roles,
@@ -168,4 +214,6 @@ def spec_from_env() -> LLMSpec:
                                       "http://localhost:11434").strip(),
         embed_model=os.environ.get("ONE_ENGINE_EMBED_MODEL",
                                    "nomic-embed-text").strip(),
+        local_models=local_models,
+        local_base_url=os.environ.get("ONE_ENGINE_LOCAL_URL", "").strip(),
     )

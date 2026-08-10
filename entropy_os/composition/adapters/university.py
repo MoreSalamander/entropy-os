@@ -34,6 +34,11 @@ class UniversityAdapter(LeafAdapter):
         self._activities: dict[str, object] = {}    # activity_id → Activity
 
     def _new_engine(self):
+        # No cache to invalidate here, and that is the right behaviour rather
+        # than an omission: this adapter builds an engine per learning session,
+        # so a new session picks up the current routing on its own, and a
+        # session already in flight keeps the model it started with instead of
+        # having its tutor swapped out between two questions.
         from entropy_os.engines.university.engine import LearnEngine
         return LearnEngine(
             llm=build_llm(),          # None on local → the engine's own client
