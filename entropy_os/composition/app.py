@@ -305,6 +305,7 @@ def build_unified_app() -> FastAPI:
                 # A front door needs the first to route a site correctly and
                 # the second to tell a shelf which items are instant.
                 "dispense_key": item.dispense_key, "warm": item.warm,
+                "owns_prefix": item.owns_prefix,
                 # The port on THIS machine. A front door in front of us needs
                 # it to proxy the copy; the loopback url above is only usable
                 # by something already on this machine.

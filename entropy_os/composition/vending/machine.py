@@ -94,6 +94,10 @@ class StockItem:
     dispense_key: str = ""
     # True when this press only had to run an image that already existed.
     warm: bool = False
+    # True when the app was built knowing its URL prefix and therefore expects
+    # to receive it. A proxy in front must forward the path untouched; stripping
+    # it turns the app's own home page into its 404.
+    owns_prefix: bool = False
 
 
 def image_tag(objective_id: str, kind: str, name: str) -> str:
@@ -126,13 +130,23 @@ def dispense_key(tag: str) -> str:
 # assetPrefix added, so the site's security headers and everything else it
 # configured survive.
 #
-# assetPrefix, deliberately NOT basePath. They sound interchangeable and are
-# not: basePath moves the ROUTES too, so Next then expects every request to
-# arrive carrying the prefix — and the proxy in front strips it before
-# forwarding, which turns the site's own home page into a Next 404. assetPrefix
-# moves only where the bundle fetches `/_next/...` from, which is precisely the
-# half that was broken. Routes keep answering at the root, where the proxy
-# delivers them.
+# BOTH basePath and assetPrefix, and the proxy stops stripping the prefix for
+# these copies. The two-step it took to get here is worth recording.
+#
+# assetPrefix alone fixed the bundle and left the navigation broken: the site
+# still emitted `<a href="/product">` and `<a href="/">`, which are absolute and
+# so ignore the `<base>` tag entirely. Clicking the site's own logo left the
+# copy and landed on the Entropy front page.
+#
+# basePath alone broke the opposite half: Next then expects every request to
+# arrive carrying the prefix, and a proxy that strips it turns the site's home
+# page into a Next 404.
+#
+# So: set both, and let the app own its prefix — forward the path untouched, as
+# Next expects when deployed under a subpath. dispensed.py said a generated app
+# that needs to own the root "needs its own hostname"; this is the cheaper half
+# of that observation, which is that it can own a PREFIX instead, as long as
+# nothing in front of it lies about what the prefix is.
 _NEXT_REBASE = """\
 RUN if [ -n "$NEXT_BASE_PATH" ]; then \\
       for f in next.config.mjs next.config.js; do \\
@@ -142,8 +156,8 @@ RUN if [ -n "$NEXT_BASE_PATH" ]; then \\
         echo 'export default {};' > next.config.orig.mjs; \\
       fi; \\
       orig=$(ls next.config.orig.* | head -1); \\
-      printf 'import base from "./%s";\\nexport default { ...base, assetPrefix: "%s" };\\n' \\
-        "$orig" "$NEXT_BASE_PATH" > next.config.mjs; \\
+      printf 'import base from "./%s";\\nexport default { ...base, basePath: "%s", assetPrefix: "%s" };\\n' \\
+        "$orig" "$NEXT_BASE_PATH" "$NEXT_BASE_PATH" > next.config.mjs; \\
     fi
 """
 
@@ -248,6 +262,7 @@ def package(artifact: ArtifactRef, objective_id: str,
     if not force and image_exists(tag):
         return StockItem(image=tag, kind=artifact.kind, title=name,
                          source_path=str(path), dispense_key=key, warm=True,
+                         owns_prefix=artifact.kind in NODE_BUILD_KINDS,
                          container_port=CONTAINER_PORTS.get(
                              artifact.kind, DEFAULT_CONTAINER_PORT))
 
@@ -281,6 +296,7 @@ def package(artifact: ArtifactRef, objective_id: str,
                   build_args={"NEXT_BASE_PATH": f"/dispensed/{key}"})
         return StockItem(image=tag, kind=artifact.kind, title=name,
                          source_path=str(path), dispense_key=key,
+                         owns_prefix=True,
                          container_port=CONTAINER_PORTS.get(artifact.kind,
                                                             DEFAULT_CONTAINER_PORT))
 

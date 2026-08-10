@@ -109,6 +109,7 @@ from entropy_os.composition.llm import ROLES as ENGINE_ROLES
 from entropy_os.composition.llm import active_spec
 from entropy_os.composition.llm import settings as llm_settings
 from entropy_os.config import default_data_dir, load_dotenv
+from entropy_os.paths import engine_storage
 from entropy_os.model_host import (
     forget_key,
     key_status,
@@ -1054,6 +1055,22 @@ class PlanSession(BackgroundSession):
             set_activity_listener(None)
 
 
+def _research_reports_root() -> Path:
+    """Where this deployment keeps research reports.
+
+    Two homes, same convention the composite already resolves: beside the
+    engine on a laptop, and in an image directory on the hosted face, named by
+    ONE_ENGINE_ARTIFACTS_RESEARCH. Duplicating the env var name rather than
+    importing the composite's private table keeps this route working when the
+    composite is not running — a report on disk should not need a live engine
+    to be readable.
+    """
+    override = os.environ.get("ONE_ENGINE_ARTIFACTS_RESEARCH", "").strip()
+    if override:
+        return Path(override)
+    return engine_storage("research") / "reports"
+
+
 def _models_page_html() -> str:
     """The operator's model page: which models are running, and how to change.
 
@@ -1594,13 +1611,25 @@ def create_app(
                 container_id=result["container_id"],
                 port=int(result["host_port"]),
                 kind=result.get("kind", ""), image=result.get("image", ""),
-                key=result.get("dispense_key", "")))
+                key=result.get("dispense_key", ""),
+                owns_prefix=bool(result.get("owns_prefix"))))
             # The stable key when the packager assigned one: a generated site's
             # bundle was compiled expecting that exact prefix, so serving it
             # anywhere else 404s its own stylesheet.
             result["url"] = dispensed.public_path(copy.public_key)
             result["loopback_url"] = copy.origin
         return result
+
+    # Both forms, deliberately. An app that owns its prefix has an opinion about
+    # the trailing slash — Next redirects `/dispensed/<key>/` to
+    # `/dispensed/<key>` as its canonical root — and if only the slashed form is
+    # routed, FastAPI's own slash-redirect sends it straight back: a 308 loop
+    # where neither party is wrong on its own.
+    @app.api_route("/dispensed/{container_id}",
+                   methods=["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"])
+    async def dispensed_proxy_root(container_id: str,
+                                   request: Request) -> Response:
+        return await dispensed_proxy(container_id, "", request)
 
     @app.api_route("/dispensed/{container_id}/{path:path}",
                    methods=["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"])
@@ -2855,6 +2884,97 @@ def create_app(
                 "engines. Grounding is fidelity to the sources listed above, "
                 "not a guarantee of truth. · "
                 '<a href="/#wing-oneengine">← back to Composition</a>'),
+        ), headers={"Cache-Control": "no-store"})
+
+    @app.get("/api/research/sessions")
+    def list_research_sessions() -> list[dict[str, Any]]:
+        """Research sessions with a readable report on this machine.
+
+        Added alongside the report route because a document you can only reach
+        by knowing its id by heart is not reachable. Reports are found on disk
+        rather than in the event log on purpose: a session started directly
+        against the research engine leaves no objective behind, and those were
+        exactly the reports nothing could open.
+        """
+        root = _research_reports_root()
+        if not root.is_dir():
+            return []
+        out: dict[str, dict[str, Any]] = {}
+        for path in sorted(root.glob("session_*.md"), reverse=True):
+            sid = path.name.split(".")[0]
+            entry = out.setdefault(sid, {"session_id": sid, "title": "",
+                                         "has_paper": False, "has_report": False})
+            if path.name.endswith(".paper.md"):
+                entry["has_paper"] = True
+            else:
+                entry["has_report"] = True
+            if not entry["title"]:
+                with path.open(encoding="utf-8", errors="replace") as fh:
+                    entry["title"] = fh.readline().lstrip("# ").strip()[:120]
+            entry["modified"] = int(path.stat().st_mtime)
+        return sorted(out.values(), key=lambda e: e.get("modified", 0),
+                      reverse=True)
+
+    @app.get("/report/research/{session_id}")
+    def research_report(session_id: str, view: str = "paper") -> HTMLResponse:
+        """One research session as a document, by session id.
+
+        `/report/one-engine/{objective_id}` can only reach a report that a
+        composed OBJECTIVE produced. A run started straight against the
+        research engine records no objective, so its report and its paper —
+        both written, both on disk, both already renderable — had no URL at
+        all. This is that URL.
+
+        Two views because the engine writes two documents on purpose: the
+        report is the instrument panel (stats, source fleet status, gate
+        counts) and the paper is the same session written for a reader. Each
+        links to the other rather than one pretending to be both.
+        """
+        # The id becomes a filename, so it is validated by shape before it is
+        # joined, and the resolved path is required to sit under the reports
+        # root afterwards. Either check alone is weaker than it looks.
+        if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", session_id):
+            raise HTTPException(404, "no such research session")
+        root = _research_reports_root()
+        wanted = "paper" if view != "report" else "report"
+        names = ([f"{session_id}.paper.md", f"{session_id}.md"]
+                 if wanted == "paper" else
+                 [f"{session_id}.md", f"{session_id}.paper.md"])
+        chosen = None
+        for name in names:
+            candidate = root / name
+            try:
+                resolved = candidate.resolve(strict=True)
+            except OSError:
+                continue
+            if resolved.is_relative_to(root.resolve()) and resolved.is_file():
+                chosen = resolved
+                break
+        if chosen is None:
+            raise HTTPException(404, f"no readable report for {session_id}")
+
+        is_paper = chosen.name.endswith(".paper.md")
+        text = chosen.read_text(encoding="utf-8", errors="replace")
+        lines = text.splitlines()
+        title = lines[0].lstrip("# ").strip() if lines else session_id
+        body = "\n".join(lines[1:])
+        other = "report" if is_paper else "paper"
+        other_exists = (root / (f"{session_id}.md" if is_paper
+                                else f"{session_id}.paper.md")).is_file()
+        switch = (f' · <a href="/report/research/{session_id}?view={other}">'
+                  f'read the {other} →</a>' if other_exists else "")
+        return HTMLResponse(artifact_report.document_html(
+            _REPORT_CSS,
+            kicker="Entropy OS · research engine",
+            title=title,
+            meta=f"{session_id} · {'paper' if is_paper else 'instrument panel'} "
+                 f"· {chosen.stat().st_size:,} bytes",
+            badge=("every claim carries the source it rests on" if is_paper
+                   else "run stats, source fleet status and gate counts"),
+            body_md=body,
+            footer=("Produced by the research engine. A claim appears here only "
+                    "if it cleared the evidence floor; what did not clear it is "
+                    "counted, not hidden." + switch),
         ), headers={"Cache-Control": "no-store"})
 
     @app.get("/report/{run_id}")

@@ -58,6 +58,11 @@ class Copy:
     # honest name for a disposable thing, and two copies of one image must
     # remain separately addressable and separately returnable.
     key: str = ""
+    # True when the app was BUILT knowing this prefix and expects to receive
+    # it. Then the honest thing is to forward the path untouched: stripping it
+    # turns the app's own home page into its 404, and not stripping it is
+    # exactly the shape such an app is designed to be deployed in.
+    owns_prefix: bool = False
 
     @property
     def origin(self) -> str:
@@ -134,7 +139,11 @@ def _rebase_html(body: bytes, base: str) -> bytes:
 
 async def forward(copy: Copy, path: str, request) -> Response:
     """Pass one request through to a dispensed copy and return its answer."""
-    url = f"{copy.origin}/{path.lstrip('/')}"
+    # An app that owns its prefix gets the whole path, prefix included, because
+    # that is what it was compiled expecting. Everything else gets the stripped
+    # remainder and the <base>/redirect compensation below.
+    url = (f"{copy.origin}{request.url.path}" if copy.owns_prefix
+           else f"{copy.origin}/{path.lstrip('/')}")
     body = await request.body()
     headers = {k: v for k, v in request.headers.items()
                if k.lower() not in HOP_BY_HOP | {"host"}}
@@ -153,13 +162,22 @@ async def forward(copy: Copy, path: str, request) -> Response:
     content = r.content
     ctype = r.headers.get("content-type", "")
 
-    if "text/html" in ctype:
-        content = _rebase_html(content, public_path(copy.container_id))
-    # A redirect to the copy's own root must stay inside the proxy, or the
-    # viewer is bounced to a loopback address that means nothing to them.
-    location = r.headers.get("location")
-    if location and location.startswith("/"):
-        out["location"] = public_path(copy.container_id).rstrip("/") + location
+    # Both compensations are for an app that assumes it owns the root. One that
+    # owns its prefix already emits correct paths, and "helping" would double
+    # the prefix on every redirect.
+    #
+    # public_key, not container_id: the copy is SERVED under the key when it has
+    # one, so telling the page to resolve against the container id would hand it
+    # a second address for itself — working only by the accident that both are
+    # registered.
+    if not copy.owns_prefix:
+        if "text/html" in ctype:
+            content = _rebase_html(content, public_path(copy.public_key))
+        # A redirect to the copy's own root must stay inside the proxy, or the
+        # viewer is bounced to a loopback address that means nothing to them.
+        location = r.headers.get("location")
+        if location and location.startswith("/"):
+            out["location"] = public_path(copy.public_key).rstrip("/") + location
 
     return Response(content=content, status_code=r.status_code,
                     headers=out, media_type=ctype or None)
