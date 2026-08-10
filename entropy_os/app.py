@@ -1568,6 +1568,17 @@ def create_app(
     # The vending path: what a run produced, and its contents. Reading an
     # artifact is a read; one-engine owns the containment check that keeps a
     # caller-supplied path inside the artifact root, and nothing here widens it.
+    @app.get("/api/one-engine/stock")
+    async def one_engine_stock() -> dict[str, Any]:
+        """The composed engine's racks, for the Vending Machine's shelf.
+
+        Same surface as the premade racks, different stock source: these are
+        programs and websites composed runs actually produced, rather than
+        products packaged at generation time. Both dispense through the same
+        press and are reached through the same proxy.
+        """
+        return await engine_client.stock()
+
     @app.post("/api/one-engine/artifact-run")
     async def one_engine_artifact_run(req: ArtifactRunRequest) -> dict[str, Any]:
         """Open a generated product, rather than reading its source.
@@ -2755,7 +2766,19 @@ def create_app(
         except RuntimeError as exc:
             raise HTTPException(status_code=502, detail=str(exc)) from exc
         dispensed_copies[copy.container_id] = copy
-        return {"container_id": copy.container_id, "url": copy.url}
+        # Through the same proxy the composed racks use. This dispenser returns
+        # `http://127.0.0.1:<port>`, which is the trap dispensed.py exists to
+        # close: correct on this machine and useless to anyone else, which is
+        # why the face has been apologising that premade dispensing only works
+        # on the operator's laptop. Registering the copy here makes the premade
+        # shelf reachable wherever the viewer is, with no change to how the
+        # image was built or run.
+        dispensed_registry.add(dispensed.Copy(
+            container_id=copy.container_id, port=copy.port,
+            kind="premade", image=image))
+        return {"container_id": copy.container_id,
+                "url": dispensed.public_path(copy.container_id),
+                "loopback_url": copy.url}
 
     @app.post("/api/tutorial/copies/{container_id}/return")
     def return_tutorial_copy(container_id: str) -> dict[str, Any]:
@@ -2763,6 +2786,7 @@ def create_app(
         copies of the same product, if any are still out, are unaffected."""
         return_copy(container_id)
         dispensed_copies.pop(container_id, None)
+        dispensed_registry.drop(container_id)   # and its route out
         return {"stopped": container_id}
 
     @app.get("/")

@@ -689,6 +689,8 @@
         <div class="vm-glass" id="vmGlass"></div>
         <div class="vm-shelf-label">Taichi Academy — the skills ladder, one rung per slot</div>
         <div class="vm-glass" id="vmGlassAcademy"></div>
+        <div class="vm-shelf-label">Composed by one-engine — programs and websites real runs produced</div>
+        <div class="vm-glass" id="vmGlassComposed"></div>
         <div class="vm-chute"></div>
         <div class="vm-tray">
           <div class="vm-tray-label">tray</div>
@@ -1129,8 +1131,95 @@ async function loadVending() {
     (p, slotEl) => { const b = document.getElementById(`vmbtn-${p.id}`); if (b && !b.disabled) b.onclick = () => dispenseProduct(p, slotEl); },
     'Academy shelf is empty — run scripts/package_academy.py to stock the ladder.',
     CURATED_ACADEMY, p => p.title || '');
+  await loadComposedRack();
   await loadVmRestockSources();
   $('#vmRestockGo').onclick = restockVendingMachine;
+}
+
+// The composed shelf. Same machine, different stock source: these are the
+// programs and websites real runs produced, which used to be reachable only by
+// opening an objective and reading a file tree — the two outputs most worth
+// RUNNING were the two hidden furthest from a button.
+async function loadComposedRack() {
+  const el = $('#vmGlassComposed');
+  if (!el) return;
+  let stock = [];
+  try {
+    const r = await api('/api/one-engine/stock');
+    if (!r.reachable) throw new Error('one-engine is not answering');
+    stock = r.stock || [];
+  } catch (e) {
+    el.innerHTML = `<div class="muted" style="grid-column:1/-1;padding:8px">composed shelf unavailable: ${esc(String(e.message || e))}</div>`;
+    return;
+  }
+  if (!stock.length) {
+    el.innerHTML = '<div class="muted" style="grid-column:1/-1;padding:8px">No composed programs or websites yet — run an objective in Composition.</div>';
+    return;
+  }
+  el.innerHTML = stock.map((s, i) => composedSlotHtml(s, i + 1)).join('');
+  stock.forEach((s, i) => {
+    const btn = el.children[i].querySelector('.vm-select');
+    if (btn && !btn.disabled) btn.onclick = () => dispenseComposed(s, el.children[i]);
+  });
+}
+
+function composedSlotHtml(s, n) {
+  const icon = s.kind === 'site' ? '🌐' : '⚙️';
+  // Warm and cold are the honest difference between a shelf and a queue: a
+  // built image dispenses in under a second, a cold one runs a real build
+  // first. Saying which turns a long wait into an expected one.
+  const state = s.warm
+    ? '<span style="color:var(--green)">ready · dispenses instantly</span>'
+    : '<span style="color:var(--gold)">cold · first press builds it (a minute or two)</span>';
+  const label = s.running ? 'Dispense another' : (s.warm ? 'Dispense' : 'Build &amp; dispense');
+  const gate = VM_LOCAL
+    ? `<button class="vm-select">${label}</button>`
+    : `<button class="vm-select" disabled title="Building and running a copy happens in the operator's Docker.">Dispense · local-only</button>`;
+  return `<div class="vm-slot">
+    <span class="vm-code">C${n}</span>
+    <div class="vm-coil"></div>
+    <div class="vm-label">${icon} ${esc(s.title)}</div>
+    <div class="vm-sub">${esc(s.kind)} · ${esc(s.objective_id)}</div>
+    <div class="vm-sub">${state}</div>
+    ${gate}
+  </div>`;
+}
+
+async function dispenseComposed(s, slotEl) {
+  const btn = slotEl.querySelector('.vm-select');
+  if (btn) { btn.disabled = true; btn.textContent = s.warm ? 'dispensing…' : 'building…'; }
+  $('#vmTrayContent').innerHTML = s.warm
+    ? '<span class="muted">dispensing your copy…</span>'
+    : '<span class="muted">building the image — this is the cold press, it only happens once…</span>';
+  try {
+    const r = await api('/api/one-engine/artifact-run', {
+      method: 'POST', headers: {'content-type': 'application/json'},
+      body: JSON.stringify({path: s.path, kind: s.kind, objective_id: s.objective_id}),
+    });
+    if (r.error) throw new Error(r.error);
+    $('#vmTrayContent').innerHTML = `<div class="vm-receipt">
+      <div class="vm-receipt-head">✓ dispensed — your own copy of ${esc(s.title)}</div>
+      <div style="margin-top:6px">
+        <a href="${esc(r.url)}" target="_blank" rel="noopener">open it ↗</a>
+        <span class="muted" style="font-size:11.5px"> · ${esc(r.image || '')}${r.warm ? ' · was already built' : ' · built just now'}</span>
+      </div>
+      <div style="margin-top:8px"><button class="ghost" id="vmComposedReturn">throw it away</button></div>
+    </div>`;
+    document.getElementById('vmComposedReturn').onclick = async () => {
+      await api('/api/one-engine/artifact-stop', {
+        method: 'POST', headers: {'content-type': 'application/json'},
+        body: JSON.stringify({container_id: r.container_id}),
+      });
+      $('#vmTrayContent').innerHTML = '<span class="muted">copy returned — the container is gone.</span>';
+      await loadComposedRack();
+    };
+    await loadComposedRack();          // it is warm now, and running
+  } catch (e) {
+    // A refusal carries a reason worth reading: "no Dockerfile" and "docker is
+    // down" need different fixes.
+    $('#vmTrayContent').innerHTML = `<span style="color:var(--red)">✕ ${esc(String(e.message || e))}</span>`;
+    if (btn) { btn.disabled = false; btn.textContent = 'Dispense'; }
+  }
 }
 
 const VM_LOCAL = location.hostname === 'localhost' || location.hostname === '127.0.0.1';

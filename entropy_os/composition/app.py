@@ -318,6 +318,55 @@ def build_unified_app() -> FastAPI:
         app.state.dispensed.pop(req.container_id, None)
         return {"stopped": req.container_id}
 
+    @app.get("/artifacts/stock")
+    async def artifact_stock():
+        """Everything composed runs have made that this machine can dispense.
+
+        The shelf, in other words. Until now a generated program or website was
+        reachable only by opening an objective, opening an artifact, and reading
+        its file tree — so the two kinds of output most worth *running* were the
+        two hidden furthest from a button. They are stock; they belong on a
+        shelf beside the premade racks.
+
+        Warmth is read from the local daemon rather than remembered, because
+        `image_tag` is deterministic: the images that exist ARE the record of
+        what has been packaged. So this can say honestly which items dispense in
+        a second and which will take a build, without keeping a table that could
+        drift from the truth.
+        """
+        from .vending.docker import image_exists
+        from .vending.machine import dispense_key, image_tag, packageable
+
+        ctx = await composite.context()
+        running = {c.image: c for c in app.state.dispensed.values()}
+        items = []
+        for entry in ctx.recent:
+            oid = entry.get("objective_id") or ""
+            if not oid:
+                continue
+            for i, art in enumerate(_artifacts_for(oid)):
+                ref = ArtifactRef(kind=art.kind, path=art.path,
+                                  description=art.description)
+                ok, why = packageable(ref)
+                # A report is stock too, but it is a document: the face already
+                # renders those. The shelf is for things that RUN.
+                if not ok or art.kind not in ("project", "site"):
+                    continue
+                tag = image_tag(oid, art.kind, Path(art.path).name)
+                copy = running.get(tag)
+                items.append({
+                    "objective_id": oid, "index": i, "kind": art.kind,
+                    "title": Path(art.path).name,
+                    "description": art.description or "",
+                    "path": art.path, "image": tag,
+                    "dispense_key": dispense_key(tag),
+                    "warm": image_exists(tag),
+                    "running": bool(copy),
+                    "container_id": copy.container_id if copy else "",
+                    "unpackageable": why,
+                })
+        return {"stock": items}
+
     @app.get("/artifacts/running")
     async def running_artifacts():
         return {"running": [{"container_id": c.container_id, "url": c.url}

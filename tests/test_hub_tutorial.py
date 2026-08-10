@@ -188,7 +188,14 @@ def test_dispense_runs_a_copy_of_the_products_own_container(tmp_path, monkeypatc
     monkeypatch.setattr("entropy_os.app.dispense_copy", _fake_dispense)
     resp = client.post(f"/api/tutorial/products/{product_id}/dispense")
     assert resp.status_code == 200
-    assert resp.json() == {"container_id": "c_abc123", "url": "http://127.0.0.1:55001"}
+    # A path on this origin, not the loopback address the dispenser returned.
+    # 127.0.0.1 is correct on the machine running the container and points a
+    # remote viewer at their own laptop, which is why premade dispensing used
+    # to work only on the operator's machine. The direct address is still
+    # reported, for a caller that IS on that machine.
+    assert resp.json() == {"container_id": "c_abc123",
+                           "url": "/dispensed/c_abc123/",
+                           "loopback_url": "http://127.0.0.1:55001"}
     assert seen_image["image"] == state["container_image"]
 
     returned = {"id": None}

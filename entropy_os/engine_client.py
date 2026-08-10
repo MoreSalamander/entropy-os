@@ -234,6 +234,16 @@ async def objective(objective_id: str) -> dict[str, Any]:
 # against the artifact root it owns.
 
 
+async def stock() -> dict[str, Any]:
+    """The composed engine's shelf: what it made that can be run."""
+    try:
+        async with httpx.AsyncClient() as client:
+            data = await _get(client, "/artifacts/stock")
+    except (httpx.HTTPError, ValueError) as e:
+        return _down(f"{type(e).__name__}: {e}")
+    return {"reachable": True, **data}
+
+
 async def artifacts(objective_id: str) -> dict[str, Any]:
     try:
         async with httpx.AsyncClient() as client:
