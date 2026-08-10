@@ -1954,7 +1954,19 @@ def create_app(
     # host. The local endpoints above stay open (single-user); only this surface is authenticated. ---
     # The auth seam (P31c2): real accounts when VERITAS_ACCOUNTS is on, else the static env tokens
     # (P31c1) so local/tests are unchanged. Both satisfy Authenticator, so the wedge never knows which.
-    accounts_on = os.environ.get("VERITAS_ACCOUNTS", "").lower() in ("1", "true", "yes", "on")
+    # The default is "whichever way in actually exists". A static token table is
+    # an explicit choice by whoever set it, so it wins; with nothing set at all
+    # there was previously NO way in, and a fresh clone showed "no access
+    # configured" on the one page meant to be shown to a stranger. An account
+    # store is a SQLite file created on demand, and having one exposes nothing:
+    # the wedge is only reachable on whatever host serves it.
+    #
+    # Either var still decides explicitly — VERITAS_ACCOUNTS=0 forces tokens
+    # even with none configured, which is how you deliberately close the wedge.
+    _tokens_configured = bool(os.environ.get("VERITAS_WEDGE_TOKENS", "").strip())
+    accounts_on = os.environ.get(
+        "VERITAS_ACCOUNTS", "0" if _tokens_configured else "1",
+    ).lower() in ("1", "true", "yes", "on")
     accounts = AccountStore(base / "accounts.db") if accounts_on else None
     wedge_auth: Authenticator = accounts if accounts is not None else WedgeAuth.from_env()
     # Per-tenant metering (P31c2b): a rate-limit ceiling AND the billable usage ledger. None = unmetered.

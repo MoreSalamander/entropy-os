@@ -365,10 +365,20 @@ async function refreshStatus() {
   $("tokenForm").classList.toggle("hidden", data.accounts);
   $("authTitle").textContent = data.accounts ? "Sign in" : "Enter access token";
 
+  // "Try again later" is the right message on a hosted box a visitor cannot
+  // fix, and the wrong one on the machine in front of you — which is where
+  // anyone who just cloned this repo is standing. Same fail-closed rule, told
+  // to whoever can actually act on it: locally that is a one-line fix, and
+  // saying so beats a page that reads as broken.
+  const LOCAL = ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
   if (!data.sandbox_active) {
-    banner("This host's execution sandbox is offline, so submissions are paused — Veritas refuses to run untrusted code without isolation (it fails closed). Try again later.", "warn");
+    banner(LOCAL
+      ? "Submissions are paused because Docker is not answering on this machine, and Veritas refuses to run generated code without isolation — it fails closed rather than running it on your host. Start Docker Desktop and reload; nothing else to configure."
+      : "This host's execution sandbox is offline, so submissions are paused — Veritas refuses to run untrusted code without isolation (it fails closed). Try again later.", "warn");
   } else if (!data.auth_configured) {
-    banner("This host has no access configured yet.", "warn");
+    banner(LOCAL
+      ? "No way in is configured on this machine. Accounts are on by default, so this usually means VERITAS_ACCOUNTS=0 is set in the environment."
+      : "This host has no access configured yet.", "warn");
   } else {
     banner("");
   }
