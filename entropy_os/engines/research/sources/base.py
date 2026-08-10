@@ -23,7 +23,32 @@ import httpx
 
 from ..models import RawDoc, SourceCategory, SourceStatus
 
-USER_AGENT = "research-engine/0.1 (MoreSalamander; research aggregation; contact: github.com/MoreSalamander)"
+# The identity this fleet presents to every source it calls.
+#
+# The contact is not decoration. Wikimedia's robot policy rejects a User-Agent
+# whose contact is a URL — 403 Forbidden, every call, with the policy link in
+# the body — and Crossref sorts requests carrying a mailto into a "polite pool"
+# with far higher rate limits than the anonymous one. A run against a fleet of
+# public APIs is a guest on other people's infrastructure, and this string is
+# how it introduces itself.
+#
+# It is empty by default because it is a *personal* detail: this repository is
+# public, and an address committed here is an address in a crawler's index.
+# Operators set `sources.contact` in research.yaml or RESEARCH_CONTACT in the
+# environment; a clone with neither still runs, with the sources that demand a
+# contact honestly disabled rather than silently failing.
+_UA_BASE = "research-engine/0.1 (MoreSalamander; research aggregation"
+
+
+def user_agent(contact: str = "") -> str:
+    contact = (contact or "").strip()
+    tail = f"; contact: {contact}" if contact else "; no contact configured"
+    return f"{_UA_BASE}{tail})"
+
+
+# The no-contact form, kept as a module constant for the three sibling engines
+# that do their own light fetching and have no research config to read.
+USER_AGENT = user_agent()
 
 
 class SourceAdapter(ABC):

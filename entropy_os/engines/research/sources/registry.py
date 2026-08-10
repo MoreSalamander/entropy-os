@@ -17,7 +17,7 @@ from .academic import (
     PubMedAdapter,
     SemanticScholarAdapter,
 )
-from .base import USER_AGENT, SourceAdapter
+from .base import SourceAdapter, user_agent
 from .code import GitHubAdapter, GitLabAdapter, HuggingFaceAdapter
 from .community import HackerNewsAdapter, RedditAdapter, StackExchangeAdapter
 from .government import DataGovAdapter
@@ -39,8 +39,9 @@ class SourceRegistry:
         self.cfg = cfg
         # One pooled HTTP client for the whole fleet: connection reuse across
         # hundreds of concurrent tasks instead of per-call sockets.
+        contact = cfg.sources.contact
         self.client = httpx.AsyncClient(
-            headers={"User-Agent": USER_AGENT},
+            headers={"User-Agent": user_agent(contact)},
             timeout=httpx.Timeout(25.0),
             follow_redirects=True,
             limits=httpx.Limits(max_connections=64, max_keepalive_connections=32),
@@ -54,7 +55,7 @@ class SourceRegistry:
             SemanticScholarAdapter(self.client),
             PubMedAdapter(self.client),
             CrossrefAdapter(self.client),
-            WikipediaAdapter(self.client),
+            WikipediaAdapter(self.client, contact=contact),
             GitHubAdapter(self.client),
             GitLabAdapter(self.client),
             HuggingFaceAdapter(self.client),

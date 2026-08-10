@@ -23,12 +23,20 @@ import argparse
 
 import uvicorn
 
+from ...config import load_dotenv
 from ..config import load_config
 from ..contract.http import build_engine_app
 from . import ADAPTERS
 
 
 def main() -> None:
+    # The engines are the processes that actually call out — to Wikipedia, to
+    # Crossref, to every keyed source — and until now only the front door read
+    # `.env`. So a source key or a contact address put there was visible to the
+    # one process that never uses it and invisible to the four that do, and the
+    # symptom was a status table full of `needs_key` for keys that were sitting
+    # in the file all along.
+    load_dotenv()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("engine", choices=sorted(ADAPTERS))
     parser.add_argument("--host", default="127.0.0.1")

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from bs4 import BeautifulSoup
 
-from ..models import RawDoc, SourceCategory
+from ..models import RawDoc, SourceCategory, SourceStatus
 from .base import SourceAdapter
 
 
@@ -18,6 +18,25 @@ class WikipediaAdapter(SourceAdapter):
     category = SourceCategory.WEB
     reliability_prior = 0.65  # tertiary source: good map, cite the territory
     min_interval_s = 0.3
+
+    def __init__(self, client, contact: str = ""):
+        super().__init__(client)
+        if not (contact or "").strip():
+            # Wikimedia's robot policy requires a contact in the User-Agent and
+            # answers 403 to every request without one. Reusing NEEDS_KEY —
+            # the fleet's existing fail-closed state — turns twenty doomed
+            # calls into one line in the status table that names the fix.
+            #
+            # This mattered: a run explaining how an LLM works planned
+            # Wikipedia into four of its nine agents, 403'd twenty times, and
+            # produced a paper about KV-cache compression instead. The failure
+            # was reported honestly and still cost the run, because "error,
+            # 403" reads like weather and "disabled, set this" reads like a
+            # task.
+            self.status = SourceStatus.NEEDS_KEY
+            self.status_detail = (
+                "disabled: set sources.contact (RESEARCH_CONTACT) to an email "
+                "— Wikimedia's robot policy 403s a User-Agent without one")
 
     async def _search(self, query: str, k: int) -> list[RawDoc]:
         r = await self.client.get(

@@ -100,6 +100,12 @@ class SourceKeys(BaseModel):
 class SourcesConfig(BaseModel):
     keys: SourceKeys = Field(default_factory=SourceKeys)
     reddit_degraded_ok: bool = True
+    # An email address for the User-Agent this fleet presents. Empty by
+    # default and deliberately not committed: Wikimedia requires a contact and
+    # 403s without one, Crossref grants higher limits with one, and a public
+    # repository is the wrong place to publish somebody's address. Set it in
+    # RESEARCH_CONTACT (or here, on a private checkout).
+    contact: str = ""
 
 
 class ReportConfig(BaseModel):
@@ -135,6 +141,7 @@ _ENV_SHORTCUTS = {
     "PATENTSVIEW_API_KEY": ("sources", "keys", "patentsview"),
     "KAGGLE_USERNAME": ("sources", "keys", "kaggle_username"),
     "KAGGLE_KEY": ("sources", "keys", "kaggle_key"),
+    "RESEARCH_CONTACT": ("sources", "contact"),
     "NEO4J_PASSWORD": ("graph", "neo4j", "password"),
 }
 
