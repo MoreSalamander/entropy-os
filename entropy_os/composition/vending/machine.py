@@ -25,6 +25,7 @@ What each artifact kind becomes:
 from __future__ import annotations
 
 import html
+import hashlib
 import re
 import tempfile
 from dataclasses import dataclass
@@ -32,7 +33,14 @@ from pathlib import Path
 
 from ..contract import ArtifactRef
 from ..scaffold import StageJudgment
-from .docker import DispensedCopy, VendingError, available, build, dispense
+from .docker import (
+    DispensedCopy,
+    VendingError,
+    available,
+    build,
+    dispense,
+    image_exists,
+)
 
 # Artifact kinds this machine can package, and how.
 STATIC_KINDS = ("report", "lesson")
@@ -59,9 +67,12 @@ DEFAULT_CONTAINER_PORT = 80
 # lockfile is not guaranteed to be there.
 NEXT_DOCKERFILE = """FROM node:20-alpine
 WORKDIR /app
+ARG NEXT_BASE_PATH=""
+ENV NEXT_BASE_PATH=$NEXT_BASE_PATH
 COPY package*.json ./
 RUN npm install --no-audit --no-fund
 COPY . .
+__REBASE__
 RUN npm run build
 EXPOSE 3000
 ENV HOSTNAME=0.0.0.0 PORT=3000
@@ -78,12 +89,63 @@ class StockItem:
     source_path: str
     # The port the product listens on inside its container.
     container_port: int = DEFAULT_CONTAINER_PORT
+    # A stable id for this image's copy, so a site can be BUILT knowing the
+    # path it will be served under. See dispense_key().
+    dispense_key: str = ""
+    # True when this press only had to run an image that already existed.
+    warm: bool = False
 
 
 def image_tag(objective_id: str, kind: str, name: str) -> str:
     """A readable tag beats a hash for anyone reading `docker images`."""
     slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")[:40] or "item"
     return f"one-engine/{kind}-{slug}:{objective_id}"
+
+
+def dispense_key(tag: str) -> str:
+    """A stable id for "the copy of this image", derived from the tag alone.
+
+    Copies are normally addressed by container id, which is the honest name
+    for a disposable thing. A Next.js site cannot use it: `basePath` is
+    compiled into the bundle at BUILD time, and a container id does not exist
+    until run time. Anything built without knowing its own prefix asks for
+    `/_next/...` at the origin root and 404s — the page arrives and its
+    stylesheet does not.
+
+    So the prefix has to be knowable before the build, which means derived
+    from the image rather than from the container. Same artifact, same
+    objective, same tag, same path — which also means the URL for a given site
+    stays the same across dispenses instead of moving every time.
+    """
+    return hashlib.sha256(tag.encode()).hexdigest()[:32]
+
+
+# Injected into a generated Next.js tree at IMAGE BUILD time, never into the
+# source: a generated site is the record of what was generated, and packaging
+# must not edit that record. The wrapper re-exports the tree's own config with
+# assetPrefix added, so the site's security headers and everything else it
+# configured survive.
+#
+# assetPrefix, deliberately NOT basePath. They sound interchangeable and are
+# not: basePath moves the ROUTES too, so Next then expects every request to
+# arrive carrying the prefix — and the proxy in front strips it before
+# forwarding, which turns the site's own home page into a Next 404. assetPrefix
+# moves only where the bundle fetches `/_next/...` from, which is precisely the
+# half that was broken. Routes keep answering at the root, where the proxy
+# delivers them.
+_NEXT_REBASE = """\
+RUN if [ -n "$NEXT_BASE_PATH" ]; then \\
+      for f in next.config.mjs next.config.js; do \\
+        if [ -f "$f" ]; then mv "$f" "next.config.orig.${f##*.}"; break; fi; \\
+      done; \\
+      if [ ! -f next.config.orig.mjs ] && [ ! -f next.config.orig.js ]; then \\
+        echo 'export default {};' > next.config.orig.mjs; \\
+      fi; \\
+      orig=$(ls next.config.orig.* | head -1); \\
+      printf 'import base from "./%s";\\nexport default { ...base, assetPrefix: "%s" };\\n' \\
+        "$orig" "$NEXT_BASE_PATH" > next.config.mjs; \\
+    fi
+"""
 
 
 def packageable(artifact: ArtifactRef) -> tuple[bool, str]:
@@ -152,7 +214,8 @@ def _static_page(artifact: ArtifactRef, provenance: str) -> str:
 
 
 def package(artifact: ArtifactRef, objective_id: str,
-            judgment: StageJudgment | None = None) -> StockItem:
+            judgment: StageJudgment | None = None,
+            force: bool = False) -> StockItem:
     """Build an image for one artifact. Raises VendingError with the reason.
 
     Order of refusal is deliberate: the gate is checked before Docker, so a
@@ -175,7 +238,18 @@ def package(artifact: ArtifactRef, objective_id: str,
     path = Path(artifact.path)
     name = artifact.description or path.name
     tag = image_tag(objective_id, artifact.kind, path.name)
+    key = dispense_key(tag)
     provenance = f"{artifact.kind} from objective {objective_id}"
+
+    # Already built? Then this press is a `docker run`, like the premade racks.
+    # Deliberately checked after the gate and after Docker, so a rejected
+    # artifact is still reported as rejected and a dead daemon still reads as
+    # a daemon problem — a cached image must not launder either.
+    if not force and image_exists(tag):
+        return StockItem(image=tag, kind=artifact.kind, title=name,
+                         source_path=str(path), dispense_key=key, warm=True,
+                         container_port=CONTAINER_PORTS.get(
+                             artifact.kind, DEFAULT_CONTAINER_PORT))
 
     if artifact.kind in NATIVE_DOCKERFILE_KINDS:
         dockerfile = path / "Dockerfile"
@@ -187,7 +261,7 @@ def package(artifact: ArtifactRef, objective_id: str,
         # the artifact's self-description authoritative.
         build(path, tag, dockerfile=str(dockerfile))
         return StockItem(image=tag, kind=artifact.kind, title=name,
-                         source_path=str(path),
+                         source_path=str(path), dispense_key=key,
                          container_port=CONTAINER_PORTS.get(artifact.kind,
                                                             DEFAULT_CONTAINER_PORT))
 
@@ -201,10 +275,12 @@ def package(artifact: ArtifactRef, objective_id: str,
         # must not edit that record.
         with tempfile.TemporaryDirectory() as tmp:
             df = Path(tmp) / "Dockerfile"
-            df.write_text(NEXT_DOCKERFILE, encoding="utf-8")
-            build(path, tag, dockerfile=str(df))
+            df.write_text(NEXT_DOCKERFILE.replace("__REBASE__", _NEXT_REBASE),
+                          encoding="utf-8")
+            build(path, tag, dockerfile=str(df),
+                  build_args={"NEXT_BASE_PATH": f"/dispensed/{key}"})
         return StockItem(image=tag, kind=artifact.kind, title=name,
-                         source_path=str(path),
+                         source_path=str(path), dispense_key=key,
                          container_port=CONTAINER_PORTS.get(artifact.kind,
                                                             DEFAULT_CONTAINER_PORT))
 
@@ -218,7 +294,7 @@ def package(artifact: ArtifactRef, objective_id: str,
             encoding="utf-8")
         build(ctx, tag)
     return StockItem(image=tag, kind=artifact.kind, title=name,
-                     source_path=str(path))
+                     source_path=str(path), dispense_key=key)
 
 
 def vend(item: StockItem, container_port: int | None = None) -> DispensedCopy:

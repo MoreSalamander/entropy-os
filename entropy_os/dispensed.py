@@ -51,10 +51,22 @@ class Copy:
     port: int
     kind: str = ""
     image: str = ""
+    # A stable alias for "the copy of this image", when the packager assigned
+    # one. A generated site needs it: its bundle is compiled with a fixed
+    # basePath, so the path it is served under has to be decided before the
+    # container exists. Container ids stay the primary key — they are the
+    # honest name for a disposable thing, and two copies of one image must
+    # remain separately addressable and separately returnable.
+    key: str = ""
 
     @property
     def origin(self) -> str:
         return f"http://127.0.0.1:{self.port}"
+
+    @property
+    def public_key(self) -> str:
+        """What a viewer's URL should carry: the stable key when there is one."""
+        return self.key or self.container_id
 
 
 class Registry:
@@ -70,13 +82,24 @@ class Registry:
 
     def add(self, copy: Copy) -> Copy:
         self._copies[copy.container_id] = copy
+        # The stable key resolves to the most recent copy of that image. Two
+        # copies of one site would share it, and the newer one wins — which is
+        # the right answer for a prefix baked into a bundle: both bundles ask
+        # for the same path, so only one of them can own it. Addressing a
+        # specific copy is still exact, by container id.
+        if copy.key:
+            self._copies[copy.key] = copy
         return copy
 
     def get(self, container_id: str) -> Copy | None:
         return self._copies.get(container_id)
 
     def drop(self, container_id: str) -> None:
-        self._copies.pop(container_id, None)
+        copy = self._copies.pop(container_id, None)
+        # Only clear the alias if it still points at the copy being dropped;
+        # a newer copy may already have claimed it.
+        if copy and copy.key and self._copies.get(copy.key) is copy:
+            self._copies.pop(copy.key, None)
 
     def all(self) -> list[Copy]:
         return list(self._copies.values())

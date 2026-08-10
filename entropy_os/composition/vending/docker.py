@@ -50,6 +50,28 @@ class VendingError(Exception):
     caller can report why rather than shipping anyway."""
 
 
+def image_exists(tag: str) -> bool:
+    """Whether this exact image is already built and sitting locally.
+
+    The whole point of `image_tag` being deterministic rather than a hash of
+    the moment is that this question is answerable without bookkeeping: the
+    same artifact from the same objective always names the same image, so the
+    local daemon IS the record of what has been packaged. No table to keep in
+    step, nothing to invalidate.
+
+    That is what makes a shelf possible. The premade racks dispense instantly
+    because their images were built at generation time; a composed run's
+    output can behave the same way from the second press onward, and the shelf
+    can say honestly which items are warm and which will take a minute.
+    """
+    try:
+        proc = subprocess.run([DOCKER, "image", "inspect", tag],
+                              capture_output=True, text=True, timeout=15)
+    except (subprocess.SubprocessError, OSError):
+        return False       # no daemon is not the same as no image, but it is
+    return proc.returncode == 0   # the same answer to "can I dispense now"
+
+
 def available() -> tuple[bool, str]:
     """Whether a container can be built or run at all.
 
@@ -76,7 +98,7 @@ class DispensedCopy:
 
 
 def build(context: Path, tag: str, dockerfile: str | None = None,
-          timeout_s: int = 900) -> str:
+          timeout_s: int = 900, build_args: dict[str, str] | None = None) -> str:
     """`docker build` the context into `tag`.
 
     Idempotent by tag: rebuilding the same artifact overwrites the same tag
@@ -86,6 +108,11 @@ def build(context: Path, tag: str, dockerfile: str | None = None,
     cmd = [DOCKER, "build", "-t", tag]
     if dockerfile:
         cmd += ["-f", dockerfile]
+    # A build arg rather than a file written into the source tree: what a
+    # generated site needs to know about its own URL prefix is a fact about
+    # this packaging, not about what was generated.
+    for name, value in (build_args or {}).items():
+        cmd += ["--build-arg", f"{name}={value}"]
     cmd.append(str(context))
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True,

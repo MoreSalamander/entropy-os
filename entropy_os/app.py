@@ -1582,8 +1582,12 @@ def create_app(
             copy = dispensed_registry.add(dispensed.Copy(
                 container_id=result["container_id"],
                 port=int(result["host_port"]),
-                kind=result.get("kind", ""), image=result.get("image", "")))
-            result["url"] = dispensed.public_path(copy.container_id)
+                kind=result.get("kind", ""), image=result.get("image", ""),
+                key=result.get("dispense_key", "")))
+            # The stable key when the packager assigned one: a generated site's
+            # bundle was compiled expecting that exact prefix, so serving it
+            # anywhere else 404s its own stylesheet.
+            result["url"] = dispensed.public_path(copy.public_key)
             result["loopback_url"] = copy.origin
         return result
 
