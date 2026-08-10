@@ -32,18 +32,31 @@ from .semantics import primitive_for, slugify
 
 class FederationBridge:
     def __init__(self, gms_url: str = "http://localhost:8080",
-                 platform: str = "one-engine", env: str = "PROD"):
+                 platform: str = "one-engine", env: str = "PROD",
+                 mirror: bool = False):
         self.gms_url = gms_url.rstrip("/")
         self.platform = platform
         self.env = env
         self.enabled = False
         self.status = "not probed"
+        # A mirror serves runs that already happened somewhere else. Their
+        # provenance was published to DataHub on the machine that made them,
+        # and it is already inside the artifacts and the event log this
+        # deployment is showing. So there is no GMS here to reach and nothing
+        # this deployment could emit — reporting "not reachable" would name a
+        # missing organ it was never trying to have.
+        self.mirror = mirror
 
     def dataset_urn(self, name: str, platform: str | None = None) -> str:
         return (f"urn:li:dataset:(urn:li:dataPlatform:"
                 f"{platform or self.platform},{name},{self.env})")
 
     async def probe(self) -> bool:
+        if self.mirror:
+            self.enabled = False
+            self.status = ("mirror — provenance was made on the authoring "
+                           "machine and travels inside these artifacts")
+            return False
         try:
             async with httpx.AsyncClient(timeout=4.0) as c:
                 r = await c.get(f"{self.gms_url}/health")

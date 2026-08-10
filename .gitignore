@@ -8,7 +8,14 @@ dist/
 
 # Absorbed engines write their knowledge graphs, vector indexes and
 # generated artifacts here; runs are state, not source.
-storage_data/
+#
+# Anchored. Unanchored, this also matched deploy/fly/seed/artifacts/*/
+# storage_data/ — the staged mirror — so everything publish.sh wrote there was
+# invisible to git while the ~200 files force-added long ago stayed tracked and
+# stale. `fly deploy` still shipped the fresh copy (its build context is the
+# working tree, not the index), so the deployment was right and the repository
+# was wrong, which is the worst way round: nothing looked broken.
+/storage_data/
 .pytest_cache/
 *.bak.*
 node_modules/

@@ -1,0 +1,1506 @@
+{
+ "project_id": "proj_72b15b1e0a",
+ "saved_at": "2026-08-09T03:38:53.800081+00:00",
+ "nodes": [
+  {
+   "id": "project",
+   "props": {
+    "kind": "project",
+    "label": "GPUcademy 3.0",
+    "purpose": "A comprehensive online platform for learning WebGPU compute shaders, providing an updated curriculum with a focus on recent changes and best practices.",
+    "request": "An updated release of 'GPUcademy 2.0', an educational platform teaching WebGPU compute shaders. The curriculum has been revised to: Recent Changes in WebGPU Compute Shaders, Compute Shaders Fundamentals, Debugging and Profiling Compute Shaders, GPU Architecture, Graphics Pipelines, Memory Management"
+   }
+  },
+  {
+   "id": "req_f866608ed1",
+   "props": {
+    "kind": "requirement",
+    "label": "Users can access a revised curriculum with updated lesson pages on recent changes in WebGPU compute shaders.",
+    "req_kind": "functional",
+    "priority": "must"
+   }
+  },
+  {
+   "id": "req_9dc9f37d56",
+   "props": {
+    "kind": "requirement",
+    "label": "The platform includes graded quizzes to assess user understanding of each concept.",
+    "req_kind": "functional",
+    "priority": "should"
+   }
+  },
+  {
+   "id": "req_b49837d971",
+   "props": {
+    "kind": "requirement",
+    "label": "Per-concept mastery tracking allows users to monitor their progress and identify areas for improvement.",
+    "req_kind": "functional",
+    "priority": "should"
+   }
+  },
+  {
+   "id": "req_7e9de83384",
+   "props": {
+    "kind": "requirement",
+    "label": "The platform stores user progress, quiz results, and concept mastery data in a secure database.",
+    "req_kind": "data",
+    "priority": "must"
+   }
+  },
+  {
+   "id": "req_0b69c45d5b",
+   "props": {
+    "kind": "requirement",
+    "label": "User accounts are protected with password hashing and salting, and sensitive data is encrypted at rest.",
+    "req_kind": "security",
+    "priority": "must"
+   }
+  },
+  {
+   "id": "req_b14925ef9c",
+   "props": {
+    "kind": "requirement",
+    "label": "The platform responds to user input within 2 seconds, on average.",
+    "req_kind": "nonfunctional",
+    "priority": "should"
+   }
+  },
+  {
+   "id": "req_db58fe54d3",
+   "props": {
+    "kind": "requirement",
+    "label": "The platform is accessible on desktop and mobile devices with a minimum screen resolution of 1024x768.",
+    "req_kind": "nonfunctional",
+    "priority": "must"
+   }
+  },
+  {
+   "id": "req_07d44b4300",
+   "props": {
+    "kind": "requirement",
+    "label": "Automated test suite covering every feature",
+    "req_kind": "nonfunctional",
+    "priority": "must"
+   }
+  },
+  {
+   "id": "feat_ba52113d7a",
+   "props": {
+    "kind": "feature",
+    "label": "revised_curriculum",
+    "description": "Users can access a revised curriculum with updated lesson pages on recent changes in WebGPU compute shaders."
+   }
+  },
+  {
+   "id": "feat_c903fa2971",
+   "props": {
+    "kind": "feature",
+    "label": "graded_quizzes",
+    "description": "The platform includes graded quizzes to assess user understanding of each concept."
+   }
+  },
+  {
+   "id": "feat_11dc17b077",
+   "props": {
+    "kind": "feature",
+    "label": "per_concept_mastery_tracking",
+    "description": "Per-concept mastery tracking allows users to monitor their progress and identify areas for improvement."
+   }
+  },
+  {
+   "id": "feat_261473bea6",
+   "props": {
+    "kind": "feature",
+    "label": "secure_database",
+    "description": "The platform stores user progress, quiz results, and concept mastery data in a secure database."
+   }
+  },
+  {
+   "id": "feat_2e95df4403",
+   "props": {
+    "kind": "feature",
+    "label": "password_hashing_and_salting",
+    "description": "User accounts are protected with password hashing and salting."
+   }
+  },
+  {
+   "id": "feat_3151797703",
+   "props": {
+    "kind": "feature",
+    "label": "data_encryption_at_rest",
+    "description": "Sensitive data is encrypted at rest."
+   }
+  },
+  {
+   "id": "feat_083fce20ad",
+   "props": {
+    "kind": "feature",
+    "label": "Cover: Users can access a revised curriculum with updated",
+    "description": "Auto-created to satisfy uncovered MUST requirement: Users can access a revised curriculum with updated lesson pages on recent changes in WebGPU compute shaders."
+   }
+  },
+  {
+   "id": "entity:User",
+   "props": {
+    "kind": "entity",
+    "label": "User",
+    "fields": [
+     "username",
+     "email",
+     "password_hash"
+    ]
+   }
+  },
+  {
+   "id": "entity:Concept",
+   "props": {
+    "kind": "entity",
+    "label": "Concept",
+    "fields": [
+     "title",
+     "description"
+    ]
+   }
+  },
+  {
+   "id": "entity:QuizResult",
+   "props": {
+    "kind": "entity",
+    "label": "QuizResult",
+    "fields": [
+     "concept_id",
+     "user_id",
+     "score"
+    ]
+   }
+  },
+  {
+   "id": "component:curriculum_service",
+   "props": {
+    "kind": "component",
+    "label": "curriculum_service",
+    "purpose": "Provides access to the revised curriculum.",
+    "cmp_kind": "service"
+   }
+  },
+  {
+   "id": "component:database",
+   "props": {
+    "purpose": "SQLite persistence via SQLAlchemy; session-per-request",
+    "cmp_kind": "store"
+   }
+  },
+  {
+   "id": "api:GET /concepts",
+   "props": {
+    "kind": "api",
+    "label": "GET /concepts",
+    "summary": "List Concept records",
+    "action": "list"
+   }
+  },
+  {
+   "id": "api:POST /concepts",
+   "props": {
+    "kind": "api",
+    "label": "POST /concepts",
+    "summary": "Create a Concept",
+    "action": "create"
+   }
+  },
+  {
+   "id": "api:GET /concepts/{item_id}",
+   "props": {
+    "kind": "api",
+    "label": "GET /concepts/{item_id}",
+    "summary": "Fetch one Concept",
+    "action": "get"
+   }
+  },
+  {
+   "id": "api:DELETE /concepts/{item_id}",
+   "props": {
+    "kind": "api",
+    "label": "DELETE /concepts/{item_id}",
+    "summary": "Delete a Concept",
+    "action": "delete"
+   }
+  },
+  {
+   "id": "api:GET /users",
+   "props": {
+    "kind": "api",
+    "label": "GET /users",
+    "summary": "List User records",
+    "action": "list"
+   }
+  },
+  {
+   "id": "api:POST /users",
+   "props": {
+    "kind": "api",
+    "label": "POST /users",
+    "summary": "Create a User",
+    "action": "create"
+   }
+  },
+  {
+   "id": "api:GET /users/{item_id}",
+   "props": {
+    "kind": "api",
+    "label": "GET /users/{item_id}",
+    "summary": "Fetch one User",
+    "action": "get"
+   }
+  },
+  {
+   "id": "api:DELETE /users/{item_id}",
+   "props": {
+    "kind": "api",
+    "label": "DELETE /users/{item_id}",
+    "summary": "Delete a User",
+    "action": "delete"
+   }
+  },
+  {
+   "id": "api:GET /quiz_results",
+   "props": {
+    "kind": "api",
+    "label": "GET /quiz_results",
+    "summary": "List QuizResult records",
+    "action": "list"
+   }
+  },
+  {
+   "id": "api:POST /quiz_results",
+   "props": {
+    "kind": "api",
+    "label": "POST /quiz_results",
+    "summary": "Create a QuizResult",
+    "action": "create"
+   }
+  },
+  {
+   "id": "api:GET /quiz_results/{item_id}",
+   "props": {
+    "kind": "api",
+    "label": "GET /quiz_results/{item_id}",
+    "summary": "Fetch one QuizResult",
+    "action": "get"
+   }
+  },
+  {
+   "id": "api:DELETE /quiz_results/{item_id}",
+   "props": {
+    "kind": "api",
+    "label": "DELETE /quiz_results/{item_id}",
+    "summary": "Delete a QuizResult",
+    "action": "delete"
+   }
+  },
+  {
+   "id": "component:web_ui",
+   "props": {
+    "kind": "component",
+    "label": "web_ui",
+    "purpose": "dependency-free static frontend over the API",
+    "cmp_kind": "ui"
+   }
+  },
+  {
+   "id": "adr_482039618b",
+   "props": {
+    "kind": "decision",
+    "label": "Stack: FastAPI + SQLAlchemy/SQLite + pytest + static JS",
+    "decision": "Generate a modular FastAPI service with SQLite persistence, pytest verification, and a dependency-free static frontend.",
+    "rationale": "Local-first constraint; single proven deep stack over shallow multi-stack pretense; every layer verifiable offline. Pattern priors considered: router_service_split, session_per_request, schema_in_schema_out, tests_per_feature"
+   }
+  },
+  {
+   "id": "ev_f9f80ef95a",
+   "props": {
+    "kind": "evidence",
+    "label": "fastapi 0.141.1",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/fastapi/"
+   }
+  },
+  {
+   "id": "ev_14afe0acea",
+   "props": {
+    "kind": "evidence",
+    "label": "sqlalchemy 2.0.51",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/SQLAlchemy/"
+   }
+  },
+  {
+   "id": "ev_9490bf9bea",
+   "props": {
+    "kind": "evidence",
+    "label": "pydantic 2.13.4",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/pydantic/"
+   }
+  },
+  {
+   "id": "ev_3740932c20",
+   "props": {
+    "kind": "evidence",
+    "label": "uvicorn 0.52.1",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/uvicorn/"
+   }
+  },
+  {
+   "id": "ev_df09c4db55",
+   "props": {
+    "kind": "evidence",
+    "label": "httpx 0.28.1",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/httpx/"
+   }
+  },
+  {
+   "id": "ev_3cd1ca3538",
+   "props": {
+    "kind": "evidence",
+    "label": "pytest 9.1.1",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/pytest/"
+   }
+  },
+  {
+   "id": "ev_3a1319d9f5",
+   "props": {
+    "kind": "evidence",
+    "label": "fastapi official documentation",
+    "agent": "Documentation Research Agent",
+    "topic": "docs",
+    "url": "https://fastapi.tiangolo.com/"
+   }
+  },
+  {
+   "id": "ev_32e1d051f9",
+   "props": {
+    "kind": "evidence",
+    "label": "sqlalchemy official documentation",
+    "agent": "Documentation Research Agent",
+    "topic": "docs",
+    "url": "https://docs.sqlalchemy.org/en/20/"
+   }
+  },
+  {
+   "id": "ev_c9c9209755",
+   "props": {
+    "kind": "evidence",
+    "label": "pydantic official documentation",
+    "agent": "Documentation Research Agent",
+    "topic": "docs",
+    "url": "https://docs.pydantic.dev/latest/"
+   }
+  },
+  {
+   "id": "ev_60f48b59e7",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: fastapi \u2014 3 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=fastapi"
+   }
+  },
+  {
+   "id": "ev_ce70651b04",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: sqlalchemy \u2014 6 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=sqlalchemy"
+   }
+  },
+  {
+   "id": "ev_fd1adda826",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: pydantic \u2014 4 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=pydantic"
+   }
+  },
+  {
+   "id": "ev_ca1f954162",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: uvicorn \u2014 4 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=uvicorn"
+   }
+  },
+  {
+   "id": "ev_eed0f9bf53",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: httpx \u2014 2 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=httpx"
+   }
+  },
+  {
+   "id": "ev_3a52bf7eeb",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: pytest \u2014 2 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=pytest"
+   }
+  },
+  {
+   "id": "ev_4a0909153c",
+   "props": {
+    "kind": "evidence",
+    "label": "Ask HN: Exploring FastAPI depths \u2013 would you tune into advanced screencasts?",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://news.ycombinator.com/item?id=38793677"
+   }
+  },
+  {
+   "id": "ev_0559a51ab7",
+   "props": {
+    "kind": "evidence",
+    "label": "Show HN: Secure.py \u2013 Simplify HTTP Security Headers for Python Web Apps",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://github.com/TypeError/secure"
+   }
+  },
+  {
+   "id": "file:requirements.txt",
+   "props": {
+    "kind": "file",
+    "label": "requirements.txt",
+    "role": "config"
+   }
+  },
+  {
+   "id": "file:requirements-dev.txt",
+   "props": {
+    "kind": "file",
+    "label": "requirements-dev.txt",
+    "role": "config"
+   }
+  },
+  {
+   "id": "file:Dockerfile",
+   "props": {
+    "kind": "file",
+    "label": "Dockerfile",
+    "role": "infra"
+   }
+  },
+  {
+   "id": "file:.gitignore",
+   "props": {
+    "kind": "file",
+    "label": ".gitignore",
+    "role": "config"
+   }
+  },
+  {
+   "id": "file:ruff.toml",
+   "props": {
+    "kind": "file",
+    "label": "ruff.toml",
+    "role": "config"
+   }
+  },
+  {
+   "id": "file:app/__init__.py",
+   "props": {
+    "kind": "file",
+    "label": "app/__init__.py",
+    "role": "package"
+   }
+  },
+  {
+   "id": "file:app/db.py",
+   "props": {
+    "kind": "file",
+    "label": "app/db.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/models.py",
+   "props": {
+    "kind": "file",
+    "label": "app/models.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/schemas.py",
+   "props": {
+    "kind": "file",
+    "label": "app/schemas.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/services/curriculum_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/curriculum_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/routers/curriculum_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/curriculum_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/main.py",
+   "props": {
+    "kind": "file",
+    "label": "app/main.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/routers/__init__.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/__init__.py",
+    "role": "package"
+   }
+  },
+  {
+   "id": "file:app/services/__init__.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/__init__.py",
+    "role": "package"
+   }
+  },
+  {
+   "id": "file:static/index.html",
+   "props": {
+    "kind": "file",
+    "label": "static/index.html",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:static/app.js",
+   "props": {
+    "kind": "file",
+    "label": "static/app.js",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:tests/conftest.py",
+   "props": {
+    "kind": "file",
+    "label": "tests/conftest.py",
+    "role": "test"
+   }
+  },
+  {
+   "id": "file:tests/test_curriculum_service.py",
+   "props": {
+    "kind": "file",
+    "label": "tests/test_curriculum_service.py",
+    "role": "test"
+   }
+  },
+  {
+   "id": "test:tests/test_curriculum_service.py::test_concept_create_and_list",
+   "props": {
+    "kind": "test",
+    "label": "test_concept_create_and_list",
+    "path": "tests/test_curriculum_service.py"
+   }
+  },
+  {
+   "id": "test:tests/test_curriculum_service.py::test_concept_missing_returns_404",
+   "props": {
+    "kind": "test",
+    "label": "test_concept_missing_returns_404",
+    "path": "tests/test_curriculum_service.py"
+   }
+  },
+  {
+   "id": "test:tests/test_curriculum_service.py::test_user_create_and_list",
+   "props": {
+    "kind": "test",
+    "label": "test_user_create_and_list",
+    "path": "tests/test_curriculum_service.py"
+   }
+  },
+  {
+   "id": "test:tests/test_curriculum_service.py::test_user_missing_returns_404",
+   "props": {
+    "kind": "test",
+    "label": "test_user_missing_returns_404",
+    "path": "tests/test_curriculum_service.py"
+   }
+  },
+  {
+   "id": "test:tests/test_curriculum_service.py::test_quiz_result_create_and_list",
+   "props": {
+    "kind": "test",
+    "label": "test_quiz_result_create_and_list",
+    "path": "tests/test_curriculum_service.py"
+   }
+  },
+  {
+   "id": "test:tests/test_curriculum_service.py::test_quiz_result_missing_returns_404",
+   "props": {
+    "kind": "test",
+    "label": "test_quiz_result_missing_returns_404",
+    "path": "tests/test_curriculum_service.py"
+   }
+  },
+  {
+   "id": "file:tests/test_smoke.py",
+   "props": {
+    "kind": "file",
+    "label": "tests/test_smoke.py",
+    "role": "test"
+   }
+  },
+  {
+   "id": "file:docs/architecture.md",
+   "props": {
+    "kind": "file",
+    "label": "docs/architecture.md",
+    "role": "doc"
+   }
+  },
+  {
+   "id": "doc:docs/architecture.md",
+   "props": {
+    "kind": "doc",
+    "label": "docs/architecture.md"
+   }
+  },
+  {
+   "id": "file:docs/api.md",
+   "props": {
+    "kind": "file",
+    "label": "docs/api.md",
+    "role": "doc"
+   }
+  },
+  {
+   "id": "doc:docs/api.md",
+   "props": {
+    "kind": "doc",
+    "label": "docs/api.md"
+   }
+  },
+  {
+   "id": "file:README.md",
+   "props": {
+    "kind": "file",
+    "label": "README.md",
+    "role": "doc"
+   }
+  }
+ ],
+ "edges": [
+  {
+   "src": "project",
+   "dst": "req_f866608ed1",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_9dc9f37d56",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_b49837d971",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_7e9de83384",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_0b69c45d5b",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_b14925ef9c",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_db58fe54d3",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_07d44b4300",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "req_f866608ed1",
+   "dst": "feat_083fce20ad",
+   "kind": "satisfied_by",
+   "props": {
+    "kind": "satisfied_by"
+   }
+  },
+  {
+   "src": "feat_ba52113d7a",
+   "dst": "component:curriculum_service",
+   "kind": "implemented_by",
+   "props": {
+    "kind": "implemented_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "component:database",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "entity:Concept",
+   "kind": "owns",
+   "props": {
+    "kind": "owns"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "entity:User",
+   "kind": "owns",
+   "props": {
+    "kind": "owns"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "entity:QuizResult",
+   "kind": "owns",
+   "props": {
+    "kind": "owns"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "api:GET /concepts",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "api:POST /concepts",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "api:GET /concepts/{item_id}",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "api:DELETE /concepts/{item_id}",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "api:GET /users",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "api:POST /users",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "api:GET /users/{item_id}",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "api:DELETE /users/{item_id}",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "api:GET /quiz_results",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "api:POST /quiz_results",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "api:GET /quiz_results/{item_id}",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "api:DELETE /quiz_results/{item_id}",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "adr_482039618b",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_f9f80ef95a",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_14afe0acea",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_9490bf9bea",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_3740932c20",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_df09c4db55",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_3cd1ca3538",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_3a1319d9f5",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_32e1d051f9",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_c9c9209755",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_60f48b59e7",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_ce70651b04",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_fd1adda826",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_ca1f954162",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_eed0f9bf53",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_3a52bf7eeb",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_4a0909153c",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "ev_0559a51ab7",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "file:app/services/curriculum_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "file:app/routers/curriculum_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "file:app/main.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "file:tests/test_curriculum_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "test:tests/test_curriculum_service.py::test_concept_create_and_list",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "test:tests/test_curriculum_service.py::test_concept_missing_returns_404",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "test:tests/test_curriculum_service.py::test_user_create_and_list",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "test:tests/test_curriculum_service.py::test_user_missing_returns_404",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "test:tests/test_curriculum_service.py::test_quiz_result_create_and_list",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "test:tests/test_curriculum_service.py::test_quiz_result_missing_returns_404",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "file:docs/architecture.md",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "file:docs/api.md",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:curriculum_service",
+   "dst": "file:README.md",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "adr_482039618b",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:requirements.txt",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:requirements-dev.txt",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:Dockerfile",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:.gitignore",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:ruff.toml",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/__init__.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/db.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/models.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/schemas.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/routers/__init__.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/services/__init__.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:tests/conftest.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:tests/test_smoke.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "api:GET /concepts",
+   "dst": "entity:Concept",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:POST /concepts",
+   "dst": "entity:Concept",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:GET /concepts/{item_id}",
+   "dst": "entity:Concept",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:DELETE /concepts/{item_id}",
+   "dst": "entity:Concept",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:GET /users",
+   "dst": "entity:User",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:POST /users",
+   "dst": "entity:User",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:GET /users/{item_id}",
+   "dst": "entity:User",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:DELETE /users/{item_id}",
+   "dst": "entity:User",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:GET /quiz_results",
+   "dst": "entity:QuizResult",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:POST /quiz_results",
+   "dst": "entity:QuizResult",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:GET /quiz_results/{item_id}",
+   "dst": "entity:QuizResult",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:DELETE /quiz_results/{item_id}",
+   "dst": "entity:QuizResult",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "component:curriculum_service",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "adr_482039618b",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "file:static/index.html",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "file:static/app.js",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "test:tests/test_curriculum_service.py::test_concept_create_and_list",
+   "dst": "feat_ba52113d7a",
+   "kind": "verifies",
+   "props": {
+    "kind": "verifies"
+   }
+  },
+  {
+   "src": "test:tests/test_curriculum_service.py::test_concept_missing_returns_404",
+   "dst": "feat_ba52113d7a",
+   "kind": "verifies",
+   "props": {
+    "kind": "verifies"
+   }
+  },
+  {
+   "src": "test:tests/test_curriculum_service.py::test_user_create_and_list",
+   "dst": "feat_ba52113d7a",
+   "kind": "verifies",
+   "props": {
+    "kind": "verifies"
+   }
+  },
+  {
+   "src": "test:tests/test_curriculum_service.py::test_user_missing_returns_404",
+   "dst": "feat_ba52113d7a",
+   "kind": "verifies",
+   "props": {
+    "kind": "verifies"
+   }
+  },
+  {
+   "src": "test:tests/test_curriculum_service.py::test_quiz_result_create_and_list",
+   "dst": "feat_ba52113d7a",
+   "kind": "verifies",
+   "props": {
+    "kind": "verifies"
+   }
+  },
+  {
+   "src": "test:tests/test_curriculum_service.py::test_quiz_result_missing_returns_404",
+   "dst": "feat_ba52113d7a",
+   "kind": "verifies",
+   "props": {
+    "kind": "verifies"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:curriculum_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:database",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:web_ui",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/api.md",
+   "dst": "component:curriculum_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  }
+ ]
+}

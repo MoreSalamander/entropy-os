@@ -299,7 +299,14 @@ class CompositeEngine:
         the architecture promises. Members doing work is necessary but not
         sufficient — without DataHub there is no provenance, and without
         Temporal there is no durability across a restart. Both are core
-        promises, so their absence reads as degraded rather than fine."""
+        promises, so their absence reads as degraded rather than fine.
+
+        A mirror promises something different, and holding it to this one
+        makes the report wrong in the other direction. It serves runs that
+        already happened elsewhere: there is nothing here to orchestrate and
+        no provenance left to publish, because both were done on the machine
+        that made them. So in mirror posture those two checks describe what
+        this deployment is instead of naming organs it never wanted."""
         keys = list(self.members)
         results = await asyncio.gather(
             *(self.members[k].health() for k in keys),
@@ -317,15 +324,21 @@ class CompositeEngine:
                 checks[f"member:{k}"] = f"unreachable ({type(r).__name__})"
                 status = "degraded"
 
+        mirror = getattr(self.federation, "mirror", False)
         await self.federation.probe()
         checks["datahub_federation"] = self.federation.status
-        if not self.federation.enabled:
+        if not self.federation.enabled and not mirror:
             status = "degraded"
-        checks["orchestrator"] = ("temporal (durable)" if self.workflow_launcher
-                                  else "inline (degraded: no durable "
-                                       "execution, retries, or human gates)")
-        if self.workflow_launcher is None:
-            status = "degraded"
+        if mirror:
+            checks["posture"] = ("read-only mirror — composed runs are served, "
+                                 "not executed")
+            checks["orchestrator"] = "none needed (mirror executes nothing)"
+        else:
+            checks["orchestrator"] = ("temporal (durable)" if self.workflow_launcher
+                                      else "inline (degraded: no durable "
+                                           "execution, retries, or human gates)")
+            if self.workflow_launcher is None:
+                status = "degraded"
 
         # No member answering at all is not degradation, it is absence: the
         # composite has nothing to compose.

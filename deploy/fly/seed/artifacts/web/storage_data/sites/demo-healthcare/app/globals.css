@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+/* Design tokens — synthesized by design-engine (ds_4e36241a1a40).
+   Palette passed WCAG AA contrast validation (auto-fixed where needed). */
+@theme {
+  --color-background: #0b0f17;
+  --color-surface: #131a26;
+  --color-text: #e8edf5;
+  --color-muted: #8b98ab;
+  --color-accent: #4f8ff7;
+  --font-heading: "Playfair Display", serif;
+  --font-body: "Playfair Display", serif;
+  --font-mono: "JetBrains Mono", monospace;
+  --radius-token: 12px;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Accessible focus treatment everywhere */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  background: var(--color-accent);
+  color: var(--color-background);
+  padding: 0.6rem 1rem;
+  border-radius: 0 0 8px 0;
+}
+.skip-link:focus { left: 0; }
+
+/* Scroll reveal (toggled by components/Reveal.tsx) */
+.reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity .6s ease, transform .6s ease;
+}
+.reveal.is-visible { opacity: 1; transform: none; }
+
+/* Hero/CTA gradient wash keyed to the accent token */
+.hero-wash {
+  background-image:
+    radial-gradient(60rem 30rem at 85% -10%,
+      color-mix(in srgb, var(--color-accent) 14%, transparent), transparent 60%),
+    radial-gradient(40rem 24rem at -10% 20%,
+      color-mix(in srgb, var(--color-accent) 8%, transparent), transparent 55%);
+}
+
+.card-hover { transition: transform .6s ease, border-color .6s ease; }
+.card-hover:hover { transform: translateY(-3px); border-color: var(--color-muted); }
+
+/* Motion opt-out wins over everything above */
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+  .card-hover, .card-hover:hover { transition: none; transform: none; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

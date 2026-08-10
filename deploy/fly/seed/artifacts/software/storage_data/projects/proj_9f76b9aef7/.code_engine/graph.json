@@ -1,0 +1,1527 @@
+{
+ "project_id": "proj_9f76b9aef7",
+ "saved_at": "2026-08-09T02:27:52.080299+00:00",
+ "nodes": [
+  {
+   "id": "project",
+   "props": {
+    "kind": "project",
+    "label": "PhoneFormatter",
+    "purpose": "A simple web service that takes a raw phone number as input and returns it in a standardized, human-readable format.",
+    "request": "a function that formats a phone number"
+   }
+  },
+  {
+   "id": "req_307aff7003",
+   "props": {
+    "kind": "requirement",
+    "label": "Accepts raw phone number input in various formats (e.g. +1-800-555-1234, 18005551234)",
+    "req_kind": "functional",
+    "priority": "must"
+   }
+  },
+  {
+   "id": "req_48217e39ba",
+   "props": {
+    "kind": "requirement",
+    "label": "Returns the formatted phone number in a standardized format (e.g. (800) 555-1234)",
+    "req_kind": "functional",
+    "priority": "must"
+   }
+  },
+  {
+   "id": "req_9b6581dd83",
+   "props": {
+    "kind": "requirement",
+    "label": "Stores and retrieves a list of supported country codes for formatting",
+    "req_kind": "data",
+    "priority": "should"
+   }
+  },
+  {
+   "id": "req_4a15c7b738",
+   "props": {
+    "kind": "requirement",
+    "label": "Validates input to prevent SQL injection or cross-site scripting attacks",
+    "req_kind": "security",
+    "priority": "must"
+   }
+  },
+  {
+   "id": "req_c6916628e4",
+   "props": {
+    "kind": "requirement",
+    "label": "Handles a minimum of 100 concurrent requests per second without significant performance degradation",
+    "req_kind": "nonfunctional",
+    "priority": "should"
+   }
+  },
+  {
+   "id": "req_9b37570847",
+   "props": {
+    "kind": "requirement",
+    "label": "Supports internationalization and localization for phone number formatting",
+    "req_kind": "nonfunctional",
+    "priority": "could"
+   }
+  },
+  {
+   "id": "req_8dd961948f",
+   "props": {
+    "kind": "requirement",
+    "label": "Automated test suite covering every feature",
+    "req_kind": "nonfunctional",
+    "priority": "must"
+   }
+  },
+  {
+   "id": "feat_f25873675f",
+   "props": {
+    "kind": "feature",
+    "label": "Accepts raw phone number input in various formats",
+    "description": "Accepts raw phone number input in various formats (e.g. +1-800-555-1234, 18005551234)"
+   }
+  },
+  {
+   "id": "feat_367cd798cc",
+   "props": {
+    "kind": "feature",
+    "label": "Returns the formatted phone number in a standardized format",
+    "description": "Returns the formatted phone number in a standardized format (e.g. (800) 555-1234)"
+   }
+  },
+  {
+   "id": "feat_302bb9976f",
+   "props": {
+    "kind": "feature",
+    "label": "Stores and retrieves a list of supported country codes for formatting",
+    "description": "Stores and retrieves a list of supported country codes for formatting"
+   }
+  },
+  {
+   "id": "feat_c81aee67ac",
+   "props": {
+    "kind": "feature",
+    "label": "Cover: Accepts raw phone number input in various formats ",
+    "description": "Auto-created to satisfy uncovered MUST requirement: Accepts raw phone number input in various formats (e.g. +1-800-555-1234, 18005551234)"
+   }
+  },
+  {
+   "id": "feat_36973026e9",
+   "props": {
+    "kind": "feature",
+    "label": "Cover: Returns the formatted phone number in a standardiz",
+    "description": "Auto-created to satisfy uncovered MUST requirement: Returns the formatted phone number in a standardized format (e.g. (800) 555-1234)"
+   }
+  },
+  {
+   "id": "entity:CountryCode",
+   "props": {
+    "kind": "entity",
+    "label": "CountryCode",
+    "fields": [
+     "code",
+     "description"
+    ]
+   }
+  },
+  {
+   "id": "entity:PhoneNumber",
+   "props": {
+    "kind": "entity",
+    "label": "PhoneNumber",
+    "fields": [
+     "number",
+     "country_code"
+    ]
+   }
+  },
+  {
+   "id": "component:phone_formatter_service",
+   "props": {
+    "kind": "component",
+    "label": "phone_formatter_service",
+    "purpose": "Handles phone number formatting and validation",
+    "cmp_kind": "service"
+   }
+  },
+  {
+   "id": "component:database",
+   "props": {
+    "purpose": "SQLite persistence via SQLAlchemy; session-per-request",
+    "cmp_kind": "store"
+   }
+  },
+  {
+   "id": "api:POST /format-phone-number",
+   "props": {
+    "kind": "api",
+    "label": "POST /format-phone-number",
+    "summary": "Format a phone number",
+    "action": "create"
+   }
+  },
+  {
+   "id": "api:GET /phone_numbers",
+   "props": {
+    "kind": "api",
+    "label": "GET /phone_numbers",
+    "summary": "List PhoneNumber records",
+    "action": "list"
+   }
+  },
+  {
+   "id": "api:POST /phone_numbers",
+   "props": {
+    "kind": "api",
+    "label": "POST /phone_numbers",
+    "summary": "Create a PhoneNumber",
+    "action": "create"
+   }
+  },
+  {
+   "id": "api:GET /phone_numbers/{item_id}",
+   "props": {
+    "kind": "api",
+    "label": "GET /phone_numbers/{item_id}",
+    "summary": "Fetch one PhoneNumber",
+    "action": "get"
+   }
+  },
+  {
+   "id": "api:DELETE /phone_numbers/{item_id}",
+   "props": {
+    "kind": "api",
+    "label": "DELETE /phone_numbers/{item_id}",
+    "summary": "Delete a PhoneNumber",
+    "action": "delete"
+   }
+  },
+  {
+   "id": "component:country_code_repository",
+   "props": {
+    "kind": "component",
+    "label": "country_code_repository",
+    "purpose": "Stores and retrieves country codes for formatting",
+    "cmp_kind": "service"
+   }
+  },
+  {
+   "id": "api:GET /country-codes",
+   "props": {
+    "kind": "api",
+    "label": "GET /country-codes",
+    "summary": "Get all country codes",
+    "action": "list"
+   }
+  },
+  {
+   "id": "api:POST /country-code",
+   "props": {
+    "kind": "api",
+    "label": "POST /country-code",
+    "summary": "Create a new country code",
+    "action": "create"
+   }
+  },
+  {
+   "id": "api:GET /country_codes",
+   "props": {
+    "kind": "api",
+    "label": "GET /country_codes",
+    "summary": "List CountryCode records",
+    "action": "list"
+   }
+  },
+  {
+   "id": "api:POST /country_codes",
+   "props": {
+    "kind": "api",
+    "label": "POST /country_codes",
+    "summary": "Create a CountryCode",
+    "action": "create"
+   }
+  },
+  {
+   "id": "api:GET /country_codes/{item_id}",
+   "props": {
+    "kind": "api",
+    "label": "GET /country_codes/{item_id}",
+    "summary": "Fetch one CountryCode",
+    "action": "get"
+   }
+  },
+  {
+   "id": "api:DELETE /country_codes/{item_id}",
+   "props": {
+    "kind": "api",
+    "label": "DELETE /country_codes/{item_id}",
+    "summary": "Delete a CountryCode",
+    "action": "delete"
+   }
+  },
+  {
+   "id": "component:web_ui",
+   "props": {
+    "kind": "component",
+    "label": "web_ui",
+    "purpose": "dependency-free static frontend over the API",
+    "cmp_kind": "ui"
+   }
+  },
+  {
+   "id": "adr_eae52701e9",
+   "props": {
+    "kind": "decision",
+    "label": "Stack: FastAPI + SQLAlchemy/SQLite + pytest + static JS",
+    "decision": "Generate a modular FastAPI service with SQLite persistence, pytest verification, and a dependency-free static frontend.",
+    "rationale": "Local-first constraint; single proven deep stack over shallow multi-stack pretense; every layer verifiable offline. Pattern priors considered: router_service_split, session_per_request, schema_in_schema_out, tests_per_feature"
+   }
+  },
+  {
+   "id": "ev_bbeabe6574",
+   "props": {
+    "kind": "evidence",
+    "label": "fastapi 0.141.1",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/fastapi/"
+   }
+  },
+  {
+   "id": "ev_6aac1e85e5",
+   "props": {
+    "kind": "evidence",
+    "label": "sqlalchemy 2.0.51",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/SQLAlchemy/"
+   }
+  },
+  {
+   "id": "ev_9fba7bdc4b",
+   "props": {
+    "kind": "evidence",
+    "label": "pydantic 2.13.4",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/pydantic/"
+   }
+  },
+  {
+   "id": "ev_b2ebf28b57",
+   "props": {
+    "kind": "evidence",
+    "label": "uvicorn 0.52.1",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/uvicorn/"
+   }
+  },
+  {
+   "id": "ev_ef8465f6e6",
+   "props": {
+    "kind": "evidence",
+    "label": "httpx 0.28.1",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/httpx/"
+   }
+  },
+  {
+   "id": "ev_34ea0616f8",
+   "props": {
+    "kind": "evidence",
+    "label": "pytest 9.1.1",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/pytest/"
+   }
+  },
+  {
+   "id": "ev_cd4d90361d",
+   "props": {
+    "kind": "evidence",
+    "label": "fastapi official documentation",
+    "agent": "Documentation Research Agent",
+    "topic": "docs",
+    "url": "https://fastapi.tiangolo.com/"
+   }
+  },
+  {
+   "id": "ev_e2fd59efc0",
+   "props": {
+    "kind": "evidence",
+    "label": "sqlalchemy official documentation",
+    "agent": "Documentation Research Agent",
+    "topic": "docs",
+    "url": "https://docs.sqlalchemy.org/en/20/"
+   }
+  },
+  {
+   "id": "ev_d152f04606",
+   "props": {
+    "kind": "evidence",
+    "label": "pydantic official documentation",
+    "agent": "Documentation Research Agent",
+    "topic": "docs",
+    "url": "https://docs.pydantic.dev/latest/"
+   }
+  },
+  {
+   "id": "ev_4e087530b0",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: fastapi \u2014 3 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=fastapi"
+   }
+  },
+  {
+   "id": "ev_dedaf8892d",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: sqlalchemy \u2014 6 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=sqlalchemy"
+   }
+  },
+  {
+   "id": "ev_11d25ef987",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: pydantic \u2014 4 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=pydantic"
+   }
+  },
+  {
+   "id": "ev_9cf66f9cda",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: uvicorn \u2014 4 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=uvicorn"
+   }
+  },
+  {
+   "id": "ev_efb487168a",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: httpx \u2014 2 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=httpx"
+   }
+  },
+  {
+   "id": "ev_e476322b30",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: pytest \u2014 2 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=pytest"
+   }
+  },
+  {
+   "id": "ev_4aec3f67bc",
+   "props": {
+    "kind": "evidence",
+    "label": "Ask HN: Exploring FastAPI depths \u2013 would you tune into advanced screencasts?",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://news.ycombinator.com/item?id=38793677"
+   }
+  },
+  {
+   "id": "ev_922d74f0b1",
+   "props": {
+    "kind": "evidence",
+    "label": "Show HN: Secure.py \u2013 Simplify HTTP Security Headers for Python Web Apps",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://github.com/TypeError/secure"
+   }
+  },
+  {
+   "id": "file:requirements.txt",
+   "props": {
+    "kind": "file",
+    "label": "requirements.txt",
+    "role": "config"
+   }
+  },
+  {
+   "id": "file:requirements-dev.txt",
+   "props": {
+    "kind": "file",
+    "label": "requirements-dev.txt",
+    "role": "config"
+   }
+  },
+  {
+   "id": "file:Dockerfile",
+   "props": {
+    "kind": "file",
+    "label": "Dockerfile",
+    "role": "infra"
+   }
+  },
+  {
+   "id": "file:.gitignore",
+   "props": {
+    "kind": "file",
+    "label": ".gitignore",
+    "role": "config"
+   }
+  },
+  {
+   "id": "file:ruff.toml",
+   "props": {
+    "kind": "file",
+    "label": "ruff.toml",
+    "role": "config"
+   }
+  },
+  {
+   "id": "file:app/__init__.py",
+   "props": {
+    "kind": "file",
+    "label": "app/__init__.py",
+    "role": "package"
+   }
+  },
+  {
+   "id": "file:app/db.py",
+   "props": {
+    "kind": "file",
+    "label": "app/db.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/models.py",
+   "props": {
+    "kind": "file",
+    "label": "app/models.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/schemas.py",
+   "props": {
+    "kind": "file",
+    "label": "app/schemas.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/services/phone_formatter_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/phone_formatter_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "problem:9000978736",
+   "props": {
+    "kind": "problem",
+    "label": "custom endpoint stub: POST /format-phone-number",
+    "source": "codegen",
+    "recorded_at": "2026-08-09T02:27:51.204599+00:00"
+   }
+  },
+  {
+   "id": "file:app/routers/phone_formatter_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/phone_formatter_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/services/country_code_repository.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/country_code_repository.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "problem:4484153614",
+   "props": {
+    "kind": "problem",
+    "label": "custom endpoint stub: GET /country-codes",
+    "source": "codegen",
+    "recorded_at": "2026-08-09T02:27:51.204989+00:00"
+   }
+  },
+  {
+   "id": "problem:7719587764",
+   "props": {
+    "kind": "problem",
+    "label": "custom endpoint stub: POST /country-code",
+    "source": "codegen",
+    "recorded_at": "2026-08-09T02:27:51.205011+00:00"
+   }
+  },
+  {
+   "id": "file:app/routers/country_code_repository.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/country_code_repository.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/main.py",
+   "props": {
+    "kind": "file",
+    "label": "app/main.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/routers/__init__.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/__init__.py",
+    "role": "package"
+   }
+  },
+  {
+   "id": "file:app/services/__init__.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/__init__.py",
+    "role": "package"
+   }
+  },
+  {
+   "id": "file:static/index.html",
+   "props": {
+    "kind": "file",
+    "label": "static/index.html",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:static/app.js",
+   "props": {
+    "kind": "file",
+    "label": "static/app.js",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:tests/conftest.py",
+   "props": {
+    "kind": "file",
+    "label": "tests/conftest.py",
+    "role": "test"
+   }
+  },
+  {
+   "id": "file:tests/test_phone_formatter_service.py",
+   "props": {
+    "kind": "file",
+    "label": "tests/test_phone_formatter_service.py",
+    "role": "test"
+   }
+  },
+  {
+   "id": "test:tests/test_phone_formatter_service.py::test_phone_number_create_and_list",
+   "props": {
+    "kind": "test",
+    "label": "test_phone_number_create_and_list",
+    "path": "tests/test_phone_formatter_service.py"
+   }
+  },
+  {
+   "id": "test:tests/test_phone_formatter_service.py::test_phone_number_missing_returns_404",
+   "props": {
+    "kind": "test",
+    "label": "test_phone_number_missing_returns_404",
+    "path": "tests/test_phone_formatter_service.py"
+   }
+  },
+  {
+   "id": "file:tests/test_country_code_repository.py",
+   "props": {
+    "kind": "file",
+    "label": "tests/test_country_code_repository.py",
+    "role": "test"
+   }
+  },
+  {
+   "id": "test:tests/test_country_code_repository.py::test_country_code_create_and_list",
+   "props": {
+    "kind": "test",
+    "label": "test_country_code_create_and_list",
+    "path": "tests/test_country_code_repository.py"
+   }
+  },
+  {
+   "id": "test:tests/test_country_code_repository.py::test_country_code_missing_returns_404",
+   "props": {
+    "kind": "test",
+    "label": "test_country_code_missing_returns_404",
+    "path": "tests/test_country_code_repository.py"
+   }
+  },
+  {
+   "id": "file:tests/test_smoke.py",
+   "props": {
+    "kind": "file",
+    "label": "tests/test_smoke.py",
+    "role": "test"
+   }
+  },
+  {
+   "id": "file:docs/architecture.md",
+   "props": {
+    "kind": "file",
+    "label": "docs/architecture.md",
+    "role": "doc"
+   }
+  },
+  {
+   "id": "doc:docs/architecture.md",
+   "props": {
+    "kind": "doc",
+    "label": "docs/architecture.md"
+   }
+  },
+  {
+   "id": "file:docs/api.md",
+   "props": {
+    "kind": "file",
+    "label": "docs/api.md",
+    "role": "doc"
+   }
+  },
+  {
+   "id": "doc:docs/api.md",
+   "props": {
+    "kind": "doc",
+    "label": "docs/api.md"
+   }
+  },
+  {
+   "id": "file:README.md",
+   "props": {
+    "kind": "file",
+    "label": "README.md",
+    "role": "doc"
+   }
+  }
+ ],
+ "edges": [
+  {
+   "src": "project",
+   "dst": "req_307aff7003",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_48217e39ba",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_9b6581dd83",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_4a15c7b738",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_c6916628e4",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_9b37570847",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_8dd961948f",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "req_307aff7003",
+   "dst": "feat_c81aee67ac",
+   "kind": "satisfied_by",
+   "props": {
+    "kind": "satisfied_by"
+   }
+  },
+  {
+   "src": "req_48217e39ba",
+   "dst": "feat_36973026e9",
+   "kind": "satisfied_by",
+   "props": {
+    "kind": "satisfied_by"
+   }
+  },
+  {
+   "src": "feat_f25873675f",
+   "dst": "component:phone_formatter_service",
+   "kind": "implemented_by",
+   "props": {
+    "kind": "implemented_by"
+   }
+  },
+  {
+   "src": "feat_367cd798cc",
+   "dst": "component:phone_formatter_service",
+   "kind": "implemented_by",
+   "props": {
+    "kind": "implemented_by"
+   }
+  },
+  {
+   "src": "feat_302bb9976f",
+   "dst": "component:country_code_repository",
+   "kind": "implemented_by",
+   "props": {
+    "kind": "implemented_by"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "component:database",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "entity:PhoneNumber",
+   "kind": "owns",
+   "props": {
+    "kind": "owns"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "api:POST /format-phone-number",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "api:GET /phone_numbers",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "api:POST /phone_numbers",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "api:GET /phone_numbers/{item_id}",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "api:DELETE /phone_numbers/{item_id}",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "adr_eae52701e9",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "ev_bbeabe6574",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "ev_6aac1e85e5",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "ev_9fba7bdc4b",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "ev_b2ebf28b57",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "ev_ef8465f6e6",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "ev_34ea0616f8",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "ev_cd4d90361d",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "ev_e2fd59efc0",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "ev_d152f04606",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "ev_4e087530b0",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "ev_dedaf8892d",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "ev_11d25ef987",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "ev_9cf66f9cda",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "ev_efb487168a",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "ev_e476322b30",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "ev_4aec3f67bc",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "ev_922d74f0b1",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "file:app/services/phone_formatter_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "file:app/routers/phone_formatter_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "file:app/main.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "file:tests/test_phone_formatter_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "test:tests/test_phone_formatter_service.py::test_phone_number_create_and_list",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "test:tests/test_phone_formatter_service.py::test_phone_number_missing_returns_404",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "file:docs/architecture.md",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "file:docs/api.md",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:phone_formatter_service",
+   "dst": "file:README.md",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "adr_eae52701e9",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:requirements.txt",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:requirements-dev.txt",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:Dockerfile",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:.gitignore",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:ruff.toml",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/__init__.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/db.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/models.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/schemas.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/routers/__init__.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/services/__init__.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:tests/conftest.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:tests/test_smoke.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "api:GET /phone_numbers",
+   "dst": "entity:PhoneNumber",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:POST /phone_numbers",
+   "dst": "entity:PhoneNumber",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:GET /phone_numbers/{item_id}",
+   "dst": "entity:PhoneNumber",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:DELETE /phone_numbers/{item_id}",
+   "dst": "entity:PhoneNumber",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "component:country_code_repository",
+   "dst": "component:database",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:country_code_repository",
+   "dst": "entity:CountryCode",
+   "kind": "owns",
+   "props": {
+    "kind": "owns"
+   }
+  },
+  {
+   "src": "component:country_code_repository",
+   "dst": "api:GET /country-codes",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:country_code_repository",
+   "dst": "api:POST /country-code",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:country_code_repository",
+   "dst": "api:GET /country_codes",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:country_code_repository",
+   "dst": "api:POST /country_codes",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:country_code_repository",
+   "dst": "api:GET /country_codes/{item_id}",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:country_code_repository",
+   "dst": "api:DELETE /country_codes/{item_id}",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:country_code_repository",
+   "dst": "adr_eae52701e9",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:country_code_repository",
+   "dst": "file:app/services/country_code_repository.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:country_code_repository",
+   "dst": "file:app/routers/country_code_repository.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:country_code_repository",
+   "dst": "file:tests/test_country_code_repository.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:country_code_repository",
+   "dst": "test:tests/test_country_code_repository.py::test_country_code_create_and_list",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:country_code_repository",
+   "dst": "test:tests/test_country_code_repository.py::test_country_code_missing_returns_404",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "api:GET /country_codes",
+   "dst": "entity:CountryCode",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:POST /country_codes",
+   "dst": "entity:CountryCode",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:GET /country_codes/{item_id}",
+   "dst": "entity:CountryCode",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:DELETE /country_codes/{item_id}",
+   "dst": "entity:CountryCode",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "component:phone_formatter_service",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "component:country_code_repository",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "adr_eae52701e9",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "file:static/index.html",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "file:static/app.js",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "problem:9000978736",
+   "dst": "api:POST /format-phone-number",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "problem:4484153614",
+   "dst": "api:GET /country-codes",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "problem:7719587764",
+   "dst": "api:POST /country-code",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "test:tests/test_phone_formatter_service.py::test_phone_number_create_and_list",
+   "dst": "feat_f25873675f",
+   "kind": "verifies",
+   "props": {
+    "kind": "verifies"
+   }
+  },
+  {
+   "src": "test:tests/test_phone_formatter_service.py::test_phone_number_missing_returns_404",
+   "dst": "feat_f25873675f",
+   "kind": "verifies",
+   "props": {
+    "kind": "verifies"
+   }
+  },
+  {
+   "src": "test:tests/test_country_code_repository.py::test_country_code_create_and_list",
+   "dst": "feat_302bb9976f",
+   "kind": "verifies",
+   "props": {
+    "kind": "verifies"
+   }
+  },
+  {
+   "src": "test:tests/test_country_code_repository.py::test_country_code_missing_returns_404",
+   "dst": "feat_302bb9976f",
+   "kind": "verifies",
+   "props": {
+    "kind": "verifies"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:phone_formatter_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:country_code_repository",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:database",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:web_ui",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/api.md",
+   "dst": "component:phone_formatter_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/api.md",
+   "dst": "component:country_code_repository",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  }
+ ]
+}

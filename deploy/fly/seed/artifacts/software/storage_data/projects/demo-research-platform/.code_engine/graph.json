@@ -1,0 +1,1950 @@
+{
+ "project_id": "proj_95d6e8adc3",
+ "saved_at": "2026-08-07T19:34:38.133299+00:00",
+ "nodes": [
+  {
+   "id": "project",
+   "props": {
+    "kind": "project",
+    "label": "Cerebro",
+    "purpose": "A comprehensive AI research platform enabling users to explore and analyze various topics through a unified interface.",
+    "request": "Build an AI research platform that lets users investigate any topic."
+   }
+  },
+  {
+   "id": "req_eafb6f1cbe",
+   "props": {
+    "kind": "requirement",
+    "label": "Users can input any topic and receive relevant research papers, articles, and datasets.",
+    "req_kind": "functional",
+    "priority": "must"
+   }
+  },
+  {
+   "id": "req_67f1631d89",
+   "props": {
+    "kind": "requirement",
+    "label": "The platform provides a search engine for academic literature, including but not limited to arXiv, PubMed, and IEEE Xplore.",
+    "req_kind": "functional",
+    "priority": "should"
+   }
+  },
+  {
+   "id": "req_784e8ab80d",
+   "props": {
+    "kind": "requirement",
+    "label": "Store and manage user-uploaded datasets in a secure manner.",
+    "req_kind": "data",
+    "priority": "must"
+   }
+  },
+  {
+   "id": "req_4015e92cd3",
+   "props": {
+    "kind": "requirement",
+    "label": "Implement role-based access control for users, with varying levels of permissions.",
+    "req_kind": "security",
+    "priority": "should"
+   }
+  },
+  {
+   "id": "req_b02cde0438",
+   "props": {
+    "kind": "requirement",
+    "label": "Ensure the platform can handle a minimum of 10 concurrent user sessions without performance degradation.",
+    "req_kind": "nonfunctional",
+    "priority": "must"
+   }
+  },
+  {
+   "id": "req_8be5a273c4",
+   "props": {
+    "kind": "requirement",
+    "label": "Implement caching mechanisms to reduce latency and improve overall responsiveness.",
+    "req_kind": "nonfunctional",
+    "priority": "should"
+   }
+  },
+  {
+   "id": "req_9f635d0d46",
+   "props": {
+    "kind": "requirement",
+    "label": "Automated test suite covering every feature",
+    "req_kind": "nonfunctional",
+    "priority": "must"
+   }
+  },
+  {
+   "id": "feat_5e2dcf34dc",
+   "props": {
+    "kind": "feature",
+    "label": "search_academic_literature",
+    "description": "The platform provides a search engine for academic literature, including but not limited to arXiv, PubMed, and IEEE Xplore."
+   }
+  },
+  {
+   "id": "feat_b2ee1cb970",
+   "props": {
+    "kind": "feature",
+    "label": "store_user_datasets",
+    "description": "Store and manage user-uploaded datasets in a secure manner."
+   }
+  },
+  {
+   "id": "feat_f8306db7bf",
+   "props": {
+    "kind": "feature",
+    "label": "role_based_access_control",
+    "description": "Implement role-based access control for users, with varying levels of permissions."
+   }
+  },
+  {
+   "id": "feat_287ba8bdde",
+   "props": {
+    "kind": "feature",
+    "label": "handle_concurrent_user_sessions",
+    "description": "Ensure the platform can handle a minimum of 10 concurrent user sessions without performance degradation."
+   }
+  },
+  {
+   "id": "feat_54d2933a52",
+   "props": {
+    "kind": "feature",
+    "label": "implement_caching_mechanisms",
+    "description": "Implement caching mechanisms to reduce latency and improve overall responsiveness."
+   }
+  },
+  {
+   "id": "feat_33ef616177",
+   "props": {
+    "kind": "feature",
+    "label": "Cover: Users can input any topic and receive relevant res",
+    "description": "Auto-created to satisfy uncovered MUST requirement: Users can input any topic and receive relevant research papers, articles, and datasets."
+   }
+  },
+  {
+   "id": "entity:User",
+   "props": {
+    "kind": "entity",
+    "label": "User",
+    "fields": [
+     "username",
+     "email"
+    ]
+   }
+  },
+  {
+   "id": "entity:Dataset",
+   "props": {
+    "kind": "entity",
+    "label": "Dataset",
+    "fields": [
+     "title",
+     "description"
+    ]
+   }
+  },
+  {
+   "id": "component:search_service",
+   "props": {
+    "kind": "component",
+    "label": "search_service",
+    "purpose": "Search academic literature",
+    "cmp_kind": "service"
+   }
+  },
+  {
+   "id": "component:database",
+   "props": {
+    "purpose": "SQLite persistence via SQLAlchemy; session-per-request",
+    "cmp_kind": "store"
+   }
+  },
+  {
+   "id": "api:GET /users",
+   "props": {
+    "kind": "api",
+    "label": "GET /users",
+    "summary": "List User records",
+    "action": "list"
+   }
+  },
+  {
+   "id": "api:POST /users",
+   "props": {
+    "kind": "api",
+    "label": "POST /users",
+    "summary": "Create a User",
+    "action": "create"
+   }
+  },
+  {
+   "id": "api:GET /users/{item_id}",
+   "props": {
+    "kind": "api",
+    "label": "GET /users/{item_id}",
+    "summary": "Fetch one User",
+    "action": "get"
+   }
+  },
+  {
+   "id": "api:DELETE /users/{item_id}",
+   "props": {
+    "kind": "api",
+    "label": "DELETE /users/{item_id}",
+    "summary": "Delete a User",
+    "action": "delete"
+   }
+  },
+  {
+   "id": "component:dataset_service",
+   "props": {
+    "kind": "component",
+    "label": "dataset_service",
+    "purpose": "Store and manage user-uploaded datasets",
+    "cmp_kind": "service"
+   }
+  },
+  {
+   "id": "api:POST /datasets",
+   "props": {
+    "kind": "api",
+    "label": "POST /datasets",
+    "summary": "Create a new dataset",
+    "action": "create"
+   }
+  },
+  {
+   "id": "api:GET /datasets/{id}",
+   "props": {
+    "kind": "api",
+    "label": "GET /datasets/{id}",
+    "summary": "Get a dataset by ID",
+    "action": "get"
+   }
+  },
+  {
+   "id": "component:access_control_service",
+   "props": {
+    "kind": "component",
+    "label": "access_control_service",
+    "purpose": "Implement role-based access control for users",
+    "cmp_kind": "service"
+   }
+  },
+  {
+   "id": "api:POST /users/{id}/roles",
+   "props": {
+    "kind": "api",
+    "label": "POST /users/{id}/roles",
+    "summary": "Assign a role to a user",
+    "action": "create"
+   }
+  },
+  {
+   "id": "component:session_service",
+   "props": {
+    "kind": "component",
+    "label": "session_service",
+    "purpose": "Handle concurrent user sessions",
+    "cmp_kind": "service"
+   }
+  },
+  {
+   "id": "api:POST /sessions",
+   "props": {
+    "kind": "api",
+    "label": "POST /sessions",
+    "summary": "Create a new session",
+    "action": "create"
+   }
+  },
+  {
+   "id": "component:cache_service",
+   "props": {
+    "kind": "component",
+    "label": "cache_service",
+    "purpose": "Implement caching mechanisms to reduce latency and improve overall responsiveness",
+    "cmp_kind": "service"
+   }
+  },
+  {
+   "id": "component:web_ui",
+   "props": {
+    "kind": "component",
+    "label": "web_ui",
+    "purpose": "dependency-free static frontend over the API",
+    "cmp_kind": "ui"
+   }
+  },
+  {
+   "id": "adr_f139863fb5",
+   "props": {
+    "kind": "decision",
+    "label": "Stack: FastAPI + SQLAlchemy/SQLite + pytest + static JS",
+    "decision": "Generate a modular FastAPI service with SQLite persistence, pytest verification, and a dependency-free static frontend.",
+    "rationale": "Local-first constraint; single proven deep stack over shallow multi-stack pretense; every layer verifiable offline. Pattern priors considered: router_service_split, session_per_request, schema_in_schema_out, tests_per_feature"
+   }
+  },
+  {
+   "id": "ev_9d6d14bfb3",
+   "props": {
+    "kind": "evidence",
+    "label": "fastapi 0.141.1",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/fastapi/"
+   }
+  },
+  {
+   "id": "ev_fe798fbab1",
+   "props": {
+    "kind": "evidence",
+    "label": "sqlalchemy 2.0.51",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/SQLAlchemy/"
+   }
+  },
+  {
+   "id": "ev_897b0b9bad",
+   "props": {
+    "kind": "evidence",
+    "label": "pydantic 2.13.4",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/pydantic/"
+   }
+  },
+  {
+   "id": "ev_f2cb41a9f7",
+   "props": {
+    "kind": "evidence",
+    "label": "uvicorn 0.52.1",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/uvicorn/"
+   }
+  },
+  {
+   "id": "ev_fdb5538ed4",
+   "props": {
+    "kind": "evidence",
+    "label": "httpx 0.28.1",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/httpx/"
+   }
+  },
+  {
+   "id": "ev_6fdb64e48a",
+   "props": {
+    "kind": "evidence",
+    "label": "pytest 9.1.1",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/pytest/"
+   }
+  },
+  {
+   "id": "ev_e097f1408a",
+   "props": {
+    "kind": "evidence",
+    "label": "Viswanath-Balla/OneClick.AI",
+    "agent": "Open Source Research Agent",
+    "topic": "opensource",
+    "url": "https://github.com/Viswanath-Balla/OneClick.AI"
+   }
+  },
+  {
+   "id": "ev_24bcee5229",
+   "props": {
+    "kind": "evidence",
+    "label": "fastapi official documentation",
+    "agent": "Documentation Research Agent",
+    "topic": "docs",
+    "url": "https://fastapi.tiangolo.com/"
+   }
+  },
+  {
+   "id": "ev_2b789f7d38",
+   "props": {
+    "kind": "evidence",
+    "label": "sqlalchemy official documentation",
+    "agent": "Documentation Research Agent",
+    "topic": "docs",
+    "url": "https://docs.sqlalchemy.org/en/20/"
+   }
+  },
+  {
+   "id": "ev_3dbbec3c39",
+   "props": {
+    "kind": "evidence",
+    "label": "pydantic official documentation",
+    "agent": "Documentation Research Agent",
+    "topic": "docs",
+    "url": "https://docs.pydantic.dev/latest/"
+   }
+  },
+  {
+   "id": "ev_ec9f3390b1",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: fastapi \u2014 3 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=fastapi"
+   }
+  },
+  {
+   "id": "ev_b2c3d28a66",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: sqlalchemy \u2014 6 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=sqlalchemy"
+   }
+  },
+  {
+   "id": "ev_b641ab2316",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: pydantic \u2014 4 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=pydantic"
+   }
+  },
+  {
+   "id": "ev_c01792e986",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: uvicorn \u2014 4 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=uvicorn"
+   }
+  },
+  {
+   "id": "ev_bb833a9417",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: httpx \u2014 2 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=httpx"
+   }
+  },
+  {
+   "id": "ev_886fa8cf4c",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: pytest \u2014 2 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=pytest"
+   }
+  },
+  {
+   "id": "ev_12f4375920",
+   "props": {
+    "kind": "evidence",
+    "label": "Ask HN: Exploring FastAPI depths \u2013 would you tune into advanced screencasts?",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://news.ycombinator.com/item?id=38793677"
+   }
+  },
+  {
+   "id": "ev_7175a66151",
+   "props": {
+    "kind": "evidence",
+    "label": "Show HN: Secure.py \u2013 Simplify HTTP Security Headers for Python Web Apps",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://github.com/TypeError/secure"
+   }
+  },
+  {
+   "id": "ev_5c51987517",
+   "props": {
+    "kind": "evidence",
+    "label": "Show HN: AikiPedia \u2013 An Open-Source AI-Enhanced Interface for Wikipedia",
+    "agent": "UX Research Agent",
+    "topic": "ux",
+    "url": "https://aikipedia.vercel.app/"
+   }
+  },
+  {
+   "id": "ev_4d430334b6",
+   "props": {
+    "kind": "evidence",
+    "label": "Show HN: NetFabric \u2013 next-gen network monitoring solution",
+    "agent": "UX Research Agent",
+    "topic": "ux",
+    "url": "https://netfabric.ai"
+   }
+  },
+  {
+   "id": "file:requirements.txt",
+   "props": {
+    "kind": "file",
+    "label": "requirements.txt",
+    "role": "config"
+   }
+  },
+  {
+   "id": "file:requirements-dev.txt",
+   "props": {
+    "kind": "file",
+    "label": "requirements-dev.txt",
+    "role": "config"
+   }
+  },
+  {
+   "id": "file:Dockerfile",
+   "props": {
+    "kind": "file",
+    "label": "Dockerfile",
+    "role": "infra"
+   }
+  },
+  {
+   "id": "file:.gitignore",
+   "props": {
+    "kind": "file",
+    "label": ".gitignore",
+    "role": "config"
+   }
+  },
+  {
+   "id": "file:app/__init__.py",
+   "props": {
+    "kind": "file",
+    "label": "app/__init__.py",
+    "role": "package"
+   }
+  },
+  {
+   "id": "file:app/db.py",
+   "props": {
+    "kind": "file",
+    "label": "app/db.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/models.py",
+   "props": {
+    "kind": "file",
+    "label": "app/models.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/schemas.py",
+   "props": {
+    "kind": "file",
+    "label": "app/schemas.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/services/search_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/search_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/routers/search_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/search_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/services/dataset_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/dataset_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/routers/dataset_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/dataset_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/services/access_control_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/access_control_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "problem:173369857",
+   "props": {
+    "kind": "problem",
+    "label": "custom endpoint stub: POST /users/{id}/roles",
+    "source": "codegen",
+    "recorded_at": "2026-08-07T19:34:34.735281+00:00"
+   }
+  },
+  {
+   "id": "file:app/routers/access_control_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/access_control_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/services/session_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/session_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "problem:6926805793",
+   "props": {
+    "kind": "problem",
+    "label": "custom endpoint stub: POST /sessions",
+    "source": "codegen",
+    "recorded_at": "2026-08-07T19:34:34.735439+00:00"
+   }
+  },
+  {
+   "id": "file:app/routers/session_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/session_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/services/cache_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/cache_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/routers/cache_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/cache_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/main.py",
+   "props": {
+    "kind": "file",
+    "label": "app/main.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/routers/__init__.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/__init__.py",
+    "role": "package"
+   }
+  },
+  {
+   "id": "file:app/services/__init__.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/__init__.py",
+    "role": "package"
+   }
+  },
+  {
+   "id": "file:static/index.html",
+   "props": {
+    "kind": "file",
+    "label": "static/index.html",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:static/app.js",
+   "props": {
+    "kind": "file",
+    "label": "static/app.js",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:tests/conftest.py",
+   "props": {
+    "kind": "file",
+    "label": "tests/conftest.py",
+    "role": "test"
+   }
+  },
+  {
+   "id": "file:tests/test_search_service.py",
+   "props": {
+    "kind": "file",
+    "label": "tests/test_search_service.py",
+    "role": "test"
+   }
+  },
+  {
+   "id": "test:tests/test_search_service.py::test_user_create_and_list",
+   "props": {
+    "kind": "test",
+    "label": "test_user_create_and_list",
+    "path": "tests/test_search_service.py"
+   }
+  },
+  {
+   "id": "test:tests/test_search_service.py::test_user_missing_returns_404",
+   "props": {
+    "kind": "test",
+    "label": "test_user_missing_returns_404",
+    "path": "tests/test_search_service.py"
+   }
+  },
+  {
+   "id": "file:tests/test_dataset_service.py",
+   "props": {
+    "kind": "file",
+    "label": "tests/test_dataset_service.py",
+    "role": "test"
+   }
+  },
+  {
+   "id": "test:tests/test_dataset_service.py::test_dataset_missing_returns_404",
+   "props": {
+    "kind": "test",
+    "label": "test_dataset_missing_returns_404",
+    "path": "tests/test_dataset_service.py"
+   }
+  },
+  {
+   "id": "file:tests/test_smoke.py",
+   "props": {
+    "kind": "file",
+    "label": "tests/test_smoke.py",
+    "role": "test"
+   }
+  },
+  {
+   "id": "file:docs/architecture.md",
+   "props": {
+    "kind": "file",
+    "label": "docs/architecture.md",
+    "role": "doc"
+   }
+  },
+  {
+   "id": "doc:docs/architecture.md",
+   "props": {
+    "kind": "doc",
+    "label": "docs/architecture.md"
+   }
+  },
+  {
+   "id": "file:docs/api.md",
+   "props": {
+    "kind": "file",
+    "label": "docs/api.md",
+    "role": "doc"
+   }
+  },
+  {
+   "id": "doc:docs/api.md",
+   "props": {
+    "kind": "doc",
+    "label": "docs/api.md"
+   }
+  },
+  {
+   "id": "file:README.md",
+   "props": {
+    "kind": "file",
+    "label": "README.md",
+    "role": "doc"
+   }
+  },
+  {
+   "id": "problem:1347308728",
+   "props": {
+    "kind": "problem",
+    "label": "[ruff] I001: Import block is un-sorted or un-formatted",
+    "source": "verification",
+    "recorded_at": "2026-08-07T19:34:35.422195+00:00"
+   }
+  },
+  {
+   "id": "problem:3747801015",
+   "props": {
+    "kind": "problem",
+    "label": "[ruff] F401: `fastapi.Depends` imported but unused",
+    "source": "verification",
+    "recorded_at": "2026-08-07T19:34:35.422221+00:00"
+   }
+  },
+  {
+   "id": "problem:2496753035",
+   "props": {
+    "kind": "problem",
+    "label": "[ruff] F401: `fastapi.HTTPException` imported but unused",
+    "source": "verification",
+    "recorded_at": "2026-08-07T19:34:35.422224+00:00"
+   }
+  },
+  {
+   "id": "problem:1896426835",
+   "props": {
+    "kind": "problem",
+    "label": "[ruff] F401: `sqlalchemy.orm.Session` imported but unused",
+    "source": "verification",
+    "recorded_at": "2026-08-07T19:34:35.422226+00:00"
+   }
+  },
+  {
+   "id": "problem:6872910694",
+   "props": {
+    "kind": "problem",
+    "label": "[ruff] F401: `app.db.get_session` imported but unused",
+    "source": "verification",
+    "recorded_at": "2026-08-07T19:34:35.422229+00:00"
+   }
+  },
+  {
+   "id": "problem:7298783783",
+   "props": {
+    "kind": "problem",
+    "label": "[ruff] F401: `app.services.access_control_service` imported but unused",
+    "source": "verification",
+    "recorded_at": "2026-08-07T19:34:35.422219+00:00"
+   }
+  },
+  {
+   "id": "problem:9972510282",
+   "props": {
+    "kind": "problem",
+    "label": "[ruff] F401: `app.services.cache_service` imported but unused",
+    "source": "verification",
+    "recorded_at": "2026-08-07T19:34:35.422231+00:00"
+   }
+  },
+  {
+   "id": "problem:1104076778",
+   "props": {
+    "kind": "problem",
+    "label": "[ruff] RUF100: Unused `noqa` directive (unused: `F401`)",
+    "source": "verification",
+    "recorded_at": "2026-08-07T19:34:35.422243+00:00"
+   }
+  },
+  {
+   "id": "problem:3963584367",
+   "props": {
+    "kind": "problem",
+    "label": "[ruff] B008: Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or rea",
+    "source": "verification",
+    "recorded_at": "2026-08-07T19:34:35.422251+00:00"
+   }
+  },
+  {
+   "id": "problem:5702608433",
+   "props": {
+    "kind": "problem",
+    "label": "[pytest] asse...",
+    "source": "verification",
+    "recorded_at": "2026-08-07T19:34:35.422252+00:00"
+   }
+  }
+ ],
+ "edges": [
+  {
+   "src": "project",
+   "dst": "req_eafb6f1cbe",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_67f1631d89",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_784e8ab80d",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_4015e92cd3",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_b02cde0438",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_8be5a273c4",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_9f635d0d46",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "req_eafb6f1cbe",
+   "dst": "feat_33ef616177",
+   "kind": "satisfied_by",
+   "props": {
+    "kind": "satisfied_by"
+   }
+  },
+  {
+   "src": "req_67f1631d89",
+   "dst": "feat_5e2dcf34dc",
+   "kind": "satisfied_by",
+   "props": {
+    "kind": "satisfied_by"
+   }
+  },
+  {
+   "src": "req_784e8ab80d",
+   "dst": "feat_b2ee1cb970",
+   "kind": "satisfied_by",
+   "props": {
+    "kind": "satisfied_by"
+   }
+  },
+  {
+   "src": "req_4015e92cd3",
+   "dst": "feat_f8306db7bf",
+   "kind": "satisfied_by",
+   "props": {
+    "kind": "satisfied_by"
+   }
+  },
+  {
+   "src": "req_b02cde0438",
+   "dst": "feat_287ba8bdde",
+   "kind": "satisfied_by",
+   "props": {
+    "kind": "satisfied_by"
+   }
+  },
+  {
+   "src": "req_8be5a273c4",
+   "dst": "feat_54d2933a52",
+   "kind": "satisfied_by",
+   "props": {
+    "kind": "satisfied_by"
+   }
+  },
+  {
+   "src": "feat_5e2dcf34dc",
+   "dst": "component:search_service",
+   "kind": "implemented_by",
+   "props": {
+    "kind": "implemented_by"
+   }
+  },
+  {
+   "src": "feat_b2ee1cb970",
+   "dst": "component:dataset_service",
+   "kind": "implemented_by",
+   "props": {
+    "kind": "implemented_by"
+   }
+  },
+  {
+   "src": "feat_f8306db7bf",
+   "dst": "component:access_control_service",
+   "kind": "implemented_by",
+   "props": {
+    "kind": "implemented_by"
+   }
+  },
+  {
+   "src": "feat_287ba8bdde",
+   "dst": "component:session_service",
+   "kind": "implemented_by",
+   "props": {
+    "kind": "implemented_by"
+   }
+  },
+  {
+   "src": "feat_54d2933a52",
+   "dst": "component:cache_service",
+   "kind": "implemented_by",
+   "props": {
+    "kind": "implemented_by"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "component:database",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "entity:User",
+   "kind": "owns",
+   "props": {
+    "kind": "owns"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "api:GET /users",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "api:POST /users",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "api:GET /users/{item_id}",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "api:DELETE /users/{item_id}",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "adr_f139863fb5",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "ev_9d6d14bfb3",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "ev_fe798fbab1",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "ev_897b0b9bad",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "ev_f2cb41a9f7",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "ev_fdb5538ed4",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "ev_6fdb64e48a",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "ev_e097f1408a",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "ev_24bcee5229",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "ev_2b789f7d38",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "ev_3dbbec3c39",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "ev_ec9f3390b1",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "ev_b2c3d28a66",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "ev_b641ab2316",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "ev_c01792e986",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "ev_bb833a9417",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "ev_886fa8cf4c",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "ev_12f4375920",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "ev_7175a66151",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "ev_5c51987517",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "ev_4d430334b6",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "file:app/services/search_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "file:app/routers/search_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "file:app/main.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "file:tests/test_search_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "test:tests/test_search_service.py::test_user_create_and_list",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "test:tests/test_search_service.py::test_user_missing_returns_404",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "file:docs/architecture.md",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "file:docs/api.md",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:search_service",
+   "dst": "file:README.md",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "adr_f139863fb5",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:requirements.txt",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:requirements-dev.txt",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:Dockerfile",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:.gitignore",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/__init__.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/db.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/models.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/schemas.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/routers/__init__.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/services/__init__.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:tests/conftest.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:tests/test_smoke.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "api:GET /users",
+   "dst": "entity:User",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:POST /users",
+   "dst": "entity:User",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:GET /users/{item_id}",
+   "dst": "entity:User",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:DELETE /users/{item_id}",
+   "dst": "entity:User",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "component:dataset_service",
+   "dst": "component:database",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:dataset_service",
+   "dst": "component:search_service",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:dataset_service",
+   "dst": "entity:Dataset",
+   "kind": "owns",
+   "props": {
+    "kind": "owns"
+   }
+  },
+  {
+   "src": "component:dataset_service",
+   "dst": "api:POST /datasets",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:dataset_service",
+   "dst": "api:GET /datasets/{id}",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:dataset_service",
+   "dst": "adr_f139863fb5",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:dataset_service",
+   "dst": "file:app/services/dataset_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:dataset_service",
+   "dst": "file:app/routers/dataset_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:dataset_service",
+   "dst": "file:tests/test_dataset_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:dataset_service",
+   "dst": "test:tests/test_dataset_service.py::test_dataset_missing_returns_404",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "api:POST /datasets",
+   "dst": "entity:Dataset",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:GET /datasets/{id}",
+   "dst": "entity:Dataset",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "component:access_control_service",
+   "dst": "api:POST /users/{id}/roles",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:access_control_service",
+   "dst": "adr_f139863fb5",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:access_control_service",
+   "dst": "file:app/services/access_control_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:access_control_service",
+   "dst": "file:app/routers/access_control_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:session_service",
+   "dst": "api:POST /sessions",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:session_service",
+   "dst": "adr_f139863fb5",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:session_service",
+   "dst": "file:app/services/session_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:session_service",
+   "dst": "file:app/routers/session_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:cache_service",
+   "dst": "adr_f139863fb5",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:cache_service",
+   "dst": "file:app/services/cache_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:cache_service",
+   "dst": "file:app/routers/cache_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "component:search_service",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "component:dataset_service",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "component:access_control_service",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "component:session_service",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "adr_f139863fb5",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "file:static/index.html",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "file:static/app.js",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "problem:173369857",
+   "dst": "api:POST /users/{id}/roles",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "problem:6926805793",
+   "dst": "api:POST /sessions",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "test:tests/test_search_service.py::test_user_create_and_list",
+   "dst": "feat_5e2dcf34dc",
+   "kind": "verifies",
+   "props": {
+    "kind": "verifies"
+   }
+  },
+  {
+   "src": "test:tests/test_search_service.py::test_user_missing_returns_404",
+   "dst": "feat_5e2dcf34dc",
+   "kind": "verifies",
+   "props": {
+    "kind": "verifies"
+   }
+  },
+  {
+   "src": "test:tests/test_dataset_service.py::test_dataset_missing_returns_404",
+   "dst": "feat_b2ee1cb970",
+   "kind": "verifies",
+   "props": {
+    "kind": "verifies"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:search_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:dataset_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:access_control_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:session_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:cache_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:database",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:web_ui",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/api.md",
+   "dst": "component:search_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/api.md",
+   "dst": "component:dataset_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/api.md",
+   "dst": "component:access_control_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/api.md",
+   "dst": "component:session_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "problem:1347308728",
+   "dst": "component:search_service",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "problem:1347308728",
+   "dst": "component:database",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "problem:3747801015",
+   "dst": "component:access_control_service",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "problem:3747801015",
+   "dst": "component:cache_service",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "problem:2496753035",
+   "dst": "component:access_control_service",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "problem:2496753035",
+   "dst": "component:cache_service",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "problem:1896426835",
+   "dst": "component:access_control_service",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "problem:1896426835",
+   "dst": "component:cache_service",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "problem:6872910694",
+   "dst": "component:access_control_service",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "problem:6872910694",
+   "dst": "component:cache_service",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "problem:7298783783",
+   "dst": "component:access_control_service",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "problem:9972510282",
+   "dst": "component:cache_service",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "problem:1104076778",
+   "dst": "component:dataset_service",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "problem:1104076778",
+   "dst": "component:search_service",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "problem:3963584367",
+   "dst": "component:dataset_service",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "problem:3963584367",
+   "dst": "component:search_service",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "problem:5702608433",
+   "dst": "component:dataset_service",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  }
+ ]
+}

@@ -1,0 +1,1682 @@
+{
+ "project_id": "proj_0b992a7e43",
+ "saved_at": "2026-08-09T08:11:16.965669+00:00",
+ "nodes": [
+  {
+   "id": "project",
+   "props": {
+    "kind": "project",
+    "label": "Hunter Run Tracker",
+    "purpose": "A service that records and queries gate outcomes for hunter runs, enabling hunters to track their progress and optimize future hunts.",
+    "request": "a service that records and queries gate outcomes for hunter runs\n\nNOTE: the metadata catalog was consulted and holds nothing related to this request. Infer the data model from the request alone."
+   }
+  },
+  {
+   "id": "req_314d5fb787",
+   "props": {
+    "kind": "requirement",
+    "label": "Users can create a new hunt entry with gate outcomes",
+    "req_kind": "functional",
+    "priority": "must"
+   }
+  },
+  {
+   "id": "req_8bc03f510b",
+   "props": {
+    "kind": "requirement",
+    "label": "Users can view all their past hunts and gate outcomes",
+    "req_kind": "functional",
+    "priority": "should"
+   }
+  },
+  {
+   "id": "req_ef20518cc1",
+   "props": {
+    "kind": "requirement",
+    "label": "Store gate outcome data with timestamp, location, and hunter ID",
+    "req_kind": "data",
+    "priority": "must"
+   }
+  },
+  {
+   "id": "req_3a9843c271",
+   "props": {
+    "kind": "requirement",
+    "label": "Implement authentication for users to access their hunt history",
+    "req_kind": "security",
+    "priority": "should"
+   }
+  },
+  {
+   "id": "req_08db1a20d4",
+   "props": {
+    "kind": "requirement",
+    "label": "Ensure the service can handle 100 concurrent user requests without performance degradation",
+    "req_kind": "nonfunctional",
+    "priority": "must"
+   }
+  },
+  {
+   "id": "req_d380e16929",
+   "props": {
+    "kind": "requirement",
+    "label": "Allow users to filter and sort their hunt history by date, location, or gate outcome",
+    "req_kind": "data",
+    "priority": "should"
+   }
+  },
+  {
+   "id": "req_9d42759beb",
+   "props": {
+    "kind": "requirement",
+    "label": "Users can export their hunt data in CSV format",
+    "req_kind": "functional",
+    "priority": "could"
+   }
+  },
+  {
+   "id": "req_b5b3220cdc",
+   "props": {
+    "kind": "requirement",
+    "label": "Automated test suite covering every feature",
+    "req_kind": "nonfunctional",
+    "priority": "must"
+   }
+  },
+  {
+   "id": "feat_22c171346f",
+   "props": {
+    "kind": "feature",
+    "label": "create_hunt_entry",
+    "description": "Users can create a new hunt entry with gate outcomes"
+   }
+  },
+  {
+   "id": "feat_c93fbbcb1f",
+   "props": {
+    "kind": "feature",
+    "label": "view_past_hunts",
+    "description": "Users can view all their past hunts and gate outcomes"
+   }
+  },
+  {
+   "id": "feat_2667a7ae9b",
+   "props": {
+    "kind": "feature",
+    "label": "store_gate_outcome_data",
+    "description": "Store gate outcome data with timestamp, location, and hunter ID"
+   }
+  },
+  {
+   "id": "feat_15e19fa321",
+   "props": {
+    "kind": "feature",
+    "label": "authenticate_users",
+    "description": "Implement authentication for users to access their hunt history"
+   }
+  },
+  {
+   "id": "feat_4f9b51cbb7",
+   "props": {
+    "kind": "feature",
+    "label": "handle_concurrent_requests",
+    "description": "Ensure the service can handle 100 concurrent user requests without performance degradation"
+   }
+  },
+  {
+   "id": "feat_59b84a470d",
+   "props": {
+    "kind": "feature",
+    "label": "filter_and_sort_hunt_history",
+    "description": "Allow users to filter and sort their hunt history by date, location, or gate outcome"
+   }
+  },
+  {
+   "id": "feat_bd622ca384",
+   "props": {
+    "kind": "feature",
+    "label": "export_hunt_data_csv",
+    "description": "Users can export their hunt data in CSV format"
+   }
+  },
+  {
+   "id": "entity:HunterRun",
+   "props": {
+    "kind": "entity",
+    "label": "HunterRun",
+    "fields": [
+     "hunter_id",
+     "location",
+     "timestamp"
+    ]
+   }
+  },
+  {
+   "id": "entity:GateOutcome",
+   "props": {
+    "kind": "entity",
+    "label": "GateOutcome",
+    "fields": [
+     "hunter_run_id",
+     "gate_outcome"
+    ]
+   }
+  },
+  {
+   "id": "component:hunt_service",
+   "props": {
+    "kind": "component",
+    "label": "hunt_service",
+    "purpose": "Handles hunt-related operations",
+    "cmp_kind": "service"
+   }
+  },
+  {
+   "id": "component:database",
+   "props": {
+    "purpose": "SQLite persistence via SQLAlchemy; session-per-request",
+    "cmp_kind": "store"
+   }
+  },
+  {
+   "id": "api:GET /hunter_runs",
+   "props": {
+    "kind": "api",
+    "label": "GET /hunter_runs",
+    "summary": "List HunterRun records",
+    "action": "list"
+   }
+  },
+  {
+   "id": "api:POST /hunter_runs",
+   "props": {
+    "kind": "api",
+    "label": "POST /hunter_runs",
+    "summary": "Create a HunterRun",
+    "action": "create"
+   }
+  },
+  {
+   "id": "api:GET /hunter_runs/{item_id}",
+   "props": {
+    "kind": "api",
+    "label": "GET /hunter_runs/{item_id}",
+    "summary": "Fetch one HunterRun",
+    "action": "get"
+   }
+  },
+  {
+   "id": "api:DELETE /hunter_runs/{item_id}",
+   "props": {
+    "kind": "api",
+    "label": "DELETE /hunter_runs/{item_id}",
+    "summary": "Delete a HunterRun",
+    "action": "delete"
+   }
+  },
+  {
+   "id": "component:gate_outcome_service",
+   "props": {
+    "kind": "component",
+    "label": "gate_outcome_service",
+    "purpose": "Handles gate outcome-related operations",
+    "cmp_kind": "service"
+   }
+  },
+  {
+   "id": "api:GET /gate-outcomes/{item_id}",
+   "props": {
+    "kind": "api",
+    "label": "GET /gate-outcomes/{item_id}",
+    "summary": "Get gate outcome by ID",
+    "action": "get"
+   }
+  },
+  {
+   "id": "api:GET /gate-outcomes",
+   "props": {
+    "kind": "api",
+    "label": "GET /gate-outcomes",
+    "summary": "Get all gate outcomes",
+    "action": "list"
+   }
+  },
+  {
+   "id": "component:auth_service",
+   "props": {
+    "kind": "component",
+    "label": "auth_service",
+    "purpose": "Handles authentication-related operations",
+    "cmp_kind": "service"
+   }
+  },
+  {
+   "id": "api:POST /login",
+   "props": {
+    "kind": "api",
+    "label": "POST /login",
+    "summary": "Login user",
+    "action": "create"
+   }
+  },
+  {
+   "id": "api:GET /logout",
+   "props": {
+    "kind": "api",
+    "label": "GET /logout",
+    "summary": "Logout user",
+    "action": "list"
+   }
+  },
+  {
+   "id": "component:csv_export_service",
+   "props": {
+    "kind": "component",
+    "label": "csv_export_service",
+    "purpose": "Handles CSV export-related operations",
+    "cmp_kind": "service"
+   }
+  },
+  {
+   "id": "api:GET /exports/{id}",
+   "props": {
+    "kind": "api",
+    "label": "GET /exports/{id}",
+    "summary": "Get hunt data in CSV format",
+    "action": "get"
+   }
+  },
+  {
+   "id": "component:web_ui",
+   "props": {
+    "kind": "component",
+    "label": "web_ui",
+    "purpose": "dependency-free static frontend over the API",
+    "cmp_kind": "ui"
+   }
+  },
+  {
+   "id": "adr_6165a6f9b4",
+   "props": {
+    "kind": "decision",
+    "label": "Stack: FastAPI + SQLAlchemy/SQLite + pytest + static JS",
+    "decision": "Generate a modular FastAPI service with SQLite persistence, pytest verification, and a dependency-free static frontend.",
+    "rationale": "Local-first constraint; single proven deep stack over shallow multi-stack pretense; every layer verifiable offline. Pattern priors considered: router_service_split, session_per_request, schema_in_schema_out, tests_per_feature"
+   }
+  },
+  {
+   "id": "ev_c089857494",
+   "props": {
+    "kind": "evidence",
+    "label": "fastapi 0.141.1",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/fastapi/"
+   }
+  },
+  {
+   "id": "ev_1b9431a36e",
+   "props": {
+    "kind": "evidence",
+    "label": "sqlalchemy 2.0.51",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/SQLAlchemy/"
+   }
+  },
+  {
+   "id": "ev_aeabdbbfa2",
+   "props": {
+    "kind": "evidence",
+    "label": "pydantic 2.13.4",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/pydantic/"
+   }
+  },
+  {
+   "id": "ev_4b1b627496",
+   "props": {
+    "kind": "evidence",
+    "label": "uvicorn 0.52.1",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/uvicorn/"
+   }
+  },
+  {
+   "id": "ev_c65c886a17",
+   "props": {
+    "kind": "evidence",
+    "label": "httpx 0.28.1",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/httpx/"
+   }
+  },
+  {
+   "id": "ev_7999d49193",
+   "props": {
+    "kind": "evidence",
+    "label": "pytest 9.1.1",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/pytest/"
+   }
+  },
+  {
+   "id": "ev_7d3698714b",
+   "props": {
+    "kind": "evidence",
+    "label": "fastapi official documentation",
+    "agent": "Documentation Research Agent",
+    "topic": "docs",
+    "url": "https://fastapi.tiangolo.com/"
+   }
+  },
+  {
+   "id": "ev_43f9648d8a",
+   "props": {
+    "kind": "evidence",
+    "label": "sqlalchemy official documentation",
+    "agent": "Documentation Research Agent",
+    "topic": "docs",
+    "url": "https://docs.sqlalchemy.org/en/20/"
+   }
+  },
+  {
+   "id": "ev_784270524c",
+   "props": {
+    "kind": "evidence",
+    "label": "pydantic official documentation",
+    "agent": "Documentation Research Agent",
+    "topic": "docs",
+    "url": "https://docs.pydantic.dev/latest/"
+   }
+  },
+  {
+   "id": "ev_e73214377a",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: fastapi \u2014 3 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=fastapi"
+   }
+  },
+  {
+   "id": "ev_7145351dd3",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: sqlalchemy \u2014 6 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=sqlalchemy"
+   }
+  },
+  {
+   "id": "ev_8a331112fa",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: pydantic \u2014 4 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=pydantic"
+   }
+  },
+  {
+   "id": "ev_19b9bfaa30",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: uvicorn \u2014 4 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=uvicorn"
+   }
+  },
+  {
+   "id": "ev_6dbac401e3",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: httpx \u2014 2 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=httpx"
+   }
+  },
+  {
+   "id": "ev_395cef16d3",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: pytest \u2014 2 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=pytest"
+   }
+  },
+  {
+   "id": "ev_0dc99a8cd5",
+   "props": {
+    "kind": "evidence",
+    "label": "Ask HN: Exploring FastAPI depths \u2013 would you tune into advanced screencasts?",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://news.ycombinator.com/item?id=38793677"
+   }
+  },
+  {
+   "id": "ev_edd3aed41f",
+   "props": {
+    "kind": "evidence",
+    "label": "Show HN: Secure.py \u2013 Simplify HTTP Security Headers for Python Web Apps",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://github.com/TypeError/secure"
+   }
+  },
+  {
+   "id": "file:requirements.txt",
+   "props": {
+    "kind": "file",
+    "label": "requirements.txt",
+    "role": "config"
+   }
+  },
+  {
+   "id": "file:requirements-dev.txt",
+   "props": {
+    "kind": "file",
+    "label": "requirements-dev.txt",
+    "role": "config"
+   }
+  },
+  {
+   "id": "file:Dockerfile",
+   "props": {
+    "kind": "file",
+    "label": "Dockerfile",
+    "role": "infra"
+   }
+  },
+  {
+   "id": "file:.gitignore",
+   "props": {
+    "kind": "file",
+    "label": ".gitignore",
+    "role": "config"
+   }
+  },
+  {
+   "id": "file:ruff.toml",
+   "props": {
+    "kind": "file",
+    "label": "ruff.toml",
+    "role": "config"
+   }
+  },
+  {
+   "id": "file:app/__init__.py",
+   "props": {
+    "kind": "file",
+    "label": "app/__init__.py",
+    "role": "package"
+   }
+  },
+  {
+   "id": "file:app/db.py",
+   "props": {
+    "kind": "file",
+    "label": "app/db.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/models.py",
+   "props": {
+    "kind": "file",
+    "label": "app/models.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/schemas.py",
+   "props": {
+    "kind": "file",
+    "label": "app/schemas.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/services/hunt_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/hunt_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/routers/hunt_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/hunt_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/services/gate_outcome_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/gate_outcome_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "problem:5667727795",
+   "props": {
+    "kind": "problem",
+    "label": "custom endpoint stub: GET /gate-outcomes",
+    "source": "codegen",
+    "recorded_at": "2026-08-09T08:11:16.142372+00:00"
+   }
+  },
+  {
+   "id": "file:app/routers/gate_outcome_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/gate_outcome_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/services/auth_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/auth_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "problem:9766657150",
+   "props": {
+    "kind": "problem",
+    "label": "custom endpoint stub: POST /login",
+    "source": "codegen",
+    "recorded_at": "2026-08-09T08:11:16.142765+00:00"
+   }
+  },
+  {
+   "id": "problem:6116963768",
+   "props": {
+    "kind": "problem",
+    "label": "custom endpoint stub: GET /logout",
+    "source": "codegen",
+    "recorded_at": "2026-08-09T08:11:16.142786+00:00"
+   }
+  },
+  {
+   "id": "file:app/routers/auth_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/auth_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/services/csv_export_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/csv_export_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "problem:5269407824",
+   "props": {
+    "kind": "problem",
+    "label": "custom endpoint stub: GET /exports/{id}",
+    "source": "codegen",
+    "recorded_at": "2026-08-09T08:11:16.143132+00:00"
+   }
+  },
+  {
+   "id": "file:app/routers/csv_export_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/csv_export_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/main.py",
+   "props": {
+    "kind": "file",
+    "label": "app/main.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/routers/__init__.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/__init__.py",
+    "role": "package"
+   }
+  },
+  {
+   "id": "file:app/services/__init__.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/__init__.py",
+    "role": "package"
+   }
+  },
+  {
+   "id": "file:static/index.html",
+   "props": {
+    "kind": "file",
+    "label": "static/index.html",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:static/app.js",
+   "props": {
+    "kind": "file",
+    "label": "static/app.js",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:tests/conftest.py",
+   "props": {
+    "kind": "file",
+    "label": "tests/conftest.py",
+    "role": "test"
+   }
+  },
+  {
+   "id": "file:tests/test_hunt_service.py",
+   "props": {
+    "kind": "file",
+    "label": "tests/test_hunt_service.py",
+    "role": "test"
+   }
+  },
+  {
+   "id": "test:tests/test_hunt_service.py::test_hunter_run_create_and_list",
+   "props": {
+    "kind": "test",
+    "label": "test_hunter_run_create_and_list",
+    "path": "tests/test_hunt_service.py"
+   }
+  },
+  {
+   "id": "test:tests/test_hunt_service.py::test_hunter_run_missing_returns_404",
+   "props": {
+    "kind": "test",
+    "label": "test_hunter_run_missing_returns_404",
+    "path": "tests/test_hunt_service.py"
+   }
+  },
+  {
+   "id": "file:tests/test_smoke.py",
+   "props": {
+    "kind": "file",
+    "label": "tests/test_smoke.py",
+    "role": "test"
+   }
+  },
+  {
+   "id": "file:docs/architecture.md",
+   "props": {
+    "kind": "file",
+    "label": "docs/architecture.md",
+    "role": "doc"
+   }
+  },
+  {
+   "id": "doc:docs/architecture.md",
+   "props": {
+    "kind": "doc",
+    "label": "docs/architecture.md"
+   }
+  },
+  {
+   "id": "file:docs/api.md",
+   "props": {
+    "kind": "file",
+    "label": "docs/api.md",
+    "role": "doc"
+   }
+  },
+  {
+   "id": "doc:docs/api.md",
+   "props": {
+    "kind": "doc",
+    "label": "docs/api.md"
+   }
+  },
+  {
+   "id": "file:README.md",
+   "props": {
+    "kind": "file",
+    "label": "README.md",
+    "role": "doc"
+   }
+  }
+ ],
+ "edges": [
+  {
+   "src": "project",
+   "dst": "req_314d5fb787",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_8bc03f510b",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_ef20518cc1",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_3a9843c271",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_08db1a20d4",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_d380e16929",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_9d42759beb",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_b5b3220cdc",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "req_314d5fb787",
+   "dst": "feat_22c171346f",
+   "kind": "satisfied_by",
+   "props": {
+    "kind": "satisfied_by"
+   }
+  },
+  {
+   "src": "req_8bc03f510b",
+   "dst": "feat_c93fbbcb1f",
+   "kind": "satisfied_by",
+   "props": {
+    "kind": "satisfied_by"
+   }
+  },
+  {
+   "src": "req_ef20518cc1",
+   "dst": "feat_2667a7ae9b",
+   "kind": "satisfied_by",
+   "props": {
+    "kind": "satisfied_by"
+   }
+  },
+  {
+   "src": "req_3a9843c271",
+   "dst": "feat_15e19fa321",
+   "kind": "satisfied_by",
+   "props": {
+    "kind": "satisfied_by"
+   }
+  },
+  {
+   "src": "req_08db1a20d4",
+   "dst": "feat_4f9b51cbb7",
+   "kind": "satisfied_by",
+   "props": {
+    "kind": "satisfied_by"
+   }
+  },
+  {
+   "src": "req_d380e16929",
+   "dst": "feat_59b84a470d",
+   "kind": "satisfied_by",
+   "props": {
+    "kind": "satisfied_by"
+   }
+  },
+  {
+   "src": "req_9d42759beb",
+   "dst": "feat_bd622ca384",
+   "kind": "satisfied_by",
+   "props": {
+    "kind": "satisfied_by"
+   }
+  },
+  {
+   "src": "feat_22c171346f",
+   "dst": "component:hunt_service",
+   "kind": "implemented_by",
+   "props": {
+    "kind": "implemented_by"
+   }
+  },
+  {
+   "src": "feat_c93fbbcb1f",
+   "dst": "component:hunt_service",
+   "kind": "implemented_by",
+   "props": {
+    "kind": "implemented_by"
+   }
+  },
+  {
+   "src": "feat_2667a7ae9b",
+   "dst": "component:gate_outcome_service",
+   "kind": "implemented_by",
+   "props": {
+    "kind": "implemented_by"
+   }
+  },
+  {
+   "src": "feat_15e19fa321",
+   "dst": "component:auth_service",
+   "kind": "implemented_by",
+   "props": {
+    "kind": "implemented_by"
+   }
+  },
+  {
+   "src": "feat_59b84a470d",
+   "dst": "component:gate_outcome_service",
+   "kind": "implemented_by",
+   "props": {
+    "kind": "implemented_by"
+   }
+  },
+  {
+   "src": "feat_bd622ca384",
+   "dst": "component:csv_export_service",
+   "kind": "implemented_by",
+   "props": {
+    "kind": "implemented_by"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "component:database",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "entity:HunterRun",
+   "kind": "owns",
+   "props": {
+    "kind": "owns"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "api:GET /hunter_runs",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "api:POST /hunter_runs",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "api:GET /hunter_runs/{item_id}",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "api:DELETE /hunter_runs/{item_id}",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "adr_6165a6f9b4",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "ev_c089857494",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "ev_1b9431a36e",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "ev_aeabdbbfa2",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "ev_4b1b627496",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "ev_c65c886a17",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "ev_7999d49193",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "ev_7d3698714b",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "ev_43f9648d8a",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "ev_784270524c",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "ev_e73214377a",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "ev_7145351dd3",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "ev_8a331112fa",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "ev_19b9bfaa30",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "ev_6dbac401e3",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "ev_395cef16d3",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "ev_0dc99a8cd5",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "ev_edd3aed41f",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "file:app/services/hunt_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "file:app/routers/hunt_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "file:app/main.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "file:tests/test_hunt_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "test:tests/test_hunt_service.py::test_hunter_run_create_and_list",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "test:tests/test_hunt_service.py::test_hunter_run_missing_returns_404",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "file:docs/architecture.md",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "file:docs/api.md",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:hunt_service",
+   "dst": "file:README.md",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "adr_6165a6f9b4",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:requirements.txt",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:requirements-dev.txt",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:Dockerfile",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:.gitignore",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:ruff.toml",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/__init__.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/db.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/models.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/schemas.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/routers/__init__.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/services/__init__.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:tests/conftest.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:tests/test_smoke.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "api:GET /hunter_runs",
+   "dst": "entity:HunterRun",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:POST /hunter_runs",
+   "dst": "entity:HunterRun",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:GET /hunter_runs/{item_id}",
+   "dst": "entity:HunterRun",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:DELETE /hunter_runs/{item_id}",
+   "dst": "entity:HunterRun",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "component:database",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "component:hunt_service",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "entity:GateOutcome",
+   "kind": "owns",
+   "props": {
+    "kind": "owns"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "api:GET /gate-outcomes/{item_id}",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "api:GET /gate-outcomes",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "adr_6165a6f9b4",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "file:app/services/gate_outcome_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "file:app/routers/gate_outcome_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "api:GET /gate-outcomes/{item_id}",
+   "dst": "entity:GateOutcome",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "component:auth_service",
+   "dst": "api:POST /login",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:auth_service",
+   "dst": "api:GET /logout",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:auth_service",
+   "dst": "adr_6165a6f9b4",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:auth_service",
+   "dst": "file:app/services/auth_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:auth_service",
+   "dst": "file:app/routers/auth_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:csv_export_service",
+   "dst": "component:hunt_service",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:csv_export_service",
+   "dst": "api:GET /exports/{id}",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:csv_export_service",
+   "dst": "adr_6165a6f9b4",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:csv_export_service",
+   "dst": "file:app/services/csv_export_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:csv_export_service",
+   "dst": "file:app/routers/csv_export_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "component:hunt_service",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "component:gate_outcome_service",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "component:auth_service",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "component:csv_export_service",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "adr_6165a6f9b4",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "file:static/index.html",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "file:static/app.js",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "problem:5667727795",
+   "dst": "api:GET /gate-outcomes",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "problem:9766657150",
+   "dst": "api:POST /login",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "problem:6116963768",
+   "dst": "api:GET /logout",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "problem:5269407824",
+   "dst": "api:GET /exports/{id}",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "test:tests/test_hunt_service.py::test_hunter_run_create_and_list",
+   "dst": "feat_22c171346f",
+   "kind": "verifies",
+   "props": {
+    "kind": "verifies"
+   }
+  },
+  {
+   "src": "test:tests/test_hunt_service.py::test_hunter_run_missing_returns_404",
+   "dst": "feat_22c171346f",
+   "kind": "verifies",
+   "props": {
+    "kind": "verifies"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:hunt_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:gate_outcome_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:auth_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:csv_export_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:database",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:web_ui",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/api.md",
+   "dst": "component:hunt_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/api.md",
+   "dst": "component:gate_outcome_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/api.md",
+   "dst": "component:auth_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/api.md",
+   "dst": "component:csv_export_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  }
+ ]
+}

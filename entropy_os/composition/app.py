@@ -19,6 +19,7 @@ tell this is a composite rather than a leaf.
 from __future__ import annotations
 
 import asyncio
+import os
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -64,8 +65,14 @@ def build_unified_app() -> FastAPI:
     cfg = load_config()
     members = {name: RemoteEngine(m.url) for name, m in cfg.engines.items()}
     bus = EventBus(cfg.events_log_path)
-    federation = FederationBridge(cfg.datahub_gms, cfg.unified_platform,
-                                  cfg.datahub_env)
+    # ENTROPY_MIRROR marks a deployment that serves runs made elsewhere. Read
+    # here rather than inside the bridge because it is a fact about this
+    # deployment, the same kind of thing ENTROPY_PUBLIC is, and the worker and
+    # meta-studio roots deliberately do not set it: they execute.
+    federation = FederationBridge(
+        cfg.datahub_gms, cfg.unified_platform, cfg.datahub_env,
+        mirror=os.environ.get("ENTROPY_MIRROR", "").strip().lower()
+        in ("1", "true", "yes", "on"))
     composite = CompositeEngine(
         name=cfg.unified_name, members=members, bus=bus,
         federation=federation, datahub_platform=cfg.unified_platform,

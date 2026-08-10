@@ -1,0 +1,1842 @@
+{
+ "project_id": "proj_1e8c728562",
+ "saved_at": "2026-08-09T01:02:37.208842+00:00",
+ "nodes": [
+  {
+   "id": "project",
+   "props": {
+    "kind": "project",
+    "label": "String Reverser",
+    "purpose": "Provides a simple API for reversing strings, useful in text processing and data manipulation.",
+    "request": "a function that reverses a string"
+   }
+  },
+  {
+   "id": "req_681450381a",
+   "props": {
+    "kind": "requirement",
+    "label": "Reverse input string with correct character order",
+    "req_kind": "functional",
+    "priority": "must"
+   }
+  },
+  {
+   "id": "req_d16615b22a",
+   "props": {
+    "kind": "requirement",
+    "label": "Handle strings of varying lengths, including empty and single-character inputs",
+    "req_kind": "functional",
+    "priority": "should"
+   }
+  },
+  {
+   "id": "req_e9e82175e6",
+   "props": {
+    "kind": "requirement",
+    "label": "Store input string for later retrieval (e.g., debugging purposes)",
+    "req_kind": "data",
+    "priority": "could"
+   }
+  },
+  {
+   "id": "req_096594d05c",
+   "props": {
+    "kind": "requirement",
+    "label": "Prevent buffer overflow attacks by limiting input length",
+    "req_kind": "security",
+    "priority": "must"
+   }
+  },
+  {
+   "id": "req_036c90ab80",
+   "props": {
+    "kind": "requirement",
+    "label": "Achieve performance of reversing strings in under 10ms for typical inputs",
+    "req_kind": "nonfunctional",
+    "priority": "should"
+   }
+  },
+  {
+   "id": "req_68b71e313e",
+   "props": {
+    "kind": "requirement",
+    "label": "Support Unicode characters and non-ASCII encodings",
+    "req_kind": "nonfunctional",
+    "priority": "could"
+   }
+  },
+  {
+   "id": "req_5e798493ae",
+   "props": {
+    "kind": "requirement",
+    "label": "Automated test suite covering every feature",
+    "req_kind": "nonfunctional",
+    "priority": "must"
+   }
+  },
+  {
+   "id": "feat_f1037846d2",
+   "props": {
+    "kind": "feature",
+    "label": "reverse_string",
+    "description": "Reverse input string with correct character order"
+   }
+  },
+  {
+   "id": "feat_67ed830abd",
+   "props": {
+    "kind": "feature",
+    "label": "handle_various_lengths",
+    "description": "Handle strings of varying lengths, including empty and single-character inputs"
+   }
+  },
+  {
+   "id": "feat_5363f1d867",
+   "props": {
+    "kind": "feature",
+    "label": "store_input_string",
+    "description": "Store input string for later retrieval (e.g., debugging purposes)"
+   }
+  },
+  {
+   "id": "feat_04428a57aa",
+   "props": {
+    "kind": "feature",
+    "label": "prevent_buffer_overflow",
+    "description": "Prevent buffer overflow attacks by limiting input length"
+   }
+  },
+  {
+   "id": "feat_88865ae466",
+   "props": {
+    "kind": "feature",
+    "label": "achieve_performance",
+    "description": "Achieve performance of reversing strings in under 10ms for typical inputs"
+   }
+  },
+  {
+   "id": "feat_08d5371247",
+   "props": {
+    "kind": "feature",
+    "label": "support_unicode_characters",
+    "description": "Support Unicode characters and non-ASCII encodings"
+   }
+  },
+  {
+   "id": "feat_4eca0f09dc",
+   "props": {
+    "kind": "feature",
+    "label": "Cover: Reverse input string with correct character order",
+    "description": "Auto-created to satisfy uncovered MUST requirement: Reverse input string with correct character order"
+   }
+  },
+  {
+   "id": "entity:StringReversalRequest",
+   "props": {
+    "kind": "entity",
+    "label": "StringReversalRequest",
+    "fields": [
+     "input_string"
+    ]
+   }
+  },
+  {
+   "id": "entity:StringReversalResponse",
+   "props": {
+    "kind": "entity",
+    "label": "StringReversalResponse",
+    "fields": [
+     "reversed_string"
+    ]
+   }
+  },
+  {
+   "id": "component:string_reverser_service",
+   "props": {
+    "kind": "component",
+    "label": "string_reverser_service",
+    "purpose": "Reverse input string with correct character order",
+    "cmp_kind": "service"
+   }
+  },
+  {
+   "id": "component:database",
+   "props": {
+    "purpose": "SQLite persistence via SQLAlchemy; session-per-request",
+    "cmp_kind": "store"
+   }
+  },
+  {
+   "id": "api:POST /reverse-string",
+   "props": {
+    "kind": "api",
+    "label": "POST /reverse-string",
+    "summary": "Reverse input string with correct character order (limited length)",
+    "action": "create"
+   }
+  },
+  {
+   "id": "api:GET /string_reversal_requests",
+   "props": {
+    "kind": "api",
+    "label": "GET /string_reversal_requests",
+    "summary": "List StringReversalRequest records",
+    "action": "list"
+   }
+  },
+  {
+   "id": "api:POST /string_reversal_requests",
+   "props": {
+    "kind": "api",
+    "label": "POST /string_reversal_requests",
+    "summary": "Create a StringReversalRequest",
+    "action": "create"
+   }
+  },
+  {
+   "id": "api:GET /string_reversal_requests/{item_id}",
+   "props": {
+    "kind": "api",
+    "label": "GET /string_reversal_requests/{item_id}",
+    "summary": "Fetch one StringReversalRequest",
+    "action": "get"
+   }
+  },
+  {
+   "id": "api:DELETE /string_reversal_requests/{item_id}",
+   "props": {
+    "kind": "api",
+    "label": "DELETE /string_reversal_requests/{item_id}",
+    "summary": "Delete a StringReversalRequest",
+    "action": "delete"
+   }
+  },
+  {
+   "id": "api:GET /string_reversal_responses",
+   "props": {
+    "kind": "api",
+    "label": "GET /string_reversal_responses",
+    "summary": "List StringReversalResponse records",
+    "action": "list"
+   }
+  },
+  {
+   "id": "api:POST /string_reversal_responses",
+   "props": {
+    "kind": "api",
+    "label": "POST /string_reversal_responses",
+    "summary": "Create a StringReversalResponse",
+    "action": "create"
+   }
+  },
+  {
+   "id": "api:GET /string_reversal_responses/{item_id}",
+   "props": {
+    "kind": "api",
+    "label": "GET /string_reversal_responses/{item_id}",
+    "summary": "Fetch one StringReversalResponse",
+    "action": "get"
+   }
+  },
+  {
+   "id": "api:DELETE /string_reversal_responses/{item_id}",
+   "props": {
+    "kind": "api",
+    "label": "DELETE /string_reversal_responses/{item_id}",
+    "summary": "Delete a StringReversalResponse",
+    "action": "delete"
+   }
+  },
+  {
+   "id": "component:input_limiter_service",
+   "props": {
+    "kind": "component",
+    "label": "input_limiter_service",
+    "purpose": "Prevent buffer overflow attacks by limiting input length",
+    "cmp_kind": "service"
+   }
+  },
+  {
+   "id": "component:debugging_service",
+   "props": {
+    "kind": "component",
+    "label": "debugging_service",
+    "purpose": "Store input string for later retrieval (e.g., debugging purposes)",
+    "cmp_kind": "service"
+   }
+  },
+  {
+   "id": "api:GET /debugging/input-string",
+   "props": {
+    "kind": "api",
+    "label": "GET /debugging/input-string",
+    "summary": "Retrieve stored input string for debugging purposes",
+    "action": "list"
+   }
+  },
+  {
+   "id": "component:performance_monitor_service",
+   "props": {
+    "kind": "component",
+    "label": "performance_monitor_service",
+    "purpose": "Achieve performance of reversing strings in under 10ms for typical inputs",
+    "cmp_kind": "service"
+   }
+  },
+  {
+   "id": "api:GET /performance/monitoring",
+   "props": {
+    "kind": "api",
+    "label": "GET /performance/monitoring",
+    "summary": "Monitor performance of reversing strings in under 10ms for typical inputs",
+    "action": "list"
+   }
+  },
+  {
+   "id": "component:unicode_support_service",
+   "props": {
+    "kind": "component",
+    "label": "unicode_support_service",
+    "purpose": "Support Unicode characters and non-ASCII encodings",
+    "cmp_kind": "service"
+   }
+  },
+  {
+   "id": "api:POST /reverse-string/unicode-support",
+   "props": {
+    "kind": "api",
+    "label": "POST /reverse-string/unicode-support",
+    "summary": "Reverse input string with correct character order, supporting Unicode characters and non-ASCII encodings",
+    "action": "create"
+   }
+  },
+  {
+   "id": "component:web_ui",
+   "props": {
+    "kind": "component",
+    "label": "web_ui",
+    "purpose": "dependency-free static frontend over the API",
+    "cmp_kind": "ui"
+   }
+  },
+  {
+   "id": "adr_31d36f85ac",
+   "props": {
+    "kind": "decision",
+    "label": "Stack: FastAPI + SQLAlchemy/SQLite + pytest + static JS",
+    "decision": "Generate a modular FastAPI service with SQLite persistence, pytest verification, and a dependency-free static frontend.",
+    "rationale": "Local-first constraint; single proven deep stack over shallow multi-stack pretense; every layer verifiable offline. Pattern priors considered: router_service_split, session_per_request, schema_in_schema_out, tests_per_feature"
+   }
+  },
+  {
+   "id": "ev_649375c76c",
+   "props": {
+    "kind": "evidence",
+    "label": "fastapi 0.141.1",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/fastapi/"
+   }
+  },
+  {
+   "id": "ev_4cb58ce977",
+   "props": {
+    "kind": "evidence",
+    "label": "sqlalchemy 2.0.51",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/SQLAlchemy/"
+   }
+  },
+  {
+   "id": "ev_7538c55331",
+   "props": {
+    "kind": "evidence",
+    "label": "pydantic 2.13.4",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/pydantic/"
+   }
+  },
+  {
+   "id": "ev_948b91d7c7",
+   "props": {
+    "kind": "evidence",
+    "label": "uvicorn 0.52.1",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/uvicorn/"
+   }
+  },
+  {
+   "id": "ev_ca5e3a52f8",
+   "props": {
+    "kind": "evidence",
+    "label": "httpx 0.28.1",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/httpx/"
+   }
+  },
+  {
+   "id": "ev_88c213565c",
+   "props": {
+    "kind": "evidence",
+    "label": "pytest 9.1.1",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/pytest/"
+   }
+  },
+  {
+   "id": "ev_bf2f796876",
+   "props": {
+    "kind": "evidence",
+    "label": "fastapi official documentation",
+    "agent": "Documentation Research Agent",
+    "topic": "docs",
+    "url": "https://fastapi.tiangolo.com/"
+   }
+  },
+  {
+   "id": "ev_d3c1d59fbf",
+   "props": {
+    "kind": "evidence",
+    "label": "sqlalchemy official documentation",
+    "agent": "Documentation Research Agent",
+    "topic": "docs",
+    "url": "https://docs.sqlalchemy.org/en/20/"
+   }
+  },
+  {
+   "id": "ev_b685f601ca",
+   "props": {
+    "kind": "evidence",
+    "label": "pydantic official documentation",
+    "agent": "Documentation Research Agent",
+    "topic": "docs",
+    "url": "https://docs.pydantic.dev/latest/"
+   }
+  },
+  {
+   "id": "ev_db76876c72",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: fastapi \u2014 3 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=fastapi"
+   }
+  },
+  {
+   "id": "ev_52f747bebd",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: sqlalchemy \u2014 6 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=sqlalchemy"
+   }
+  },
+  {
+   "id": "ev_28db6d0413",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: pydantic \u2014 4 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=pydantic"
+   }
+  },
+  {
+   "id": "ev_7ca5ff0c60",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: uvicorn \u2014 4 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=uvicorn"
+   }
+  },
+  {
+   "id": "ev_259b8d2460",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: httpx \u2014 2 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=httpx"
+   }
+  },
+  {
+   "id": "ev_f6cab5d23c",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: pytest \u2014 2 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=pytest"
+   }
+  },
+  {
+   "id": "ev_d99e780e7d",
+   "props": {
+    "kind": "evidence",
+    "label": "Ask HN: Exploring FastAPI depths \u2013 would you tune into advanced screencasts?",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://news.ycombinator.com/item?id=38793677"
+   }
+  },
+  {
+   "id": "ev_2b3b872a98",
+   "props": {
+    "kind": "evidence",
+    "label": "Show HN: Secure.py \u2013 Simplify HTTP Security Headers for Python Web Apps",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://github.com/TypeError/secure"
+   }
+  },
+  {
+   "id": "file:requirements.txt",
+   "props": {
+    "kind": "file",
+    "label": "requirements.txt",
+    "role": "config"
+   }
+  },
+  {
+   "id": "file:requirements-dev.txt",
+   "props": {
+    "kind": "file",
+    "label": "requirements-dev.txt",
+    "role": "config"
+   }
+  },
+  {
+   "id": "file:Dockerfile",
+   "props": {
+    "kind": "file",
+    "label": "Dockerfile",
+    "role": "infra"
+   }
+  },
+  {
+   "id": "file:.gitignore",
+   "props": {
+    "kind": "file",
+    "label": ".gitignore",
+    "role": "config"
+   }
+  },
+  {
+   "id": "file:ruff.toml",
+   "props": {
+    "kind": "file",
+    "label": "ruff.toml",
+    "role": "config"
+   }
+  },
+  {
+   "id": "file:app/__init__.py",
+   "props": {
+    "kind": "file",
+    "label": "app/__init__.py",
+    "role": "package"
+   }
+  },
+  {
+   "id": "file:app/db.py",
+   "props": {
+    "kind": "file",
+    "label": "app/db.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/models.py",
+   "props": {
+    "kind": "file",
+    "label": "app/models.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/schemas.py",
+   "props": {
+    "kind": "file",
+    "label": "app/schemas.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/services/string_reverser_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/string_reverser_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "problem:2810552360",
+   "props": {
+    "kind": "problem",
+    "label": "custom endpoint stub: POST /reverse-string",
+    "source": "codegen",
+    "recorded_at": "2026-08-09T01:02:36.299318+00:00"
+   }
+  },
+  {
+   "id": "file:app/routers/string_reverser_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/string_reverser_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/services/input_limiter_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/input_limiter_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/routers/input_limiter_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/input_limiter_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/services/debugging_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/debugging_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "problem:3938324922",
+   "props": {
+    "kind": "problem",
+    "label": "custom endpoint stub: GET /debugging/input-string",
+    "source": "codegen",
+    "recorded_at": "2026-08-09T01:02:36.299602+00:00"
+   }
+  },
+  {
+   "id": "file:app/routers/debugging_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/debugging_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/services/performance_monitor_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/performance_monitor_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "problem:9721925315",
+   "props": {
+    "kind": "problem",
+    "label": "custom endpoint stub: GET /performance/monitoring",
+    "source": "codegen",
+    "recorded_at": "2026-08-09T01:02:36.299860+00:00"
+   }
+  },
+  {
+   "id": "file:app/routers/performance_monitor_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/performance_monitor_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/services/unicode_support_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/unicode_support_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "problem:2275657820",
+   "props": {
+    "kind": "problem",
+    "label": "custom endpoint stub: POST /reverse-string/unicode-support",
+    "source": "codegen",
+    "recorded_at": "2026-08-09T01:02:36.300114+00:00"
+   }
+  },
+  {
+   "id": "file:app/routers/unicode_support_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/unicode_support_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/main.py",
+   "props": {
+    "kind": "file",
+    "label": "app/main.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/routers/__init__.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/__init__.py",
+    "role": "package"
+   }
+  },
+  {
+   "id": "file:app/services/__init__.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/__init__.py",
+    "role": "package"
+   }
+  },
+  {
+   "id": "file:static/index.html",
+   "props": {
+    "kind": "file",
+    "label": "static/index.html",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:static/app.js",
+   "props": {
+    "kind": "file",
+    "label": "static/app.js",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:tests/conftest.py",
+   "props": {
+    "kind": "file",
+    "label": "tests/conftest.py",
+    "role": "test"
+   }
+  },
+  {
+   "id": "file:tests/test_string_reverser_service.py",
+   "props": {
+    "kind": "file",
+    "label": "tests/test_string_reverser_service.py",
+    "role": "test"
+   }
+  },
+  {
+   "id": "test:tests/test_string_reverser_service.py::test_string_reversal_request_create_and_list",
+   "props": {
+    "kind": "test",
+    "label": "test_string_reversal_request_create_and_list",
+    "path": "tests/test_string_reverser_service.py"
+   }
+  },
+  {
+   "id": "test:tests/test_string_reverser_service.py::test_string_reversal_request_missing_returns_404",
+   "props": {
+    "kind": "test",
+    "label": "test_string_reversal_request_missing_returns_404",
+    "path": "tests/test_string_reverser_service.py"
+   }
+  },
+  {
+   "id": "test:tests/test_string_reverser_service.py::test_string_reversal_response_create_and_list",
+   "props": {
+    "kind": "test",
+    "label": "test_string_reversal_response_create_and_list",
+    "path": "tests/test_string_reverser_service.py"
+   }
+  },
+  {
+   "id": "test:tests/test_string_reverser_service.py::test_string_reversal_response_missing_returns_404",
+   "props": {
+    "kind": "test",
+    "label": "test_string_reversal_response_missing_returns_404",
+    "path": "tests/test_string_reverser_service.py"
+   }
+  },
+  {
+   "id": "file:tests/test_smoke.py",
+   "props": {
+    "kind": "file",
+    "label": "tests/test_smoke.py",
+    "role": "test"
+   }
+  },
+  {
+   "id": "file:docs/architecture.md",
+   "props": {
+    "kind": "file",
+    "label": "docs/architecture.md",
+    "role": "doc"
+   }
+  },
+  {
+   "id": "doc:docs/architecture.md",
+   "props": {
+    "kind": "doc",
+    "label": "docs/architecture.md"
+   }
+  },
+  {
+   "id": "file:docs/api.md",
+   "props": {
+    "kind": "file",
+    "label": "docs/api.md",
+    "role": "doc"
+   }
+  },
+  {
+   "id": "doc:docs/api.md",
+   "props": {
+    "kind": "doc",
+    "label": "docs/api.md"
+   }
+  },
+  {
+   "id": "file:README.md",
+   "props": {
+    "kind": "file",
+    "label": "README.md",
+    "role": "doc"
+   }
+  }
+ ],
+ "edges": [
+  {
+   "src": "project",
+   "dst": "req_681450381a",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_d16615b22a",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_e9e82175e6",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_096594d05c",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_036c90ab80",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_68b71e313e",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_5e798493ae",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "req_681450381a",
+   "dst": "feat_4eca0f09dc",
+   "kind": "satisfied_by",
+   "props": {
+    "kind": "satisfied_by"
+   }
+  },
+  {
+   "src": "feat_f1037846d2",
+   "dst": "component:string_reverser_service",
+   "kind": "implemented_by",
+   "props": {
+    "kind": "implemented_by"
+   }
+  },
+  {
+   "src": "feat_5363f1d867",
+   "dst": "component:debugging_service",
+   "kind": "implemented_by",
+   "props": {
+    "kind": "implemented_by"
+   }
+  },
+  {
+   "src": "feat_04428a57aa",
+   "dst": "component:input_limiter_service",
+   "kind": "implemented_by",
+   "props": {
+    "kind": "implemented_by"
+   }
+  },
+  {
+   "src": "feat_88865ae466",
+   "dst": "component:performance_monitor_service",
+   "kind": "implemented_by",
+   "props": {
+    "kind": "implemented_by"
+   }
+  },
+  {
+   "src": "feat_08d5371247",
+   "dst": "component:unicode_support_service",
+   "kind": "implemented_by",
+   "props": {
+    "kind": "implemented_by"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "component:database",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "entity:StringReversalRequest",
+   "kind": "owns",
+   "props": {
+    "kind": "owns"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "entity:StringReversalResponse",
+   "kind": "owns",
+   "props": {
+    "kind": "owns"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "api:POST /reverse-string",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "api:GET /string_reversal_requests",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "api:POST /string_reversal_requests",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "api:GET /string_reversal_requests/{item_id}",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "api:DELETE /string_reversal_requests/{item_id}",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "api:GET /string_reversal_responses",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "api:POST /string_reversal_responses",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "api:GET /string_reversal_responses/{item_id}",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "api:DELETE /string_reversal_responses/{item_id}",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "adr_31d36f85ac",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "ev_649375c76c",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "ev_4cb58ce977",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "ev_7538c55331",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "ev_948b91d7c7",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "ev_ca5e3a52f8",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "ev_88c213565c",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "ev_bf2f796876",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "ev_d3c1d59fbf",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "ev_b685f601ca",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "ev_db76876c72",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "ev_52f747bebd",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "ev_28db6d0413",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "ev_7ca5ff0c60",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "ev_259b8d2460",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "ev_f6cab5d23c",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "ev_d99e780e7d",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "ev_2b3b872a98",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "file:app/services/string_reverser_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "file:app/routers/string_reverser_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "file:app/main.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "file:tests/test_string_reverser_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "test:tests/test_string_reverser_service.py::test_string_reversal_request_create_and_list",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "test:tests/test_string_reverser_service.py::test_string_reversal_request_missing_returns_404",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "test:tests/test_string_reverser_service.py::test_string_reversal_response_create_and_list",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "test:tests/test_string_reverser_service.py::test_string_reversal_response_missing_returns_404",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "file:docs/architecture.md",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "file:docs/api.md",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:string_reverser_service",
+   "dst": "file:README.md",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "adr_31d36f85ac",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:requirements.txt",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:requirements-dev.txt",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:Dockerfile",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:.gitignore",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:ruff.toml",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/__init__.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/db.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/models.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/schemas.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/routers/__init__.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/services/__init__.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:tests/conftest.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:tests/test_smoke.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "api:GET /string_reversal_requests",
+   "dst": "entity:StringReversalRequest",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:POST /string_reversal_requests",
+   "dst": "entity:StringReversalRequest",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:GET /string_reversal_requests/{item_id}",
+   "dst": "entity:StringReversalRequest",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:DELETE /string_reversal_requests/{item_id}",
+   "dst": "entity:StringReversalRequest",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:GET /string_reversal_responses",
+   "dst": "entity:StringReversalResponse",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:POST /string_reversal_responses",
+   "dst": "entity:StringReversalResponse",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:GET /string_reversal_responses/{item_id}",
+   "dst": "entity:StringReversalResponse",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:DELETE /string_reversal_responses/{item_id}",
+   "dst": "entity:StringReversalResponse",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "component:input_limiter_service",
+   "dst": "component:string_reverser_service",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:input_limiter_service",
+   "dst": "api:POST /reverse-string",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:input_limiter_service",
+   "dst": "adr_31d36f85ac",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:input_limiter_service",
+   "dst": "file:app/services/input_limiter_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:input_limiter_service",
+   "dst": "file:app/routers/input_limiter_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:debugging_service",
+   "dst": "component:string_reverser_service",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:debugging_service",
+   "dst": "component:input_limiter_service",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:debugging_service",
+   "dst": "api:GET /debugging/input-string",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:debugging_service",
+   "dst": "adr_31d36f85ac",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:debugging_service",
+   "dst": "file:app/services/debugging_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:debugging_service",
+   "dst": "file:app/routers/debugging_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:performance_monitor_service",
+   "dst": "component:string_reverser_service",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:performance_monitor_service",
+   "dst": "component:input_limiter_service",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:performance_monitor_service",
+   "dst": "api:GET /performance/monitoring",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:performance_monitor_service",
+   "dst": "adr_31d36f85ac",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:performance_monitor_service",
+   "dst": "file:app/services/performance_monitor_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:performance_monitor_service",
+   "dst": "file:app/routers/performance_monitor_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:unicode_support_service",
+   "dst": "component:string_reverser_service",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:unicode_support_service",
+   "dst": "component:input_limiter_service",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:unicode_support_service",
+   "dst": "api:POST /reverse-string/unicode-support",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:unicode_support_service",
+   "dst": "adr_31d36f85ac",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:unicode_support_service",
+   "dst": "file:app/services/unicode_support_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:unicode_support_service",
+   "dst": "file:app/routers/unicode_support_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "component:string_reverser_service",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "component:input_limiter_service",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "component:debugging_service",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "component:performance_monitor_service",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "component:unicode_support_service",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "adr_31d36f85ac",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "file:static/index.html",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "file:static/app.js",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "problem:2810552360",
+   "dst": "api:POST /reverse-string",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "problem:3938324922",
+   "dst": "api:GET /debugging/input-string",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "problem:9721925315",
+   "dst": "api:GET /performance/monitoring",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "problem:2275657820",
+   "dst": "api:POST /reverse-string/unicode-support",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "test:tests/test_string_reverser_service.py::test_string_reversal_request_create_and_list",
+   "dst": "feat_f1037846d2",
+   "kind": "verifies",
+   "props": {
+    "kind": "verifies"
+   }
+  },
+  {
+   "src": "test:tests/test_string_reverser_service.py::test_string_reversal_request_missing_returns_404",
+   "dst": "feat_f1037846d2",
+   "kind": "verifies",
+   "props": {
+    "kind": "verifies"
+   }
+  },
+  {
+   "src": "test:tests/test_string_reverser_service.py::test_string_reversal_response_create_and_list",
+   "dst": "feat_f1037846d2",
+   "kind": "verifies",
+   "props": {
+    "kind": "verifies"
+   }
+  },
+  {
+   "src": "test:tests/test_string_reverser_service.py::test_string_reversal_response_missing_returns_404",
+   "dst": "feat_f1037846d2",
+   "kind": "verifies",
+   "props": {
+    "kind": "verifies"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:string_reverser_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:input_limiter_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:debugging_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:performance_monitor_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:unicode_support_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:database",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:web_ui",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/api.md",
+   "dst": "component:string_reverser_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/api.md",
+   "dst": "component:input_limiter_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/api.md",
+   "dst": "component:debugging_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/api.md",
+   "dst": "component:performance_monitor_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/api.md",
+   "dst": "component:unicode_support_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  }
+ ]
+}

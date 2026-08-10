@@ -1,0 +1,1652 @@
+{
+ "project_id": "proj_54a90c8210",
+ "saved_at": "2026-08-09T08:32:31.496441+00:00",
+ "nodes": [
+  {
+   "id": "project",
+   "props": {
+    "kind": "project",
+    "label": "Hunter Run Outcome Tracker",
+    "purpose": "Provide a service for recording and querying gate outcomes of hunter runs, utilizing the organisation's metadata catalog.",
+    "request": "a service that records and queries gate outcomes for hunter runs\n\nUse these REAL datasets from the organisation's metadata catalog. Model your schema on their actual fields \u2014 do not invent columns, and do not rename the ones given:\n\n--- CATALOG SCHEMA ---\nopportunity-1 [veritas]\n    accepted : boole"
+   }
+  },
+  {
+   "id": "req_97ced92b49",
+   "props": {
+    "kind": "requirement",
+    "label": "Record gate outcome data from hunter runs, including accepted and rejected opportunities.",
+    "req_kind": "functional",
+    "priority": "must"
+   }
+  },
+  {
+   "id": "req_4976b2db58",
+   "props": {
+    "kind": "requirement",
+    "label": "Allow users to query recorded gate outcomes by various filters (e.g., opportunity type, model invoked).",
+    "req_kind": "functional",
+    "priority": "should"
+   }
+  },
+  {
+   "id": "req_a648012eba",
+   "props": {
+    "kind": "requirement",
+    "label": "Store data in a structured format, mirroring the organisation's metadata catalog schema.",
+    "req_kind": "data",
+    "priority": "must"
+   }
+  },
+  {
+   "id": "req_9298f07370",
+   "props": {
+    "kind": "requirement",
+    "label": "Implement authentication and authorization to restrict access to recorded gate outcomes.",
+    "req_kind": "security",
+    "priority": "should"
+   }
+  },
+  {
+   "id": "req_2df30289fc",
+   "props": {
+    "kind": "requirement",
+    "label": "Ensure the service can handle a high volume of concurrent queries without significant performance degradation.",
+    "req_kind": "nonfunctional",
+    "priority": "must"
+   }
+  },
+  {
+   "id": "req_a43ad3c41d",
+   "props": {
+    "kind": "requirement",
+    "label": "Support data export in CSV format for further analysis or processing.",
+    "req_kind": "data",
+    "priority": "should"
+   }
+  },
+  {
+   "id": "req_b5b3220cdc",
+   "props": {
+    "kind": "requirement",
+    "label": "Automated test suite covering every feature",
+    "req_kind": "nonfunctional",
+    "priority": "must"
+   }
+  },
+  {
+   "id": "feat_90dd2d9ba5",
+   "props": {
+    "kind": "feature",
+    "label": "Record gate outcome data from hunter runs",
+    "description": "Functional requirement to record gate outcomes of hunter runs, including accepted and rejected opportunities."
+   }
+  },
+  {
+   "id": "feat_b764f6957e",
+   "props": {
+    "kind": "feature",
+    "label": "Query recorded gate outcomes by filters",
+    "description": "Functional requirement to allow users to query recorded gate outcomes by various filters (e.g., opportunity type, model invoked)."
+   }
+  },
+  {
+   "id": "feat_8728faba61",
+   "props": {
+    "kind": "feature",
+    "label": "Store data in structured format",
+    "description": "Data requirement to store data in a structured format, mirroring the organisation's metadata catalog schema."
+   }
+  },
+  {
+   "id": "feat_149d6d121c",
+   "props": {
+    "kind": "feature",
+    "label": "Implement authentication and authorization",
+    "description": "Security requirement to implement authentication and authorization to restrict access to recorded gate outcomes."
+   }
+  },
+  {
+   "id": "feat_7c4b77c566",
+   "props": {
+    "kind": "feature",
+    "label": "Ensure high volume of concurrent queries performance",
+    "description": "Non-functional requirement to ensure the service can handle a high volume of concurrent queries without significant performance degradation."
+   }
+  },
+  {
+   "id": "feat_291a1ff296",
+   "props": {
+    "kind": "feature",
+    "label": "Support data export in CSV format",
+    "description": "Data requirement to support data export in CSV format for further analysis or processing."
+   }
+  },
+  {
+   "id": "entity:HunterRunOutcome",
+   "props": {
+    "kind": "entity",
+    "label": "HunterRunOutcome",
+    "fields": [
+     "hunter_run_id",
+     "opportunity_type",
+     "model_invoked",
+     "outcome"
+    ]
+   }
+  },
+  {
+   "id": "entity:Opportunity",
+   "props": {
+    "kind": "entity",
+    "label": "Opportunity",
+    "fields": [
+     "opportunity_type",
+     "model_invoked"
+    ]
+   }
+  },
+  {
+   "id": "component:gate_outcome_service",
+   "props": {
+    "kind": "component",
+    "label": "gate_outcome_service",
+    "purpose": "Record and query gate outcomes of hunter runs",
+    "cmp_kind": "service"
+   }
+  },
+  {
+   "id": "component:database",
+   "props": {
+    "purpose": "SQLite persistence via SQLAlchemy; session-per-request",
+    "cmp_kind": "store"
+   }
+  },
+  {
+   "id": "api:GET /gate-outcomes",
+   "props": {
+    "kind": "api",
+    "label": "GET /gate-outcomes",
+    "summary": "Get all gate outcomes",
+    "action": "list"
+   }
+  },
+  {
+   "id": "api:POST /gate-outcomes",
+   "props": {
+    "kind": "api",
+    "label": "POST /gate-outcomes",
+    "summary": "Create a new gate outcome",
+    "action": "create"
+   }
+  },
+  {
+   "id": "api:GET /hunter_run_outcomes",
+   "props": {
+    "kind": "api",
+    "label": "GET /hunter_run_outcomes",
+    "summary": "List HunterRunOutcome records",
+    "action": "list"
+   }
+  },
+  {
+   "id": "api:POST /hunter_run_outcomes",
+   "props": {
+    "kind": "api",
+    "label": "POST /hunter_run_outcomes",
+    "summary": "Create a HunterRunOutcome",
+    "action": "create"
+   }
+  },
+  {
+   "id": "api:GET /hunter_run_outcomes/{item_id}",
+   "props": {
+    "kind": "api",
+    "label": "GET /hunter_run_outcomes/{item_id}",
+    "summary": "Fetch one HunterRunOutcome",
+    "action": "get"
+   }
+  },
+  {
+   "id": "api:DELETE /hunter_run_outcomes/{item_id}",
+   "props": {
+    "kind": "api",
+    "label": "DELETE /hunter_run_outcomes/{item_id}",
+    "summary": "Delete a HunterRunOutcome",
+    "action": "delete"
+   }
+  },
+  {
+   "id": "api:GET /opportunitys",
+   "props": {
+    "kind": "api",
+    "label": "GET /opportunitys",
+    "summary": "List Opportunity records",
+    "action": "list"
+   }
+  },
+  {
+   "id": "api:POST /opportunitys",
+   "props": {
+    "kind": "api",
+    "label": "POST /opportunitys",
+    "summary": "Create a Opportunity",
+    "action": "create"
+   }
+  },
+  {
+   "id": "api:GET /opportunitys/{item_id}",
+   "props": {
+    "kind": "api",
+    "label": "GET /opportunitys/{item_id}",
+    "summary": "Fetch one Opportunity",
+    "action": "get"
+   }
+  },
+  {
+   "id": "api:DELETE /opportunitys/{item_id}",
+   "props": {
+    "kind": "api",
+    "label": "DELETE /opportunitys/{item_id}",
+    "summary": "Delete a Opportunity",
+    "action": "delete"
+   }
+  },
+  {
+   "id": "component:auth_service",
+   "props": {
+    "kind": "component",
+    "label": "auth_service",
+    "purpose": "Implement authentication and authorization",
+    "cmp_kind": "service"
+   }
+  },
+  {
+   "id": "api:POST /login",
+   "props": {
+    "kind": "api",
+    "label": "POST /login",
+    "summary": "Login user",
+    "action": "create"
+   }
+  },
+  {
+   "id": "api:GET /logout",
+   "props": {
+    "kind": "api",
+    "label": "GET /logout",
+    "summary": "Logout user",
+    "action": "list"
+   }
+  },
+  {
+   "id": "component:data_export_service",
+   "props": {
+    "kind": "component",
+    "label": "data_export_service",
+    "purpose": "Support data export in CSV format",
+    "cmp_kind": "service"
+   }
+  },
+  {
+   "id": "component:web_ui",
+   "props": {
+    "kind": "component",
+    "label": "web_ui",
+    "purpose": "dependency-free static frontend over the API",
+    "cmp_kind": "ui"
+   }
+  },
+  {
+   "id": "adr_18bb819707",
+   "props": {
+    "kind": "decision",
+    "label": "Stack: FastAPI + SQLAlchemy/SQLite + pytest + static JS",
+    "decision": "Generate a modular FastAPI service with SQLite persistence, pytest verification, and a dependency-free static frontend.",
+    "rationale": "Local-first constraint; single proven deep stack over shallow multi-stack pretense; every layer verifiable offline. Pattern priors considered: router_service_split, session_per_request, schema_in_schema_out, tests_per_feature"
+   }
+  },
+  {
+   "id": "ev_4f70c6200d",
+   "props": {
+    "kind": "evidence",
+    "label": "fastapi 0.141.1",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/fastapi/"
+   }
+  },
+  {
+   "id": "ev_24ced67c64",
+   "props": {
+    "kind": "evidence",
+    "label": "sqlalchemy 2.0.51",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/SQLAlchemy/"
+   }
+  },
+  {
+   "id": "ev_4ed09f3650",
+   "props": {
+    "kind": "evidence",
+    "label": "pydantic 2.13.4",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/pydantic/"
+   }
+  },
+  {
+   "id": "ev_f4daeabe92",
+   "props": {
+    "kind": "evidence",
+    "label": "uvicorn 0.52.1",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/uvicorn/"
+   }
+  },
+  {
+   "id": "ev_8436056728",
+   "props": {
+    "kind": "evidence",
+    "label": "httpx 0.28.1",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/httpx/"
+   }
+  },
+  {
+   "id": "ev_3bf49c5fcb",
+   "props": {
+    "kind": "evidence",
+    "label": "pytest 9.1.1",
+    "agent": "Technology Research Agent",
+    "topic": "technology",
+    "url": "https://pypi.org/project/pytest/"
+   }
+  },
+  {
+   "id": "ev_25f68ecc3a",
+   "props": {
+    "kind": "evidence",
+    "label": "fastapi official documentation",
+    "agent": "Documentation Research Agent",
+    "topic": "docs",
+    "url": "https://fastapi.tiangolo.com/"
+   }
+  },
+  {
+   "id": "ev_71479f761c",
+   "props": {
+    "kind": "evidence",
+    "label": "sqlalchemy official documentation",
+    "agent": "Documentation Research Agent",
+    "topic": "docs",
+    "url": "https://docs.sqlalchemy.org/en/20/"
+   }
+  },
+  {
+   "id": "ev_d2463844a5",
+   "props": {
+    "kind": "evidence",
+    "label": "pydantic official documentation",
+    "agent": "Documentation Research Agent",
+    "topic": "docs",
+    "url": "https://docs.pydantic.dev/latest/"
+   }
+  },
+  {
+   "id": "ev_62423ec4c1",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: fastapi \u2014 3 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=fastapi"
+   }
+  },
+  {
+   "id": "ev_e79e7f442c",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: sqlalchemy \u2014 6 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=sqlalchemy"
+   }
+  },
+  {
+   "id": "ev_054097ce09",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: pydantic \u2014 4 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=pydantic"
+   }
+  },
+  {
+   "id": "ev_9cf5d5581f",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: uvicorn \u2014 4 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=uvicorn"
+   }
+  },
+  {
+   "id": "ev_829e9ddc87",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: httpx \u2014 2 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=httpx"
+   }
+  },
+  {
+   "id": "ev_4b5110d0ff",
+   "props": {
+    "kind": "evidence",
+    "label": "OSV: pytest \u2014 2 known advisories (all versions)",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://osv.dev/list?ecosystem=PyPI&q=pytest"
+   }
+  },
+  {
+   "id": "ev_3360b10e64",
+   "props": {
+    "kind": "evidence",
+    "label": "Ask HN: Exploring FastAPI depths \u2013 would you tune into advanced screencasts?",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://news.ycombinator.com/item?id=38793677"
+   }
+  },
+  {
+   "id": "ev_fe0d83b003",
+   "props": {
+    "kind": "evidence",
+    "label": "Show HN: Secure.py \u2013 Simplify HTTP Security Headers for Python Web Apps",
+    "agent": "Security Research Agent",
+    "topic": "security",
+    "url": "https://github.com/TypeError/secure"
+   }
+  },
+  {
+   "id": "file:requirements.txt",
+   "props": {
+    "kind": "file",
+    "label": "requirements.txt",
+    "role": "config"
+   }
+  },
+  {
+   "id": "file:requirements-dev.txt",
+   "props": {
+    "kind": "file",
+    "label": "requirements-dev.txt",
+    "role": "config"
+   }
+  },
+  {
+   "id": "file:Dockerfile",
+   "props": {
+    "kind": "file",
+    "label": "Dockerfile",
+    "role": "infra"
+   }
+  },
+  {
+   "id": "file:.gitignore",
+   "props": {
+    "kind": "file",
+    "label": ".gitignore",
+    "role": "config"
+   }
+  },
+  {
+   "id": "file:ruff.toml",
+   "props": {
+    "kind": "file",
+    "label": "ruff.toml",
+    "role": "config"
+   }
+  },
+  {
+   "id": "file:app/__init__.py",
+   "props": {
+    "kind": "file",
+    "label": "app/__init__.py",
+    "role": "package"
+   }
+  },
+  {
+   "id": "file:app/db.py",
+   "props": {
+    "kind": "file",
+    "label": "app/db.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/models.py",
+   "props": {
+    "kind": "file",
+    "label": "app/models.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/schemas.py",
+   "props": {
+    "kind": "file",
+    "label": "app/schemas.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/services/gate_outcome_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/gate_outcome_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "problem:5667727795",
+   "props": {
+    "kind": "problem",
+    "label": "custom endpoint stub: GET /gate-outcomes",
+    "source": "codegen",
+    "recorded_at": "2026-08-09T08:32:30.618621+00:00"
+   }
+  },
+  {
+   "id": "problem:1230169097",
+   "props": {
+    "kind": "problem",
+    "label": "custom endpoint stub: POST /gate-outcomes",
+    "source": "codegen",
+    "recorded_at": "2026-08-09T08:32:30.618637+00:00"
+   }
+  },
+  {
+   "id": "file:app/routers/gate_outcome_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/gate_outcome_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/services/auth_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/auth_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "problem:9766657150",
+   "props": {
+    "kind": "problem",
+    "label": "custom endpoint stub: POST /login",
+    "source": "codegen",
+    "recorded_at": "2026-08-09T08:32:30.618875+00:00"
+   }
+  },
+  {
+   "id": "problem:6116963768",
+   "props": {
+    "kind": "problem",
+    "label": "custom endpoint stub: GET /logout",
+    "source": "codegen",
+    "recorded_at": "2026-08-09T08:32:30.618882+00:00"
+   }
+  },
+  {
+   "id": "file:app/routers/auth_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/auth_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/services/data_export_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/data_export_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/routers/data_export_service.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/data_export_service.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/main.py",
+   "props": {
+    "kind": "file",
+    "label": "app/main.py",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:app/routers/__init__.py",
+   "props": {
+    "kind": "file",
+    "label": "app/routers/__init__.py",
+    "role": "package"
+   }
+  },
+  {
+   "id": "file:app/services/__init__.py",
+   "props": {
+    "kind": "file",
+    "label": "app/services/__init__.py",
+    "role": "package"
+   }
+  },
+  {
+   "id": "file:static/index.html",
+   "props": {
+    "kind": "file",
+    "label": "static/index.html",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:static/app.js",
+   "props": {
+    "kind": "file",
+    "label": "static/app.js",
+    "role": "source"
+   }
+  },
+  {
+   "id": "file:tests/conftest.py",
+   "props": {
+    "kind": "file",
+    "label": "tests/conftest.py",
+    "role": "test"
+   }
+  },
+  {
+   "id": "file:tests/test_gate_outcome_service.py",
+   "props": {
+    "kind": "file",
+    "label": "tests/test_gate_outcome_service.py",
+    "role": "test"
+   }
+  },
+  {
+   "id": "test:tests/test_gate_outcome_service.py::test_hunter_run_outcome_create_and_list",
+   "props": {
+    "kind": "test",
+    "label": "test_hunter_run_outcome_create_and_list",
+    "path": "tests/test_gate_outcome_service.py"
+   }
+  },
+  {
+   "id": "test:tests/test_gate_outcome_service.py::test_hunter_run_outcome_missing_returns_404",
+   "props": {
+    "kind": "test",
+    "label": "test_hunter_run_outcome_missing_returns_404",
+    "path": "tests/test_gate_outcome_service.py"
+   }
+  },
+  {
+   "id": "test:tests/test_gate_outcome_service.py::test_opportunity_create_and_list",
+   "props": {
+    "kind": "test",
+    "label": "test_opportunity_create_and_list",
+    "path": "tests/test_gate_outcome_service.py"
+   }
+  },
+  {
+   "id": "test:tests/test_gate_outcome_service.py::test_opportunity_missing_returns_404",
+   "props": {
+    "kind": "test",
+    "label": "test_opportunity_missing_returns_404",
+    "path": "tests/test_gate_outcome_service.py"
+   }
+  },
+  {
+   "id": "file:tests/test_smoke.py",
+   "props": {
+    "kind": "file",
+    "label": "tests/test_smoke.py",
+    "role": "test"
+   }
+  },
+  {
+   "id": "file:docs/architecture.md",
+   "props": {
+    "kind": "file",
+    "label": "docs/architecture.md",
+    "role": "doc"
+   }
+  },
+  {
+   "id": "doc:docs/architecture.md",
+   "props": {
+    "kind": "doc",
+    "label": "docs/architecture.md"
+   }
+  },
+  {
+   "id": "file:docs/api.md",
+   "props": {
+    "kind": "file",
+    "label": "docs/api.md",
+    "role": "doc"
+   }
+  },
+  {
+   "id": "doc:docs/api.md",
+   "props": {
+    "kind": "doc",
+    "label": "docs/api.md"
+   }
+  },
+  {
+   "id": "file:README.md",
+   "props": {
+    "kind": "file",
+    "label": "README.md",
+    "role": "doc"
+   }
+  }
+ ],
+ "edges": [
+  {
+   "src": "project",
+   "dst": "req_97ced92b49",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_4976b2db58",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_a648012eba",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_9298f07370",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_2df30289fc",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_a43ad3c41d",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "project",
+   "dst": "req_b5b3220cdc",
+   "kind": "requires",
+   "props": {
+    "kind": "requires"
+   }
+  },
+  {
+   "src": "req_97ced92b49",
+   "dst": "feat_90dd2d9ba5",
+   "kind": "satisfied_by",
+   "props": {
+    "kind": "satisfied_by"
+   }
+  },
+  {
+   "src": "req_4976b2db58",
+   "dst": "feat_b764f6957e",
+   "kind": "satisfied_by",
+   "props": {
+    "kind": "satisfied_by"
+   }
+  },
+  {
+   "src": "req_a648012eba",
+   "dst": "feat_8728faba61",
+   "kind": "satisfied_by",
+   "props": {
+    "kind": "satisfied_by"
+   }
+  },
+  {
+   "src": "req_9298f07370",
+   "dst": "feat_149d6d121c",
+   "kind": "satisfied_by",
+   "props": {
+    "kind": "satisfied_by"
+   }
+  },
+  {
+   "src": "req_2df30289fc",
+   "dst": "feat_7c4b77c566",
+   "kind": "satisfied_by",
+   "props": {
+    "kind": "satisfied_by"
+   }
+  },
+  {
+   "src": "req_a43ad3c41d",
+   "dst": "feat_291a1ff296",
+   "kind": "satisfied_by",
+   "props": {
+    "kind": "satisfied_by"
+   }
+  },
+  {
+   "src": "feat_90dd2d9ba5",
+   "dst": "component:gate_outcome_service",
+   "kind": "implemented_by",
+   "props": {
+    "kind": "implemented_by"
+   }
+  },
+  {
+   "src": "feat_b764f6957e",
+   "dst": "component:gate_outcome_service",
+   "kind": "implemented_by",
+   "props": {
+    "kind": "implemented_by"
+   }
+  },
+  {
+   "src": "feat_149d6d121c",
+   "dst": "component:auth_service",
+   "kind": "implemented_by",
+   "props": {
+    "kind": "implemented_by"
+   }
+  },
+  {
+   "src": "feat_291a1ff296",
+   "dst": "component:data_export_service",
+   "kind": "implemented_by",
+   "props": {
+    "kind": "implemented_by"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "component:database",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "entity:HunterRunOutcome",
+   "kind": "owns",
+   "props": {
+    "kind": "owns"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "entity:Opportunity",
+   "kind": "owns",
+   "props": {
+    "kind": "owns"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "api:GET /gate-outcomes",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "api:POST /gate-outcomes",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "api:GET /hunter_run_outcomes",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "api:POST /hunter_run_outcomes",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "api:GET /hunter_run_outcomes/{item_id}",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "api:DELETE /hunter_run_outcomes/{item_id}",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "api:GET /opportunitys",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "api:POST /opportunitys",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "api:GET /opportunitys/{item_id}",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "api:DELETE /opportunitys/{item_id}",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "adr_18bb819707",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "ev_4f70c6200d",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "ev_24ced67c64",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "ev_4ed09f3650",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "ev_f4daeabe92",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "ev_8436056728",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "ev_3bf49c5fcb",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "ev_25f68ecc3a",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "ev_71479f761c",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "ev_d2463844a5",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "ev_62423ec4c1",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "ev_e79e7f442c",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "ev_054097ce09",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "ev_9cf5d5581f",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "ev_829e9ddc87",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "ev_4b5110d0ff",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "ev_3360b10e64",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "ev_fe0d83b003",
+   "kind": "informed_by",
+   "props": {
+    "kind": "informed_by"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "file:app/services/gate_outcome_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "file:app/routers/gate_outcome_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "file:app/main.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "file:tests/test_gate_outcome_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "test:tests/test_gate_outcome_service.py::test_hunter_run_outcome_create_and_list",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "test:tests/test_gate_outcome_service.py::test_hunter_run_outcome_missing_returns_404",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "test:tests/test_gate_outcome_service.py::test_opportunity_create_and_list",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "test:tests/test_gate_outcome_service.py::test_opportunity_missing_returns_404",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "file:docs/architecture.md",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "file:docs/api.md",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:gate_outcome_service",
+   "dst": "file:README.md",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "adr_18bb819707",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:requirements.txt",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:requirements-dev.txt",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:Dockerfile",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:.gitignore",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:ruff.toml",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/__init__.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/db.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/models.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/schemas.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/routers/__init__.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:app/services/__init__.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:tests/conftest.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:database",
+   "dst": "file:tests/test_smoke.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "api:GET /hunter_run_outcomes",
+   "dst": "entity:HunterRunOutcome",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:POST /hunter_run_outcomes",
+   "dst": "entity:HunterRunOutcome",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:GET /hunter_run_outcomes/{item_id}",
+   "dst": "entity:HunterRunOutcome",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:DELETE /hunter_run_outcomes/{item_id}",
+   "dst": "entity:HunterRunOutcome",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:GET /opportunitys",
+   "dst": "entity:Opportunity",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:POST /opportunitys",
+   "dst": "entity:Opportunity",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:GET /opportunitys/{item_id}",
+   "dst": "entity:Opportunity",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "api:DELETE /opportunitys/{item_id}",
+   "dst": "entity:Opportunity",
+   "kind": "touches",
+   "props": {
+    "kind": "touches"
+   }
+  },
+  {
+   "src": "component:auth_service",
+   "dst": "api:POST /login",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:auth_service",
+   "dst": "api:GET /logout",
+   "kind": "exposes",
+   "props": {
+    "kind": "exposes"
+   }
+  },
+  {
+   "src": "component:auth_service",
+   "dst": "adr_18bb819707",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:auth_service",
+   "dst": "file:app/services/auth_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:auth_service",
+   "dst": "file:app/routers/auth_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:data_export_service",
+   "dst": "component:gate_outcome_service",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:data_export_service",
+   "dst": "adr_18bb819707",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:data_export_service",
+   "dst": "file:app/services/data_export_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:data_export_service",
+   "dst": "file:app/routers/data_export_service.py",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "component:gate_outcome_service",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "component:auth_service",
+   "kind": "depends_on",
+   "props": {
+    "kind": "depends_on"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "adr_18bb819707",
+   "kind": "shaped_by",
+   "props": {
+    "kind": "shaped_by"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "file:static/index.html",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "component:web_ui",
+   "dst": "file:static/app.js",
+   "kind": "materialized_in",
+   "props": {
+    "kind": "materialized_in"
+   }
+  },
+  {
+   "src": "problem:5667727795",
+   "dst": "api:GET /gate-outcomes",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "problem:1230169097",
+   "dst": "api:POST /gate-outcomes",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "problem:9766657150",
+   "dst": "api:POST /login",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "problem:6116963768",
+   "dst": "api:GET /logout",
+   "kind": "afflicts",
+   "props": {
+    "kind": "afflicts"
+   }
+  },
+  {
+   "src": "test:tests/test_gate_outcome_service.py::test_hunter_run_outcome_create_and_list",
+   "dst": "feat_90dd2d9ba5",
+   "kind": "verifies",
+   "props": {
+    "kind": "verifies"
+   }
+  },
+  {
+   "src": "test:tests/test_gate_outcome_service.py::test_hunter_run_outcome_missing_returns_404",
+   "dst": "feat_90dd2d9ba5",
+   "kind": "verifies",
+   "props": {
+    "kind": "verifies"
+   }
+  },
+  {
+   "src": "test:tests/test_gate_outcome_service.py::test_opportunity_create_and_list",
+   "dst": "feat_90dd2d9ba5",
+   "kind": "verifies",
+   "props": {
+    "kind": "verifies"
+   }
+  },
+  {
+   "src": "test:tests/test_gate_outcome_service.py::test_opportunity_missing_returns_404",
+   "dst": "feat_90dd2d9ba5",
+   "kind": "verifies",
+   "props": {
+    "kind": "verifies"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:gate_outcome_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:auth_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:data_export_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:database",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/architecture.md",
+   "dst": "component:web_ui",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/api.md",
+   "dst": "component:gate_outcome_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  },
+  {
+   "src": "doc:docs/api.md",
+   "dst": "component:auth_service",
+   "kind": "documents",
+   "props": {
+    "kind": "documents"
+   }
+  }
+ ]
+}

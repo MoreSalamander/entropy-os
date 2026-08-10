@@ -15,6 +15,11 @@ primary_region = "dfw"           # matches the veritas_data volume (created clos
   VERITAS_MEMORY = "sqlite"       # per-tenant DB-backed memory
   VERITAS_ACCOUNTS = "1"          # real signup/login (not static tokens)
   ENTROPY_PUBLIC = "os"           # the hosted face: open reads, metered wedge, closed writes
+  # This deployment shows runs made on the authoring machine. Two effects:
+  # start.sh refreshes the mirrored run history from the image on every boot
+  # instead of seeding it once, and /health describes a mirror rather than
+  # reporting a missing DataHub and orchestrator it is not trying to have.
+  ENTROPY_MIRROR = "1"
   ENTROPY_DATA = "/data"
   VERITAS_MODEL = "sonnet"        # hosted default model: haiku | sonnet | opus
   VERITAS_WEDGE_QUOTA = "20"      # runs per tenant per window (rate limit + billing ledger)

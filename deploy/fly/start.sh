@@ -55,11 +55,37 @@ export ENTROPY_STORAGE
 mkdir -p "$ENTROPY_STORAGE"
 echo "engines: state on ${ENTROPY_STORAGE}/engines"
 
-# Seed the recorded run history once. Seed-if-missing, never overwrite: a live
-# machine's accumulated log outranks whatever shipped in the image.
-if [ ! -f "$ONE_ENGINE_DATA/events.jsonl" ] && [ -f /opt/one-engine-seed/events.jsonl ]; then
-  cp /opt/one-engine-seed/events.jsonl "$ONE_ENGINE_DATA/events.jsonl"
-  echo "one-engine: seeded run history ($(wc -l < "$ONE_ENGINE_DATA/events.jsonl") events)"
+# The run history, and the one place two kinds of state meet.
+#
+# This Machine holds MIRROR state — the record of runs made on the authoring
+# machine — and LIVE state — accounts, the quota ledger, memory a visitor's
+# wedge run created. They need opposite treatment, and applying one rule to
+# both is what went wrong before.
+#
+# Seed-if-missing is right for live state and was wrong here: the event log is
+# a snapshot of somebody else's machine, so a copy already on the Volume is
+# never more current than the one in the image — it is just older. Under that
+# rule the first boot seeded it and every boot after kept the first one, which
+# is exactly why the hosted face showed a frozen moment and no redeploy could
+# move it.
+#
+# So in mirror posture the image wins for this file, every boot. Nothing here
+# appends to it: composed execution is closed on the hosted face, and the
+# wedge and vending machine write to their own stores, not to this log.
+# Outside mirror posture the old rule stands, because then the log IS local.
+if [ -f /opt/one-engine-seed/events.jsonl ]; then
+  case "${ENTROPY_MIRROR:-}" in
+    1|true|yes|on)
+      cp /opt/one-engine-seed/events.jsonl "$ONE_ENGINE_DATA/events.jsonl"
+      echo "one-engine: mirror run history refreshed from image ($(wc -l < "$ONE_ENGINE_DATA/events.jsonl") events)"
+      ;;
+    *)
+      if [ ! -f "$ONE_ENGINE_DATA/events.jsonl" ]; then
+        cp /opt/one-engine-seed/events.jsonl "$ONE_ENGINE_DATA/events.jsonl"
+        echo "one-engine: seeded run history ($(wc -l < "$ONE_ENGINE_DATA/events.jsonl") events)"
+      fi
+      ;;
+  esac
 fi
 
 start_member() {  # name port
