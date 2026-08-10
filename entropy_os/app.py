@@ -2006,6 +2006,17 @@ def create_app(
     def collector_pending() -> list[dict[str, Any]]:
         return [json.loads(r.model_dump_json()) for r in collector_store.list_pending()]
 
+    @app.get("/api/collector/summary")
+    def collector_summary() -> dict[str, Any]:
+        """Why the queue is empty, when it is.
+
+        `pending: []` is the same answer whether you are caught up or the
+        collector has never run, and those want different reactions. The panel
+        collapsed itself on an empty list and showed a bare header, which read
+        as a broken feature rather than a finished inbox.
+        """
+        return dict(collector_store.summary())
+
     @app.get("/api/collector/check-explanations")
     def collector_check_explanations() -> dict[str, str]:
         """Plain-English text per structural check name — the Collector's own

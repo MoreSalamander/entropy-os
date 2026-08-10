@@ -2322,11 +2322,18 @@ function collectorToggle(id) {
 }
 
 async function loadCollector() {
-  let pending, explanations;
+  let pending, explanations, summary = null;
   try { [pending, explanations] = await Promise.all([api('/api/collector/pending'), collectorExplanations()]); }
   catch (e) { document.getElementById('collectorSec')?.classList.add('hidden'); return; }
+  try { summary = await api('/api/collector/summary'); } catch (e) { summary = null; }
   COLLECTOR_RECORDS = pending;
-  $('#collectorCnt').textContent = `${pending.length} pending`;
+  // The count sits in the header, which is the only part visible while the
+  // section is collapsed — and it collapses itself precisely when the queue is
+  // empty. "0 pending" alone was indistinguishable from a feature that had
+  // failed to load, so the header carries the decided total too.
+  $('#collectorCnt').textContent = summary
+    ? `${pending.length} pending · ${summary.decided} decided`
+    : `${pending.length} pending`;
   document.getElementById('collectorSec').classList.toggle('open', pending.length > 0);
   $('#collectorList').innerHTML = pending.length
     ? pending.map(r => `
@@ -2342,7 +2349,24 @@ async function loadCollector() {
         </div>
         <div id="collector-detail-${r.id}" style="display:none">${collectorDetail(r, explanations)}</div>
       </div>`).join('')
-    : `<div class="muted">Nothing waiting on you right now.</div>`;
+    : collectorEmptyHtml(summary);
+}
+
+// An empty queue has two very different causes and the old message covered
+// both: "nothing waiting on you" reads as caught-up, and is what you also saw
+// on a machine where nothing had ever been collected.
+function collectorEmptyHtml(s) {
+  if (!s || !s.total) {
+    return `<div class="muted">Nothing collected yet — press <b>Collect</b> on a source above
+      to offer records for admission.</div>`;
+  }
+  const when = s.last_collected
+    ? new Date(s.last_collected).toLocaleDateString(undefined,
+        {year: 'numeric', month: 'short', day: 'numeric'})
+    : 'an unrecorded date';
+  return `<div class="muted">Nothing waiting on you — every record has been decided.
+    <b>${s.decided}</b> decided (${s.admitted} admitted, ${s.declined} declined),
+    last collected ${esc(when)}. Press <b>Collect</b> on a source to offer more.</div>`;
 }
 
 async function collectorDecide(id, action) {
