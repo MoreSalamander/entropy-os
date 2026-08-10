@@ -51,6 +51,13 @@ dev = ["pytest>=8", "pytest-asyncio>=0.23", "mypy>=1.8"]
 # Reading the metadata graph before generating. An extra rather than a core
 # dependency: the system runs without a DataHub to consult, and says so.
 datahub = ["mcp-server-datahub>=0.6", "mcp>=1.29"]
+# Running the models on Claude instead of (or beside) local Ollama. An extra
+# rather than core because the default backend is local and needs none of it —
+# but a clean clone that intends to use a key needs it BEFORE the first model
+# call, not as an error message afterwards. `./dev.sh` installs it for exactly
+# that reason: someone arriving with an API key and no Ollama is a first-class
+# way to run this, not a fallback.
+claude = ["anthropic>=0.40"]
 
 [tool.setuptools.packages.find]
 include = ["entropy_os*"]

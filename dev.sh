@@ -21,11 +21,28 @@ PY="${PYTHON:-python3}"
 . .venv/bin/activate
 pip -q install --upgrade pip
 
+# [claude] on both, so a clone that arrives with an API key and no Ollama works
+# on its first model call rather than its second. The Anthropic SDK was
+# declared in veritas's `claude` extra and in the Fly image, and in neither
+# thing this script installs — so `./dev.sh` produced an environment that
+# could select Claude and then fail to import it.
+#
+# Order matters, and it used to be wrong. This app declares
+# `veritas @ git+https://github.com/MoreSalamander/veritas`, so installing it
+# re-resolves that URL and replaces any editable veritas with a copy pulled
+# from GitHub. Doing the sibling checkout FIRST meant pip silently undid it a
+# line later: `engine` and `orgs` came from site-packages, local engine edits
+# stopped taking effect, and `repo_root()` pointed at site-packages — which is
+# how two tests that read the engine's docs directory started failing with
+# nothing in this repo having changed.
+#
+# So the app goes first and the local override goes last, which is what the
+# pyproject comment beside that dependency has always claimed happens.
+pip -q install -e ".[dev,claude]"
 if [ -d ../veritas ]; then
-  pip -q install -e ../veritas
+  pip -q install -e "../veritas[claude]"
   echo "veritas: editable from ../veritas"
 fi
-pip -q install -e ".[dev]"
 # The web engine's render gate drives a real browser; each playwright version
 # wants its own build.
 playwright install chromium
